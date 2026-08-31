@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <!-- Rounded Background -->
+  <rect width="64" height="64" rx="16" fill="#0B0F19"/>
+  
+  <!-- Subtle Gradient Accent border -->
+  <rect x="1" y="1" width="62" height="62" rx="15" stroke="url(#border_grad)" stroke-width="2" stroke-opacity="0.6"/>
+
+  <!-- Candlestick 1 (Loss / Pullback in Purple/Slate) -->
+  <line x1="18" y1="20" x2="18" y2="44" stroke="#6366F1" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="14" y="26" width="8" height="12" rx="2" fill="#4F46E5"/>
+
+  <!-- Candlestick 2 (Bullish Impulse in Emerald) -->
+  <line x1="32" y1="12" x2="32" y2="52" stroke="#10B981" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="28" y="18" width="8" height="24" rx="2" fill="#10B981"/>
+
+  <!-- Candlestick 3 (Continuation in Cyan/Emerald) -->
+  <line x1="46" y1="10" x2="46" y2="40" stroke="#34D399" stroke-width="2.5" stroke-linecap="round"/>
+  <rect x="42" y="14" width="8" height="18" rx="2" fill="#059669"/>
+
+  <!-- Trending Pulse Curve -->
+  <path d="M12 42C20 38 26 28 34 26C42 24 48 16 52 14" stroke="#A7F3D0" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  
+  <!-- Target Dot at top right -->
+  <circle cx="52" cy="14" r="3.5" fill="#34D399"/>
+  <circle cx="52" cy="14" r="1.5" fill="#FFFFFF"/>
+
+  <defs>
+    <linearGradient id="border_grad" x1="0" y1="0" x2="64" y2="64" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+</svg>
