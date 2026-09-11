@@ -455,7 +455,7 @@ export default function App() {
   const appLabels = {
     he: {
       subHeaderTitle: 'מרכז בקרה ומוניטיזציה',
-      subHeaderDesc: 'סמלץ את מודל המנוי שלך בחנויות האפליקציות ($10 לחודש):',
+      subHeaderDesc: 'סמלץ את מודל המנוי שלך בחנויות האפליקציות ($25 לחודש):',
       statusLabel: 'סטטוס מנוי נוכחי:',
       premiumActive: '👑 פרימיום פעיל',
       freeActive: '🔓 גרסה חינמית (חלק נעול)',
@@ -480,7 +480,7 @@ export default function App() {
       tabCalendar: 'תצוגת לוח שנה חצי-אישי',
       calendarLockedTitle: 'תצוגת לוח השנה נעולה 📅',
       calendarLockedDesc: 'תצוגת לוח השנה המנטלי מאפשרת מעקב חזותי קליל אחר ביצועים יומיים, ציון פסיכולוגי והערות מפורטות.',
-      btnUnlockCalendar: '⚡ פתח את הלוח ב-$9.99 לחודש',
+      btnUnlockCalendar: '⚡ פתח את הלוח ב-$25 לחודש',
       resetTitle: 'איפוס נתוני יומן המסחר',
       resetBody: 'האם אתה בטוח שברצונך למחוק לחלוטין את כל העסקאות, הנתונים וההערות שנרשמו לחודש זה?',
       resetWarning: '⚠️ שים לב: פעולה זו תנקה לחלוטין גם את נתוני הסימולציה והלוקאל סטורג׳ ולא ניתן יהיה לשחזרם!',
@@ -506,7 +506,7 @@ export default function App() {
     },
     en: {
       subHeaderTitle: 'Developer Control & Monetization',
-      subHeaderDesc: 'Simulate your app store purchase flows ($10/month subscription model):',
+      subHeaderDesc: 'Simulate your app store purchase flows ($25/month subscription model):',
       statusLabel: 'Subscription State:',
       premiumActive: '👑 Pro Active',
       freeActive: '🔓 Free (Features locked)',
@@ -531,7 +531,7 @@ export default function App() {
       tabCalendar: 'Visual Calendar view',
       calendarLockedTitle: 'Mental Calendar is Locked 📅',
       calendarLockedDesc: 'The interactive mental calendar allows you to visually log emotional sentiments, ratings, and daily lessons.',
-      btnUnlockCalendar: '⚡ Unlock Calendar for $9.99/mo',
+      btnUnlockCalendar: '⚡ Unlock Calendar for $25/mo',
       resetTitle: 'Reset Monthly Logs',
       resetBody: 'Are you absolutely sure you want to permanently delete all entered trades and comments for this month?',
       resetWarning: '⚠️ Warning: This will completely wipe localStorage backup for the selected month. This cannot be undone!',
@@ -557,10 +557,10 @@ export default function App() {
     },
     ar: {
       subHeaderTitle: 'مركز التحكم والربح للمطور',
-      subHeaderDesc: 'قم بمحاكاة تدفقات المشتريات والاشتراك (10$ شهرياً):',
+      subHeaderDesc: 'قم بمحاكاة تدفقات المشتريات والاشتراك (25$ شهرياً):',
       statusLabel: 'حالة الاشتراك الحالية:',
       premiumActive: '👑 حساب متميز نشط',
-      freeActive: '🔓 النسخة المجانية (ميزات مقفلة)',
+      freeActive: '🔓 النسخة المجانية (ميزات مقפلة)',
       btnFree: 'التحويل إلى مجاني',
       btnPremium: 'تفعيل بريميوم',
       btnGuide: 'خطوات النشر بالمتجر 📱',
@@ -582,7 +582,7 @@ export default function App() {
       tabCalendar: 'عرض التقويم الذهني',
       calendarLockedTitle: 'التقويم الذهني مقفل 📅',
       calendarLockedDesc: 'يسمح لك التقويم المالي بمتابعة حالتك الذهنية والتقييمات اليومية وتدوين أهم الملاحظات بسهولة تامة.',
-      btnUnlockCalendar: '⚡ افتح التقويم بـ $9.99 شهرياً',
+      btnUnlockCalendar: '⚡ افتح التقويم بـ 25$ شهرياً',
       resetTitle: 'إعادة ضبط بيانات الشهر',
       resetBody: 'هل أنت متأكد من رغبتك في حذف جميع الصفقات والبيانات المسجلة لهذا الشهر بالكامل؟',
       resetWarning: '⚠️ تنبيه: سيتم مسح البيانات بشكل كامل من الذاكرة المحلية للجهاز ولا يمكن التراجع!',
@@ -608,7 +608,7 @@ export default function App() {
     },
     ru: {
       subHeaderTitle: 'Контроль Разработчика и Монетизация',
-      subHeaderDesc: 'Симуляция платежных сценариев в App Store ($10/мес):',
+      subHeaderDesc: 'Симуляция платежных сценариев в App Store ($25/мес):',
       statusLabel: 'Статус подписки:',
       premiumActive: '👑 Премиум активен',
       freeActive: '🔓 Бесплатный аккаунт',
@@ -633,7 +633,7 @@ export default function App() {
       tabCalendar: 'Ментальный календарь',
       calendarLockedTitle: 'Календарь заблокирован 📅',
       calendarLockedDesc: 'Ментальный календарь позволяет наглядно отслеживать настроение, дневную оценку и важные заметки.',
-      btnUnlockCalendar: '⚡ Открыть календарь за $9.99/мес',
+      btnUnlockCalendar: '⚡ Открыть календарь за $25/мес',
       resetTitle: 'Очистка дневника за месяц',
       resetBody: 'Вы абсолютно уверены, что хотите стереть все сделки, оценки и комментарии за текущий месяц?',
       resetWarning: '⚠️ Внимание: это полностью очистит локальные данные на устройстве. Восстановление невозможно!',
@@ -816,7 +816,7 @@ export default function App() {
               <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4.5 text-center space-y-1">
                 <div className="text-[11px] text-indigo-600 font-extrabold tracking-wider uppercase">{t.paywallPriceSub}</div>
                 <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-2xl font-black text-indigo-950">$9.99</span>
+                  <span className="text-2xl font-black text-indigo-950">$25</span>
                   <span className="text-slate-500 text-xs font-medium">{language === 'he' ? '/ לחודש' : '/ month'}</span>
                 </div>
                 <p className="text-slate-400 text-[10px]">{t.paywallPriceDetails}</p>
