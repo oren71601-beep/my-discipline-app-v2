@@ -215,7 +215,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallFeature3Desc: 'ייצוא קבצי גיבוי של העסקאות וטעינתם בכל זמן מכל מכשיר לשליטה מוחלטת במידע שלכם.',
     paywallPriceSub: 'מנוי מתחדש אוטומטית',
     paywallPriceDetails: 'הורדה בחינם מהאפליקציה, ביטול מנוי קל ומהיר בכל עת דרך ה-App Store / Google Play',
-    paywallBtnStart: '⚡ התחל מנוי עכשיו ($25/חודש)',
+    paywallBtnStart: '⚡ Subscribe Now ($25/month)',
     paywallConnecting: 'מתחבר ל-App Store ומאשר תשלום...',
     paywallSecuredText: 'רכישה מאובטחת. חיוב יחל רק לאחר אישור Apple ID או Google Account.',
 

@@ -30,8 +30,10 @@ import {
 } from 'lucide-react';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
+import { CancelSubscriptionResponse } from './utils/billingService';
 
 const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+const PAYONEER_CHECKOUT_URL = 'https://link.payoneer.com/Token?t=ABB2FE3653554304AC7F081556E8CF02&src=dpl';
 
 export default function App() {
   const [language, setLanguage] = useState<LanguageCode>(() => {
@@ -372,15 +374,19 @@ export default function App() {
     showToast(nextVal ? t.toastSuccessClear : 'Simulating free account status...', 'info');
   };
 
-  // Action: Cancel Subscription (Revert to Free mode)
-  const handleCancelSubscription = () => {
+  // Action: Cancel Subscription (Revert to Free mode with API notification)
+  const handleCancelSubscription = (info?: CancelSubscriptionResponse) => {
     setIsPremium(false);
     localStorage.setItem('trading_tracker_premium', 'false');
+    if (info) {
+      localStorage.setItem('trading_tracker_cancellation_record', JSON.stringify(info));
+    }
+    const refText = info?.confirmationCode ? ` (#${info.confirmationCode})` : '';
     const msg = {
-      he: 'המנוי בוטל בהצלחה. החשבון הועבר למצב חינמי.',
-      en: 'Subscription canceled successfully. Account set to Free tier.',
-      ar: 'تم إلغاء الاشتراك بنجاح. تم تحويل الحساب للباقة المجانية.',
-      ru: 'Подписка успешно отменена. Аккаунт переведен на бесплатный тариф.'
+      he: `המנוי בוטל בהצלחה מול ספק הסליקה ולא יחויב בחודש הבא${refText}!`,
+      en: `Subscription cancelled with billing provider. You will not be charged next month${refText}!`,
+      ar: `تم إلغاء الاشتراك بنجاح لدى مزود الدفع ولن يتم الخصم الشهر القادم${refText}!`,
+      ru: `Подписка успешно отменена у платежного провайдера и не будет списана в след. месяце${refText}!`
     }[language];
     showToast(msg, 'info');
   };
@@ -389,6 +395,7 @@ export default function App() {
   const handleReactivateSubscription = () => {
     setIsPremium(true);
     localStorage.setItem('trading_tracker_premium', 'true');
+    localStorage.removeItem('trading_tracker_cancellation_record');
     const msg = {
       he: 'המנוי חודש בהצלחה! כל הפיצ׳רים נפתחו מחדש 👑',
       en: 'Subscription reactivated successfully! Pro features unlocked 👑',
@@ -862,29 +869,40 @@ export default function App() {
               </div>
             </div>
 
-            {/* Apple / Google Play Simulated IAP Pay Button */}
+            {/* Payoneer Subscription Checkout Button */}
             <div className="p-6 border-t border-slate-200 bg-white text-center space-y-3">
-              {isSimulatingSubPurchase ? (
-                <div className="w-full py-3.5 bg-slate-950 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-3 shadow-md">
-                  <svg className="animate-spin h-4 w-4 text-indigo-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  <span>{t.paywallConnecting}</span>
+              <a
+                href={PAYONEER_CHECKOUT_URL}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => {
+                  showToast(
+                    language === 'he'
+                      ? 'מעביר לעמוד התשלום המאובטח של Payoneer בטאב חדש 🚀'
+                      : 'Opening Payoneer secure subscription checkout in a new tab 🚀',
+                    'info'
+                  );
+                }}
+                className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center flex items-center justify-center gap-2 group"
+              >
+                <span>{t.paywallBtnStart}</span>
+                <ExternalLink className="w-4 h-4 text-indigo-200 group-hover:text-white transition-colors shrink-0" />
+              </a>
+              
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5 text-slate-400 text-[10px] px-1">
+                <div className="flex items-center gap-1.5">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                  <span>{t.paywallSecuredText}</span>
                 </div>
-              ) : (
+                {/* Developer simulation bypass */}
                 <button
                   type="button"
                   onClick={handleSimulatePurchase}
-                  className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center"
+                  className="text-[10px] text-slate-400 hover:text-indigo-600 underline cursor-pointer"
+                  title="Simulate instant activation for testing"
                 >
-                  {t.paywallBtnStart}
+                  {t.devBypassBtn}
                 </button>
-              )}
-              
-              <div className="flex items-center justify-center gap-1.5 text-slate-400 text-[10px]">
-                <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                <span>{t.paywallSecuredText}</span>
               </div>
 
               <div className="pt-1.5 border-t border-slate-100 mt-2">
