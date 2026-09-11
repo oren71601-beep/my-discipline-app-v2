@@ -20,8 +20,14 @@ import {
 } from 'lucide-react';
 import { LanguageCode } from '../utils/translations';
 import { requestCancelSubscriptionAPI, CancelSubscriptionResponse } from '../utils/billingService';
-
-const PAYONEER_CHECKOUT_URL = 'https://link.payoneer.com/Token?t=ABB2FE3653554304AC7F081556E8CF02&src=dpl';
+import {
+  ICOUNT_CHECKOUT_URL,
+  PAYONEER_CHECKOUT_URL,
+  detectGeoLocation,
+  getCachedGeoLocation,
+  detectIsraelHeuristic,
+  GeoLocationState,
+} from '../utils/geoIpService';
 
 interface AccountBillingModalProps {
   isOpen: boolean;
@@ -44,6 +50,24 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
 }) => {
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [geoInfo, setGeoInfo] = useState<GeoLocationState>(() => {
+    const cached = getCachedGeoLocation();
+    if (cached) return cached;
+    const isIL = detectIsraelHeuristic();
+    return {
+      isIsrael: isIL,
+      countryCode: isIL ? 'IL' : 'US',
+      providerName: isIL ? 'iCount' : 'Payoneer',
+      checkoutUrl: isIL ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+      source: 'heuristic',
+    };
+  });
+
+  useEffect(() => {
+    if (!isOpen) return;
+    detectGeoLocation().then(setGeoInfo);
+  }, [isOpen]);
+
   const [cancellationRecord, setCancellationRecord] = useState<CancelSubscriptionResponse | null>(() => {
     try {
       const saved = localStorage.getItem('trading_tracker_cancellation_record');
@@ -583,7 +607,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
 
               <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0">
                 <a
-                  href={PAYONEER_CHECKOUT_URL}
+                  href={geoInfo.checkoutUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 group"

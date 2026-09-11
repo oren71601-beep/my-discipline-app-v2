@@ -31,9 +31,17 @@ import {
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
 import { CancelSubscriptionResponse } from './utils/billingService';
+import { 
+  ICOUNT_CHECKOUT_URL, 
+  PAYONEER_CHECKOUT_URL, 
+  detectGeoLocation, 
+  getCachedGeoLocation, 
+  detectIsraelHeuristic,
+  setSimulatedCountry,
+  GeoLocationState
+} from './utils/geoIpService';
 
 const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
-const PAYONEER_CHECKOUT_URL = 'https://link.payoneer.com/Token?t=ABB2FE3653554304AC7F081556E8CF02&src=dpl';
 
 export default function App() {
   const [language, setLanguage] = useState<LanguageCode>(() => {
@@ -42,6 +50,26 @@ export default function App() {
 
   const t = TRANSLATIONS[language];
   const isRtl = language === 'he' || language === 'ar';
+
+  // Geo-IP Automatic Location Detection (iCount for Israel / Payoneer for International)
+  const [geoInfo, setGeoInfo] = useState<GeoLocationState>(() => {
+    const cached = getCachedGeoLocation();
+    if (cached) return cached;
+    const isIL = detectIsraelHeuristic();
+    return {
+      isIsrael: isIL,
+      countryCode: isIL ? 'IL' : 'US',
+      providerName: isIL ? 'iCount' : 'Payoneer',
+      checkoutUrl: isIL ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+      source: 'heuristic',
+    };
+  });
+
+  useEffect(() => {
+    detectGeoLocation().then((loc) => {
+      setGeoInfo(loc);
+    });
+  }, []);
 
   // Sync HTML document direction
   useEffect(() => {
@@ -869,30 +897,68 @@ export default function App() {
               </div>
             </div>
 
-            {/* Payoneer Subscription Checkout Button */}
+            {/* Subscription Checkout Button (Geo-IP: iCount for Israel / Payoneer for International) */}
             <div className="p-6 border-t border-slate-200 bg-white text-center space-y-3">
               <a
-                href={PAYONEER_CHECKOUT_URL}
+                href={geoInfo.checkoutUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => {
                   showToast(
-                    language === 'he'
-                      ? 'מעביר לעמוד התשלום המאובטח של Payoneer בטאב חדש 🚀'
-                      : 'Opening Payoneer secure subscription checkout in a new tab 🚀',
+                    geoInfo.isIsrael
+                      ? (language === 'he'
+                          ? 'מעביר לעמוד התשלום המאובטח של iCount (סליקה בישראל) בטאב חדש 🚀'
+                          : 'Opening iCount secure subscription checkout in a new tab 🚀')
+                      : (language === 'he'
+                          ? 'מעביר לעמוד התשלום המאובטח של Payoneer בטאב חדש 🚀'
+                          : 'Opening Payoneer secure subscription checkout in a new tab 🚀'),
                     'info'
                   );
                 }}
                 className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center flex items-center justify-center gap-2 group"
               >
-                <span>{t.paywallBtnStart}</span>
+                <span>Subscribe Now ($25/month)</span>
                 <ExternalLink className="w-4 h-4 text-indigo-200 group-hover:text-white transition-colors shrink-0" />
               </a>
+
+              {/* Geo-IP Provider Info badge with fast simulation toggle */}
+              <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-500 font-medium pt-0.5">
+                <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200 font-bold">
+                  <Globe className="w-3 h-3 text-indigo-600 shrink-0" />
+                  <span>
+                    {geoInfo.isIsrael
+                      ? (language === 'he' ? 'זיהוי מיקום: ישראל (iCount 🇮🇱)' : 'Detected: Israel (iCount 🇮🇱)')
+                      : (language === 'he' ? 'זיהוי מיקום: בינלאומי (Payoneer 🌐)' : 'Detected: International (Payoneer 🌐)')}
+                  </span>
+                </span>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = setSimulatedCountry(geoInfo.isIsrael ? 'US' : 'IL');
+                    setGeoInfo(next);
+                    showToast(
+                      next.isIsrael 
+                        ? (language === 'he' ? 'מיקום הוגדר: ישראל 🇮🇱 (קישור iCount נטען)' : 'Location set: Israel 🇮🇱 (iCount link active)') 
+                        : (language === 'he' ? 'מיקום הוגדר: בינלאומי 🌐 (קישור Payoneer נטען)' : 'Location set: International 🌐 (Payoneer link active)'),
+                      'info'
+                    );
+                  }}
+                  className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold underline cursor-pointer"
+                  title="Toggle location detection simulation"
+                >
+                  {geoInfo.isIsrael ? (language === 'he' ? 'החלף לגלובלי (Payoneer)' : 'Switch to Global (Payoneer)') : (language === 'he' ? 'החלף לישראל (iCount)' : 'Switch to Israel (iCount)')}
+                </button>
+              </div>
               
               <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5 text-slate-400 text-[10px] px-1">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>{t.paywallSecuredText}</span>
+                  <span>
+                    {geoInfo.isIsrael
+                      ? (language === 'he' ? 'סליקה מאובטחת ע״י iCount (ש״ח / כרטיסי אשראי ישראליים)' : 'Secured via iCount payment gateway')
+                      : t.paywallSecuredText}
+                  </span>
                 </div>
                 {/* Developer simulation bypass */}
                 <button
