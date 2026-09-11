@@ -17,11 +17,11 @@ export interface CancelSubscriptionResponse {
 }
 
 export async function requestCancelSubscriptionAPI(params: {
-  email: string;
+  email?: string;
   subscriptionId?: string;
   reason?: string;
 }): Promise<CancelSubscriptionResponse> {
-  const email = params.email || 'oren71601@gmail.com';
+  const email = params.email || 'subscriber@trading-tracker.pro';
   const subId = params.subscriptionId || 'STJ-44354-PRO';
 
   try {

@@ -123,7 +123,7 @@ export default function LandingPage({
       featuresHeaderBadge: 'למה דווקא אנחנו',
       interactiveDemoTitle: 'חווית שימוש חיה ומיידית',
       interactiveDemoDesc: 'לחץ על כפתור הכניסה כדי לעבור ישירות ללוח הבקרה הפעיל, להזין נתונים ולראות את האנליטיקה עובדת בזמן אמת!',
-      creatorLabel: 'יוצר עבור: oren71601@gmail.com',
+      creatorLabel: 'פותח עבור סוחרים מקצועיים',
     },
     en: {
       heroBadge: '📈 Discipline-Based Mental Trading Journal',
@@ -180,7 +180,7 @@ export default function LandingPage({
       featuresHeaderBadge: 'Features',
       interactiveDemoTitle: 'Instant Live Application Experience',
       interactiveDemoDesc: 'Click the launcher button to step straight into the active tracking control dashboard, enter mock data, and see live charts populate instantly!',
-      creatorLabel: 'Configured for: oren71601@gmail.com',
+      creatorLabel: 'Designed for Professional Traders',
     }
   };
 

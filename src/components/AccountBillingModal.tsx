@@ -16,7 +16,9 @@ import {
   Shield,
   ArrowRight,
   ArrowLeft,
-  Check
+  Check,
+  User,
+  Edit3
 } from 'lucide-react';
 import { LanguageCode } from '../utils/translations';
 import { requestCancelSubscriptionAPI, CancelSubscriptionResponse } from '../utils/billingService';
@@ -35,7 +37,8 @@ interface AccountBillingModalProps {
   isPremium: boolean;
   onCancelSubscription: (info?: CancelSubscriptionResponse) => void;
   onReactivateSubscription: () => void;
-  userEmail?: string;
+  accountName?: string;
+  onUpdateAccountName?: (name: string) => void;
   language: LanguageCode;
 }
 
@@ -45,11 +48,28 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
   isPremium,
   onCancelSubscription,
   onReactivateSubscription,
-  userEmail = 'oren71601@gmail.com',
+  accountName = '',
+  onUpdateAccountName,
   language,
 }) => {
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [currentName, setCurrentName] = useState(accountName || '');
+
+  useEffect(() => {
+    if (accountName) {
+      setCurrentName(accountName);
+    }
+  }, [accountName]);
+
+  const handleSaveName = () => {
+    setIsEditingName(false);
+    const trimmed = currentName.trim();
+    if (trimmed && onUpdateAccountName) {
+      onUpdateAccountName(trimmed);
+    }
+  };
   const [geoInfo, setGeoInfo] = useState<GeoLocationState>(() => {
     const cached = getCachedGeoLocation();
     if (cached) return cached;
@@ -295,7 +315,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     try {
       // Send real cancellation request to billing provider API
       const result = await requestCancelSubscriptionAPI({
-        email: userEmail,
+        email: accountName || 'subscriber@trading-tracker.pro',
         subscriptionId: 'STJ-44354-PRO',
         reason: 'User requested cancellation in Billing & Account Settings modal',
       });
@@ -352,32 +372,99 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
         {/* Body Content */}
         <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto bg-slate-50/50">
           
-          {/* User Profile Card */}
+          {/* User Profile Card - Shown conditionally: Free vs. Active Pro Account Name */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center text-white font-black text-sm shadow-sm shrink-0">
-                {userEmail.charAt(0).toUpperCase()}
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-sm shadow-sm shrink-0 ${
+                isPremium 
+                  ? 'bg-gradient-to-br from-indigo-500 to-indigo-700 text-white' 
+                  : 'bg-slate-100 text-slate-500 border border-slate-200'
+              }`}>
+                {isPremium ? (
+                  <Crown className="w-5 h-5 text-amber-300" />
+                ) : (
+                  <User className="w-5 h-5 text-slate-500" />
+                )}
               </div>
               <div>
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-black text-slate-900">{userEmail}</span>
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    {l.userStatus}
-                  </span>
+                  {isPremium ? (
+                    isEditingName ? (
+                      <div className="flex items-center gap-1">
+                        <input
+                          type="text"
+                          value={currentName}
+                          onChange={(e) => setCurrentName(e.target.value)}
+                          onKeyDown={(e) => e.key === 'Enter' && handleSaveName()}
+                          className="text-xs font-black text-slate-900 border border-indigo-300 rounded-lg px-2 py-0.5 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          autoFocus
+                        />
+                        <button
+                          type="button"
+                          onClick={handleSaveName}
+                          className="p-1 text-emerald-600 hover:text-emerald-700 cursor-pointer"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-black text-slate-900">
+                          {accountName || (language === 'he' ? 'סוחר Pro' : 'Pro Trader')}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingName(true)}
+                          className="text-slate-400 hover:text-indigo-600 cursor-pointer p-0.5"
+                          title={language === 'he' ? 'ערוך שם חשבון' : 'Edit Account Name'}
+                        >
+                          <Edit3 className="w-3 h-3" />
+                        </button>
+                      </div>
+                    )
+                  ) : (
+                    <span className="text-xs font-bold text-slate-700">
+                      {language === 'he' ? 'תוכנית חינמית (אורח)' : 'Free Tier (Guest)'}
+                    </span>
+                  )}
+
+                  {isPremium ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-full">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      {l.userStatus}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-full">
+                      {language === 'he' ? 'גישה בסיסית' : 'Basic Tier'}
+                    </span>
+                  )}
                 </div>
+
                 <div className="text-[11px] text-slate-500 flex items-center gap-2 mt-0.5">
-                  <span className="font-semibold text-indigo-600">{l.userRole}</span>
-                  <span>•</span>
-                  <span className="font-mono text-slate-400 text-[10px]">STJ-44354-PRO</span>
+                  <span className="font-semibold text-indigo-600">
+                    {isPremium ? l.userRole : (language === 'he' ? 'שם החשבון יופעל לאחר רכישת מנוי' : 'Account name appears after subscribing')}
+                  </span>
+                  {isPremium && (
+                    <>
+                      <span>•</span>
+                      <span className="font-mono text-slate-400 text-[10px]">STJ-44354-PRO</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
 
             <div className="self-end sm:self-center">
-              <span className="text-[10px] bg-slate-100 text-slate-600 font-mono font-medium px-2.5 py-1 rounded-lg border border-slate-200">
-                oren71601@gmail.com
-              </span>
+              {isPremium ? (
+                <span className="text-[10px] bg-indigo-50 text-indigo-700 font-extrabold px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1">
+                  <Crown className="w-3 h-3 text-amber-500" />
+                  <span>PRO MEMBER</span>
+                </span>
+              ) : (
+                <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-lg border border-slate-200">
+                  {language === 'he' ? 'ללא מנוי' : 'FREE PLAN'}
+                </span>
+              )}
             </div>
           </div>
 

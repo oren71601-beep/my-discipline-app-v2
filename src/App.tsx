@@ -26,7 +26,8 @@ import {
   ShieldCheck,
   Globe,
   CreditCard,
-  UserCheck
+  UserCheck,
+  Crown
 } from 'lucide-react';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
@@ -103,6 +104,15 @@ export default function App() {
   const [isPremium, setIsPremium] = useState<boolean>(() => {
     return localStorage.getItem('trading_tracker_premium') === 'true';
   });
+  const [accountName, setAccountName] = useState<string>(() => {
+    return localStorage.getItem('trading_tracker_account_name') || '';
+  });
+
+  const handleUpdateAccountName = (newName: string) => {
+    setAccountName(newName);
+    localStorage.setItem('trading_tracker_account_name', newName);
+  };
+
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showBillingModal, setShowBillingModal] = useState<boolean>(false);
   const [isSimulatingSubPurchase, setIsSimulatingSubPurchase] = useState<boolean>(false);
@@ -399,6 +409,11 @@ export default function App() {
     const nextVal = !isPremium;
     setIsPremium(nextVal);
     localStorage.setItem('trading_tracker_premium', String(nextVal));
+    if (nextVal && !accountName) {
+      const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
+      setAccountName(defaultName);
+      localStorage.setItem('trading_tracker_account_name', defaultName);
+    }
     showToast(nextVal ? t.toastSuccessClear : 'Simulating free account status...', 'info');
   };
 
@@ -424,6 +439,11 @@ export default function App() {
     setIsPremium(true);
     localStorage.setItem('trading_tracker_premium', 'true');
     localStorage.removeItem('trading_tracker_cancellation_record');
+    if (!accountName) {
+      const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
+      setAccountName(defaultName);
+      localStorage.setItem('trading_tracker_account_name', defaultName);
+    }
     const msg = {
       he: 'המנוי חודש בהצלחה! כל הפיצ׳רים נפתחו מחדש 👑',
       en: 'Subscription reactivated successfully! Pro features unlocked 👑',
@@ -441,6 +461,11 @@ export default function App() {
       setIsPremium(true);
       localStorage.setItem('trading_tracker_premium', 'true');
       setShowPaywallModal(false);
+      if (!accountName) {
+        const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
+        setAccountName(defaultName);
+        localStorage.setItem('trading_tracker_account_name', defaultName);
+      }
       
       const successMsg = {
         he: 'הרכישה הושלמה בהצלחה דרך ה-App Store! תודה על ההצטרפות 🚀',
@@ -552,7 +577,7 @@ export default function App() {
       btnConfirmReset: 'כן, מחק והתחל מחדש',
       btnCancelReset: 'בטל וחזור',
       viewGuidePaywall: 'צפה במסך הרכישה (Paywall)',
-      creatorLabel: 'יוצר עבור: oren71601@gmail.com',
+      creatorLabel: 'פותח עבור סוחרים מקצועיים',
       footerCopyright: '© 2026 לוח מעקב מסחר חודשי ממוחשב - כל הזכויות שמורות. מעקב סיכונים (R) ויציבות פסיכולוגית.',
       legendTitle: 'מקרא קיצורים והסברים על יתרונות היומן האנליטי',
       legendDevTitle: 'סטיות מהתוכנית המקורית:',
@@ -603,7 +628,7 @@ export default function App() {
       btnConfirmReset: 'Yes, Wipe Everything',
       btnCancelReset: 'Cancel',
       viewGuidePaywall: 'View Subscription Screen (Paywall)',
-      creatorLabel: 'Configured for: oren71601@gmail.com',
+      creatorLabel: 'Designed for Professional Traders',
       footerCopyright: '© 2026 Professional Trading Journal - All rights reserved. Built to track psychological trading performance.',
       legendTitle: 'Trading Metrics Legend & Performance Advantages',
       legendDevTitle: 'Rule Deviations:',
@@ -654,7 +679,7 @@ export default function App() {
       btnConfirmReset: 'نعم، احذف كل شيء',
       btnCancelReset: 'إلغاء وتراجع',
       viewGuidePaywall: 'عرض شاشة الاشتراك (Paywall)',
-      creatorLabel: 'مخصص لـ: oren71601@gmail.com',
+      creatorLabel: 'مصمم خصيصاً للمتداولين المحترفين',
       footerCopyright: '© 2026 دفتر تداول الأداء والعقلية - جميع الحقوق محفوظة. تتبع عوائد المخاطرة (R).',
       legendTitle: 'مصطلحات التداول وفوائد الدفتر التحليلي',
       legendDevTitle: 'الانحرافות عن الخطة:',
@@ -705,7 +730,7 @@ export default function App() {
       btnConfirmReset: 'Да, стереть всё',
       btnCancelReset: 'Отмена',
       viewGuidePaywall: 'Посмотреть окно оплаты (Paywall)',
-      creatorLabel: 'Создано для: oren71601@gmail.com',
+      creatorLabel: 'Создано для профессиональных трейдеров',
       footerCopyright: '© 2026 Профессиональный Дневник Трейдера - Все права защищены. Учет рисков (R) и дисциплины.',
       legendTitle: 'Обозначения метрик и преимущества торгового анализа',
       legendDevTitle: 'Нарушения дисциплины:',
@@ -1066,18 +1091,37 @@ export default function App() {
           {/* Quick Date Selectors & Language Selectors Panel */}
           <div className="flex flex-wrap items-center gap-2.5">
 
-            {/* Logged-In User Account & Billing Settings Button */}
+            {/* User Account / Upgrade to Pro Button */}
             <button
               onClick={() => setShowBillingModal(true)}
               className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl px-2.5 py-1.5 border border-slate-700 transition-all cursor-pointer shadow-xs group"
-              title={language === 'he' ? 'ניהול מנוי והגדרות חשבון' : 'Billing & Account Settings'}
+              title={
+                isPremium
+                  ? (language === 'he' ? 'ניהול מנוי והגדרות חשבון' : 'Billing & Account Settings')
+                  : (language === 'he' ? 'שדרוג לחשבון Pro' : 'Upgrade to Pro')
+              }
             >
-              <div className="w-6 h-6 rounded-lg bg-indigo-600 group-hover:bg-indigo-500 flex items-center justify-center text-xs font-black text-white shrink-0 shadow-xs transition-colors">
-                <CreditCard className="w-3.5 h-3.5 text-white" />
+              <div className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black text-white shrink-0 shadow-xs transition-colors ${
+                isPremium 
+                  ? 'bg-gradient-to-tr from-amber-500 to-indigo-600' 
+                  : 'bg-indigo-600 group-hover:bg-indigo-500'
+              }`}>
+                {isPremium ? (
+                  <Crown className="w-3.5 h-3.5 text-amber-200" />
+                ) : (
+                  <Sparkles className="w-3.5 h-3.5 text-indigo-200" />
+                )}
               </div>
               <div className="flex flex-col text-start leading-tight">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-200">oren71601</span>
+                  <span className="text-[11px] font-bold text-slate-200">
+                    {isPremium ? (accountName || (language === 'he' ? 'סוחר Pro' : 'Pro Trader')) : (
+                      language === 'he' ? 'שדרוג ל-Pro' :
+                      language === 'ar' ? 'ترقية إلى Pro' :
+                      language === 'ru' ? 'Перейти на Pro' :
+                      'Upgrade to Pro'
+                    )}
+                  </span>
                   <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full ${
                     isPremium ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
                   }`}>
@@ -1085,7 +1129,9 @@ export default function App() {
                   </span>
                 </div>
                 <span className="text-[10px] text-indigo-300 group-hover:text-indigo-200 font-medium">
-                  {language === 'he' ? 'ניהול מנוי' : 'Billing'}
+                  {isPremium 
+                    ? (language === 'he' ? 'מנוי פעיל 👑' : 'Active Pro 👑') 
+                    : (language === 'he' ? 'הפעל מנוי ⚡' : 'Subscribe ⚡')}
                 </span>
               </div>
             </button>
@@ -1426,7 +1472,8 @@ export default function App() {
         isPremium={isPremium}
         onCancelSubscription={handleCancelSubscription}
         onReactivateSubscription={handleReactivateSubscription}
-        userEmail="oren71601@gmail.com"
+        accountName={accountName}
+        onUpdateAccountName={handleUpdateAccountName}
         language={language}
       />
 
