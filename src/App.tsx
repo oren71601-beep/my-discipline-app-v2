@@ -24,9 +24,12 @@ import {
   Smartphone,
   ExternalLink,
   ShieldCheck,
-  Globe
+  Globe,
+  CreditCard,
+  UserCheck
 } from 'lucide-react';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
+import { AccountBillingModal } from './components/AccountBillingModal';
 
 const YEARS = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
 
@@ -71,6 +74,7 @@ export default function App() {
     return localStorage.getItem('trading_tracker_premium') === 'true';
   });
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
+  const [showBillingModal, setShowBillingModal] = useState<boolean>(false);
   const [isSimulatingSubPurchase, setIsSimulatingSubPurchase] = useState<boolean>(false);
   const [showLanding, setShowLanding] = useState<boolean>(() => {
     const saved = localStorage.getItem('trading_tracker_show_landing');
@@ -366,6 +370,32 @@ export default function App() {
     setIsPremium(nextVal);
     localStorage.setItem('trading_tracker_premium', String(nextVal));
     showToast(nextVal ? t.toastSuccessClear : 'Simulating free account status...', 'info');
+  };
+
+  // Action: Cancel Subscription (Revert to Free mode)
+  const handleCancelSubscription = () => {
+    setIsPremium(false);
+    localStorage.setItem('trading_tracker_premium', 'false');
+    const msg = {
+      he: 'המנוי בוטל בהצלחה. החשבון הועבר למצב חינמי.',
+      en: 'Subscription canceled successfully. Account set to Free tier.',
+      ar: 'تم إلغاء الاشتراك بنجاح. تم تحويل الحساب للباقة المجانية.',
+      ru: 'Подписка успешно отменена. Аккаунт переведен на бесплатный тариф.'
+    }[language];
+    showToast(msg, 'info');
+  };
+
+  // Action: Reactivate Subscription (Upgrade to Pro)
+  const handleReactivateSubscription = () => {
+    setIsPremium(true);
+    localStorage.setItem('trading_tracker_premium', 'true');
+    const msg = {
+      he: 'המנוי חודש בהצלחה! כל הפיצ׳רים נפתחו מחדש 👑',
+      en: 'Subscription reactivated successfully! Pro features unlocked 👑',
+      ar: 'تمت إعادة تفعيل الاشتراك بنجاح! ميزات البريميوم مفتوحة 👑',
+      ru: 'Подписка успешно возобновлена! Все Pro функции разблокированы 👑'
+    }[language];
+    showToast(msg, 'success');
   };
 
   // Action: Simulate App Store IAP Purchase
@@ -715,7 +745,16 @@ export default function App() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 self-start md:self-auto">
+          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+            {/* Open Billing & Account Settings */}
+            <button
+              onClick={() => setShowBillingModal(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-white border-slate-700 cursor-pointer shadow-xs"
+            >
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{language === 'he' ? 'ניהול מנוי וחיובים 💳' : 'Billing & Account 💳'}</span>
+            </button>
+
             {/* Open marketing landing page & media hub */}
             <button
               onClick={() => setShowLanding(true)}
@@ -847,6 +886,19 @@ export default function App() {
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                 <span>{t.paywallSecuredText}</span>
               </div>
+
+              <div className="pt-1.5 border-t border-slate-100 mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPaywallModal(false);
+                    setShowBillingModal(true);
+                  }}
+                  className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                >
+                  {language === 'he' ? 'כבר מנוי? נהל את המנוי והחשבון שלך כאן ⚙️' : 'Already subscribed? Manage billing & account here ⚙️'}
+                </button>
+              </div>
             </div>
 
           </div>
@@ -929,6 +981,30 @@ export default function App() {
 
           {/* Quick Date Selectors & Language Selectors Panel */}
           <div className="flex flex-wrap items-center gap-2.5">
+
+            {/* Logged-In User Account & Billing Settings Button */}
+            <button
+              onClick={() => setShowBillingModal(true)}
+              className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl px-2.5 py-1.5 border border-slate-700 transition-all cursor-pointer shadow-xs group"
+              title={language === 'he' ? 'ניהול מנוי והגדרות חשבון' : 'Billing & Account Settings'}
+            >
+              <div className="w-6 h-6 rounded-lg bg-indigo-600 group-hover:bg-indigo-500 flex items-center justify-center text-xs font-black text-white shrink-0 shadow-xs transition-colors">
+                <CreditCard className="w-3.5 h-3.5 text-white" />
+              </div>
+              <div className="flex flex-col text-start leading-tight">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[11px] font-bold text-slate-200">oren71601</span>
+                  <span className={`text-[9px] font-extrabold px-1.5 py-0.2 rounded-full ${
+                    isPremium ? 'bg-emerald-500/20 text-emerald-300' : 'bg-amber-500/20 text-amber-300'
+                  }`}>
+                    {isPremium ? 'PRO' : 'FREE'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-indigo-300 group-hover:text-indigo-200 font-medium">
+                  {language === 'he' ? 'ניהול מנוי' : 'Billing'}
+                </span>
+              </div>
+            </button>
             
             {/* Language Selector */}
             <div className="flex items-center gap-1.5 bg-slate-800 rounded-xl px-2.5 py-1.5 border border-slate-700">
@@ -1248,9 +1324,27 @@ export default function App() {
       </main>
 
       {/* Compact footer */}
-      <footer className="mt-8 border-t border-slate-200 py-6 text-center text-xs text-slate-400 max-w-7xl mx-auto px-4">
+      <footer className="mt-8 border-t border-slate-200 py-6 text-center text-xs text-slate-400 max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p>{appLabels.footerCopyright}</p>
+        <button
+          onClick={() => setShowBillingModal(true)}
+          className="text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
+        >
+          <CreditCard className="w-3.5 h-3.5" />
+          <span>{language === 'he' ? 'ניהול מנוי וחשבון (Billing)' : 'Subscription & Billing'}</span>
+        </button>
       </footer>
+
+      {/* Account & Billing Settings Modal */}
+      <AccountBillingModal
+        isOpen={showBillingModal}
+        onClose={() => setShowBillingModal(false)}
+        isPremium={isPremium}
+        onCancelSubscription={handleCancelSubscription}
+        onReactivateSubscription={handleReactivateSubscription}
+        userEmail="oren71601@gmail.com"
+        language={language}
+      />
 
     </div>
   );
