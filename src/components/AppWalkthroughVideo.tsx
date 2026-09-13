@@ -31,7 +31,7 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
   onOpenPaywall,
   onTogglePremium,
 }) => {
-  const [isPlaying, setIsPlaying] = useState<boolean>(true);
+  const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
   const [isMuted, setIsMuted] = useState<boolean>(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
@@ -40,6 +40,28 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
   
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const audioContextRef = useRef<AudioContext | null>(null);
+  const triggeredCuesRef = useRef<Set<string>>(new Set());
+
+  // Toggle play/pause safely with AudioContext lifecycle
+  const togglePlay = () => {
+    if (!isPlaying) {
+      if (!audioContextRef.current) {
+        try {
+          const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+          audioContextRef.current = new AudioCtx();
+        } catch (e) {}
+      }
+      if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+        audioContextRef.current.resume().catch(() => {});
+      }
+      setIsPlaying(true);
+    } else {
+      if (audioContextRef.current && audioContextRef.current.state === 'running') {
+        audioContextRef.current.suspend().catch(() => {});
+      }
+      setIsPlaying(false);
+    }
+  };
 
   // Exact 20 seconds duration
   const totalDuration = 20;
@@ -287,6 +309,7 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
         setCurrentTime((prev) => {
           const next = prev + 0.2 * playbackSpeed;
           if (next >= totalDuration) {
+            triggeredCuesRef.current.clear();
             return 0; // Seamless loop after 20 seconds
           }
           return next;
@@ -298,9 +321,18 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
     };
   }, [isPlaying, playbackSpeed, totalDuration]);
 
+  // Suspend audio context when paused, resume when played
+  useEffect(() => {
+    if (!isPlaying) {
+      if (audioContextRef.current && audioContextRef.current.state === 'running') {
+        audioContextRef.current.suspend().catch(() => {});
+      }
+    }
+  }, [isPlaying]);
+
   // Audio effects synthesizer
-  const playSoundEffect = (type: 'click' | 'unlock' | 'chime' | 'tap') => {
-    if (isMuted) return;
+  const playSoundEffect = (type: 'click' | 'unlock' | 'chime' | 'tap' | 'transition') => {
+    if (isMuted || !isPlaying) return;
     try {
       if (!audioContextRef.current) {
         const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
@@ -317,26 +349,38 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'triangle';
-        osc.frequency.setValueAtTime(480, now);
-        osc.frequency.exponentialRampToValueAtTime(140, now + 0.05);
+        osc.frequency.setValueAtTime(500, now);
+        osc.frequency.exponentialRampToValueAtTime(140, now + 0.06);
         gain.gain.setValueAtTime(0.25, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
-        osc.stop(now + 0.05);
+        osc.stop(now + 0.06);
       } else if (type === 'tap') {
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, now);
-        osc.frequency.exponentialRampToValueAtTime(300, now + 0.04);
-        gain.gain.setValueAtTime(0.15, now);
+        osc.frequency.setValueAtTime(650, now);
+        osc.frequency.exponentialRampToValueAtTime(320, now + 0.04);
+        gain.gain.setValueAtTime(0.16, now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
         osc.connect(gain);
         gain.connect(ctx.destination);
         osc.start(now);
         osc.stop(now + 0.04);
+      } else if (type === 'transition') {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(440, now);
+        osc.frequency.exponentialRampToValueAtTime(660, now + 0.12);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(now);
+        osc.stop(now + 0.15);
       } else if (type === 'unlock') {
         const freqs = [523.25, 659.25, 783.99, 1046.5];
         freqs.forEach((freq, idx) => {
@@ -351,56 +395,94 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
           osc.start(now + idx * 0.06);
           osc.stop(now + idx * 0.06 + 0.25);
         });
-      } else {
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, now);
-        osc.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-        gain.gain.setValueAtTime(0.05, now);
-        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        osc.start(now);
-        osc.stop(now + 0.2);
+      } else if (type === 'chime') {
+        const notes = [659.25, 880, 1174.66];
+        notes.forEach((freq, idx) => {
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+          gain.gain.setValueAtTime(0.09, now + idx * 0.08);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.35);
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now + idx * 0.08);
+          osc.stop(now + idx * 0.08 + 0.35);
+        });
       }
     } catch (e) {
       // AudioContext unavailable
     }
   };
 
-  // Trigger click sound & ripple at 2.0s in Scene 1
+  // Synchronized audio cues strictly tied to video playback milestones
   useEffect(() => {
-    if (currentTime >= 1.9 && currentTime <= 2.2) {
+    if (!isPlaying || isMuted) return;
+
+    // Clear milestones when restarted or near zero
+    if (currentTime < 0.4) {
+      triggeredCuesRef.current.clear();
+    }
+
+    // 2.0s: Scene 1 - Cursor clicks Subscribe button & unlocks site
+    if (currentTime >= 2.0 && currentTime < 3.0 && !triggeredCuesRef.current.has('subscribe_click')) {
+      triggeredCuesRef.current.add('subscribe_click');
       setClickRipple(true);
       playSoundEffect('click');
-      setTimeout(() => {
-        playSoundEffect('unlock');
+      const unlockTimer = setTimeout(() => {
+        if (isPlaying && !isMuted) {
+          playSoundEffect('unlock');
+        }
       }, 250);
-      const timer = setTimeout(() => setClickRipple(false), 700);
-      return () => clearTimeout(timer);
+      const rippleTimer = setTimeout(() => setClickRipple(false), 700);
+      return () => {
+        clearTimeout(unlockTimer);
+        clearTimeout(rippleTimer);
+      };
     }
-  }, [currentTime]);
 
-  // Audio cues for fast logging simulation in Scene 4 (15s to 20s)
-  useEffect(() => {
-    // 16.0s: clicks Yes
-    if (currentTime >= 15.9 && currentTime <= 16.2) {
+    // 5.0s: Scene 2 - Monthly Table opens
+    if (currentTime >= 5.0 && currentTime < 6.0 && !triggeredCuesRef.current.has('scene_2')) {
+      triggeredCuesRef.current.add('scene_2');
+      playSoundEffect('transition');
+    }
+
+    // 10.0s: Scene 3 - Mental Analytics Dashboard opens
+    if (currentTime >= 10.0 && currentTime < 11.0 && !triggeredCuesRef.current.has('scene_3')) {
+      triggeredCuesRef.current.add('scene_3');
+      playSoundEffect('transition');
+    }
+
+    // 15.0s: Scene 4 - Fast logging simulation opens
+    if (currentTime >= 15.0 && currentTime < 15.8 && !triggeredCuesRef.current.has('scene_4')) {
+      triggeredCuesRef.current.add('scene_4');
+      playSoundEffect('transition');
+    }
+
+    // 16.0s: Fast logging - Click "Yes" (took trade)
+    if (currentTime >= 16.0 && currentTime < 16.8 && !triggeredCuesRef.current.has('log_yes')) {
+      triggeredCuesRef.current.add('log_yes');
       playSoundEffect('tap');
     }
-    // 17.0s: clicks Calm
-    if (currentTime >= 16.9 && currentTime <= 17.2) {
+
+    // 17.0s: Fast logging - Click "Calm" mental state
+    if (currentTime >= 17.0 && currentTime < 17.8 && !triggeredCuesRef.current.has('log_calm')) {
+      triggeredCuesRef.current.add('log_calm');
       playSoundEffect('tap');
     }
-    // 18.0s: clicks stars
-    if (currentTime >= 17.9 && currentTime <= 18.2) {
+
+    // 18.0s: Fast logging - Click 4-star confidence rating
+    if (currentTime >= 18.0 && currentTime < 18.8 && !triggeredCuesRef.current.has('log_stars')) {
+      triggeredCuesRef.current.add('log_stars');
       playSoundEffect('tap');
     }
-    // 19.0s: submits profit +2R
-    if (currentTime >= 18.9 && currentTime <= 19.2) {
+
+    // 18.8s: Fast logging - Submits profit +2.00R with celebratory chime
+    if (currentTime >= 18.8 && currentTime < 19.8 && !triggeredCuesRef.current.has('log_profit')) {
+      triggeredCuesRef.current.add('log_profit');
       playSoundEffect('chime');
     }
-  }, [currentTime]);
+  }, [currentTime, isPlaying, isMuted]);
 
   // Fullscreen support
   const toggleFullscreen = () => {
@@ -449,7 +531,19 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const clickRatio = Math.max(0, Math.min(1, clickX / rect.width));
-    setCurrentTime(clickRatio * totalDuration);
+    const newTime = clickRatio * totalDuration;
+    setCurrentTime(newTime);
+
+    // Sync milestones to avoid repeating sounds behind the seek point
+    triggeredCuesRef.current.clear();
+    if (newTime >= 2.2) triggeredCuesRef.current.add('subscribe_click');
+    if (newTime >= 5.2) triggeredCuesRef.current.add('scene_2');
+    if (newTime >= 10.2) triggeredCuesRef.current.add('scene_3');
+    if (newTime >= 15.2) triggeredCuesRef.current.add('scene_4');
+    if (newTime >= 16.2) triggeredCuesRef.current.add('log_yes');
+    if (newTime >= 17.2) triggeredCuesRef.current.add('log_calm');
+    if (newTime >= 18.2) triggeredCuesRef.current.add('log_stars');
+    if (newTime >= 19.2) triggeredCuesRef.current.add('log_profit');
   };
 
   return (
@@ -521,6 +615,30 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
               : 'aspect-[16/11] sm:aspect-[16/9] min-h-[360px] sm:min-h-[460px] p-2.5 sm:p-4'
           } bg-slate-950 flex flex-col justify-between overflow-y-auto sm:overflow-hidden select-none`}>
             
+            {/* Play/Pause overlay when paused or initially stopped */}
+            {!isPlaying && (
+              <div 
+                onClick={togglePlay}
+                className="absolute inset-0 bg-slate-950/80 backdrop-blur-[3px] z-40 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-slate-950/70 group p-4"
+              >
+                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-500 via-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-2xl shadow-indigo-500/50 group-hover:scale-110 transition-transform ring-4 ring-white/20">
+                  <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-white ml-1 text-white" />
+                </div>
+                
+                <div className="mt-4 bg-slate-900/95 border border-slate-700/80 px-4 sm:px-5 py-2 rounded-2xl text-white text-xs sm:text-sm font-bold shadow-xl flex items-center gap-2 max-w-sm text-center">
+                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>
+                    {currentTime === 0 
+                      ? (language === 'he' ? 'לחץ כאן להפעלת סרטון ההדגמה (20 שניות)' : 'Click here to play 20s walkthrough')
+                      : (language === 'he' ? 'הסרטון מושהה • לחץ להמשך נגינה' : 'Video paused • Click to resume')}
+                  </span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-medium mt-2">
+                  {language === 'he' ? 'סאונד ואפקטים מסונכרנים לכל קליק בסרטון 🔊' : 'Synchronized audio effects for every click 🔊'}
+                </span>
+              </div>
+            )}
+
             {/* Top in-video timestamp */}
             <div className="flex items-center justify-end z-20 mb-2 shrink-0">
               <div className="bg-black/60 backdrop-blur-md px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] font-mono font-bold text-slate-300 border border-white/10 shrink-0">
@@ -623,14 +741,22 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
                   
                   {/* Table Header exact match to Screenshot 3 */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-1.5 border-b border-slate-200 pb-2">
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <FileText className="w-4 h-4 text-indigo-600 shrink-0" />
                       <h3 className="text-xs sm:text-sm font-black text-slate-900 truncate">
                         {language === 'he' ? 'יומן מעקב חודשי - ספטמבר 2026' : 'Monthly Tracking Journal - September 2026'}
                       </h3>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    {/* Red pledge in the middle */}
+                    <div className="bg-red-50 border border-red-200 text-red-600 px-2 py-0.5 rounded-lg text-[9px] sm:text-[10px] font-black flex items-center gap-1 shadow-2xs">
+                      <span>🎯</span>
+                      <span>
+                        {language === 'he' ? 'התחייבות מחודש שעבר: "לא להזיז סטופ לוס לעולם"' : 'Pledge from Last Month: "Never move stop loss"'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <span className="px-2 py-0.5 rounded-lg bg-slate-900 text-white text-[9px] sm:text-[10px] font-bold shadow-xs">
                         {language === 'he' ? 'טבלה אינטראקטיבית' : 'Interactive Table'}
                       </span>
@@ -1060,7 +1186,7 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
                   
                   {/* Play / Pause */}
                   <button
-                    onClick={() => setIsPlaying(!isPlaying)}
+                    onClick={togglePlay}
                     className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-white transition-colors cursor-pointer"
                     title={isPlaying ? 'השהה' : 'נגן'}
                   >
@@ -1070,8 +1196,15 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
                   {/* Restart */}
                   <button
                     onClick={() => {
+                      triggeredCuesRef.current.clear();
                       setCurrentTime(0);
-                      setIsPlaying(true);
+                      if (!isPlaying) {
+                        togglePlay();
+                      } else {
+                        if (audioContextRef.current && audioContextRef.current.state === 'suspended') {
+                          audioContextRef.current.resume().catch(() => {});
+                        }
+                      }
                     }}
                     className="p-1.5 sm:p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
                     title="הפעל מחדש (00:00)"

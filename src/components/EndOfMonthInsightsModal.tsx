@@ -275,6 +275,7 @@ export const EndOfMonthInsightsModal: React.FC<EndOfMonthInsightsModalProps> = (
 
   const handleSavePledge = () => {
     localStorage.setItem(pledgeStorageKey, nextMonthPledge);
+    window.dispatchEvent(new Event('pledge_updated'));
     setPledgeSaved(true);
     setTimeout(() => setPledgeSaved(false), 3000);
   };

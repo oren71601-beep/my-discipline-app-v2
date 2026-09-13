@@ -32,8 +32,24 @@ import {
   Gift,
   CheckCircle2,
   Clock,
-  CalendarDays
+  CalendarDays,
+  Target,
+  Edit3,
+  Check,
+  Cloud,
+  Smartphone,
+  Monitor
 } from 'lucide-react';
+import { User, onAuthStateChanged } from 'firebase/auth';
+import { 
+  auth, 
+  subscribeToMonthData, 
+  saveMonthToCloud, 
+  migrateLocalDataToCloud,
+  saveUserProfileToCloud,
+  subscribeToUserProfile 
+} from './firebase';
+import { CloudSyncModal } from './components/CloudSyncModal';
 import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
@@ -84,14 +100,22 @@ export default function App() {
     localStorage.setItem('trading_tracker_lang', language);
   }, [language, t.dir]);
 
-  // Setup defaults - initial state restored from LocalStorage for seamless persistence
+  // Setup defaults - restore exact last opened month and year from LocalStorage, with fallback to real current month/year
   const [selectedYear, setSelectedYear] = useState<number>(() => {
-    const saved = localStorage.getItem('trading_tracker_selected_year');
-    return saved ? parseInt(saved, 10) : 2026;
+    const saved = localStorage.getItem('trading_tracker_selected_year') || localStorage.getItem('trading_tracker_last_closed_year');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 2020 && parsed <= 2035) return parsed;
+    }
+    return new Date().getFullYear();
   });
   const [selectedMonth, setSelectedMonth] = useState<number>(() => {
-    const saved = localStorage.getItem('trading_tracker_selected_month');
-    return saved ? parseInt(saved, 10) : 6;
+    const saved = localStorage.getItem('trading_tracker_selected_month') || localStorage.getItem('trading_tracker_last_closed_month');
+    if (saved) {
+      const parsed = parseInt(saved, 10);
+      if (!isNaN(parsed) && parsed >= 1 && parsed <= 12) return parsed;
+    }
+    return new Date().getMonth() + 1; // Real current month (e.g. 9 for September)
   });
   const [days, setDays] = useState<TradingDay[]>([]);
   const [showStats, setShowStats] = useState<boolean>(true);
@@ -106,9 +130,10 @@ export default function App() {
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  // Subscription & Paywall States (Simulated and configured for App Store / Monetization integration)
+  // Subscription & Paywall States - defaults to active workspace for returning or pro users
   const [isPremium, setIsPremium] = useState<boolean>(() => {
-    return localStorage.getItem('trading_tracker_premium') === 'true';
+    const saved = localStorage.getItem('trading_tracker_premium');
+    return saved === null ? true : saved === 'true';
   });
   const [accountName, setAccountName] = useState<string>(() => {
     return localStorage.getItem('trading_tracker_account_name') || '';
@@ -122,67 +147,170 @@ export default function App() {
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showBillingModal, setShowBillingModal] = useState<boolean>(false);
   const [isSimulatingSubPurchase, setIsSimulatingSubPurchase] = useState<boolean>(false);
-  const [showLanding, setShowLanding] = useState<boolean>(() => {
-    return false;
-  });
+  // Reopening page always returns cleanly to the main workspace (הדף הראשי)
+  const [showLanding, setShowLanding] = useState<boolean>(false);
   const [showWalkthroughVideo, setShowWalkthroughVideo] = useState<boolean>(false);
   const [showEndOfMonthModal, setShowEndOfMonthModal] = useState<boolean>(false);
+
+  // Cloud Sync & Multi-device persistence (Firebase Firestore & Auth)
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [showCloudSyncModal, setShowCloudSyncModal] = useState<boolean>(false);
+  const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Derive month string layout like "2026-06"
   const monthId = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
 
-  // Auto popup at the end of each month with mental and strategic insights
+  // Previous Month Pledge / Personal Commitment calculation
+  const prevMonthNum = selectedMonth === 1 ? 12 : selectedMonth - 1;
+  const prevYearNum = selectedMonth === 1 ? selectedYear - 1 : selectedYear;
+  const prevMonthId = `${prevYearNum}-${String(prevMonthNum).padStart(2, '0')}`;
+
+  const [currentPledge, setCurrentPledge] = useState<string>('');
+  const [isEditingPledge, setIsEditingPledge] = useState<boolean>(false);
+  const [pledgeDraft, setPledgeDraft] = useState<string>('');
+
   useEffect(() => {
-    if (!isPremium) return;
-
-    // Check if dismissed for this specific month
-    const dismissed = localStorage.getItem(`eom_popup_seen_${monthId}`) === 'true';
-    if (dismissed) return;
-
-    // Check if there are sufficient trades entered (at least 3 trades)
-    const executedCount = days.filter(d => d.executed === 'Y').length;
-    if (executedCount < 3) return;
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth() + 1; // 1-12
-    const currentDay = now.getDate();
-
-    // 1. Is this a past month?
-    const isPastMonth = selectedYear < currentYear || (selectedYear === currentYear && selectedMonth < currentMonth);
-
-    // 2. Is this the current month and we are at the end of the month (day >= 25)?
-    const isEndOfCurrentMonth = selectedYear === currentYear && selectedMonth === currentMonth && currentDay >= 25;
-
-    // 3. Or did the trader log trades on late days of the month (day >= 24)?
-    const hasLateDaysLogged = days.some(d => d.day >= 24 && d.executed !== null);
-
-    if (isPastMonth || isEndOfCurrentMonth || hasLateDaysLogged) {
-      const timer = setTimeout(() => {
-        setShowEndOfMonthModal(true);
-      }, 900);
-      return () => clearTimeout(timer);
+    const savedPrev = localStorage.getItem(`trading_tracker_pledge_${prevMonthId}`);
+    const savedCurr = localStorage.getItem(`trading_tracker_pledge_${monthId}`);
+    if (savedPrev && savedPrev.trim()) {
+      setCurrentPledge(savedPrev.trim());
+    } else if (savedCurr && savedCurr.trim()) {
+      setCurrentPledge(savedCurr.trim());
+    } else {
+      setCurrentPledge('');
     }
-  }, [monthId, isPremium, days, selectedYear, selectedMonth]);
+  }, [selectedYear, selectedMonth, prevMonthId, monthId]);
+
+  useEffect(() => {
+    const handleStorageUpdate = () => {
+      const savedPrev = localStorage.getItem(`trading_tracker_pledge_${prevMonthId}`);
+      const savedCurr = localStorage.getItem(`trading_tracker_pledge_${monthId}`);
+      if (savedPrev && savedPrev.trim()) setCurrentPledge(savedPrev.trim());
+      else if (savedCurr && savedCurr.trim()) setCurrentPledge(savedCurr.trim());
+      else setCurrentPledge('');
+    };
+    window.addEventListener('pledge_updated', handleStorageUpdate);
+    window.addEventListener('storage', handleStorageUpdate);
+    return () => {
+      window.removeEventListener('pledge_updated', handleStorageUpdate);
+      window.removeEventListener('storage', handleStorageUpdate);
+    };
+  }, [prevMonthId, monthId]);
+
+  const handleSavePledge = (newPledge: string) => {
+    const trimmed = newPledge.trim();
+    setCurrentPledge(trimmed);
+    if (trimmed) {
+      localStorage.setItem(`trading_tracker_pledge_${prevMonthId}`, trimmed);
+      localStorage.setItem(`trading_tracker_pledge_${monthId}`, trimmed);
+      showToast(
+        language === 'he' ? 'ההתחייבות האישית מחודש שעבר עודכנה בהצלחה! 🎯' : 'Commitment updated successfully! 🎯',
+        'success'
+      );
+    } else {
+      localStorage.removeItem(`trading_tracker_pledge_${prevMonthId}`);
+      localStorage.removeItem(`trading_tracker_pledge_${monthId}`);
+    }
+    if (currentUser) {
+      saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, days, trimmed);
+    }
+    setIsEditingPledge(false);
+    window.dispatchEvent(new Event('pledge_updated'));
+  };
+
+  // 1. Firebase Auth listener: Automatically handles user session & local-to-cloud migration
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      setCurrentUser(user);
+      if (user) {
+        setCloudSyncStatus('syncing');
+        try {
+          await migrateLocalDataToCloud(user.uid);
+          setCloudSyncStatus('synced');
+        } catch (err) {
+          console.error('Migration error on login:', err);
+          setCloudSyncStatus('error');
+        }
+      } else {
+        setCloudSyncStatus('idle');
+      }
+    });
+    return () => unsubscribe();
+  }, []);
+
+  // 2. Real-time Month Sync: Live Firestore listener so phone & PC update instantly
+  useEffect(() => {
+    if (!currentUser) return;
+
+    setCloudSyncStatus('syncing');
+    const unsubscribe = subscribeToMonthData(currentUser.uid, monthId, (cloudData) => {
+      if (cloudData && Array.isArray(cloudData.days) && cloudData.days.length > 0) {
+        setDays(cloudData.days);
+        localStorage.setItem(`trading_tracker_data_${monthId}`, JSON.stringify(cloudData.days));
+        if (typeof cloudData.pledge === 'string') {
+          setCurrentPledge(cloudData.pledge);
+          localStorage.setItem(`trading_tracker_pledge_${monthId}`, cloudData.pledge);
+        }
+      }
+      setCloudSyncStatus('synced');
+    });
+
+    return () => unsubscribe();
+  }, [currentUser, monthId]);
+
+  // 3. User Profile Sync across devices (active year & month)
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const unsubscribe = subscribeToUserProfile(currentUser.uid, (profile) => {
+      if (profile) {
+        if (profile.selectedYear && profile.selectedYear !== selectedYear) {
+          setSelectedYear(profile.selectedYear);
+        }
+        if (profile.selectedMonth && profile.selectedMonth !== selectedMonth) {
+          setSelectedMonth(profile.selectedMonth);
+        }
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentUser]);
 
   // Synchronize state preferences to LocalStorage for full session continuity
   useEffect(() => {
     localStorage.setItem('trading_tracker_selected_year', String(selectedYear));
+    localStorage.setItem('trading_tracker_last_closed_year', String(selectedYear));
   }, [selectedYear]);
 
   useEffect(() => {
     localStorage.setItem('trading_tracker_selected_month', String(selectedMonth));
+    localStorage.setItem('trading_tracker_last_closed_month', String(selectedMonth));
   }, [selectedMonth]);
 
   useEffect(() => {
     localStorage.setItem('trading_tracker_active_view', activeView);
   }, [activeView]);
 
+  // Synchronize state synchronously right when the user closes, refreshes or leaves the page
   useEffect(() => {
-    localStorage.setItem('trading_tracker_show_landing', String(showLanding));
-  }, [showLanding]);
+    const handleSaveOnPageClose = () => {
+      localStorage.setItem('trading_tracker_selected_year', String(selectedYear));
+      localStorage.setItem('trading_tracker_selected_month', String(selectedMonth));
+      localStorage.setItem('trading_tracker_last_closed_year', String(selectedYear));
+      localStorage.setItem('trading_tracker_last_closed_month', String(selectedMonth));
+      // Ensure landing page flag is cleared so reopening ALWAYS returns directly to the main workspace (הדף הראשי)
+      localStorage.removeItem('trading_tracker_show_landing');
+    };
+
+    window.addEventListener('beforeunload', handleSaveOnPageClose);
+    window.addEventListener('pagehide', handleSaveOnPageClose);
+    return () => {
+      window.removeEventListener('beforeunload', handleSaveOnPageClose);
+      window.removeEventListener('pagehide', handleSaveOnPageClose);
+    };
+  }, [selectedYear, selectedMonth]);
 
   useEffect(() => {
     if (lastSelectedDay !== null) {
@@ -270,10 +398,13 @@ export default function App() {
     setDays(freshDays);
   };
 
-  // Auto-save State changes to LocalStorage
+  // Auto-save State changes to LocalStorage and Firestore Cloud in real-time
   const saveToStorage = (updatedDays: TradingDay[]) => {
     const storageKey = `trading_tracker_data_${monthId}`;
     localStorage.setItem(storageKey, JSON.stringify(updatedDays));
+    if (currentUser) {
+      saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, updatedDays, currentPledge);
+    }
   };
 
   // Handle a change in cell data (supports both single field change and updating multiple fields in one batch)
@@ -584,6 +715,21 @@ export default function App() {
     generateFreshTemplate();
     const storageKey = `trading_tracker_data_${monthId}`;
     localStorage.removeItem(storageKey);
+    if (currentUser) {
+      const daysCount = getDaysInMonth(selectedYear, selectedMonth);
+      const freshDays: TradingDay[] = Array.from({ length: daysCount }, (_, i) => ({
+        day: i + 1,
+        executed: null,
+        mentalState: null,
+        noEntryReason: null,
+        deviation: null,
+        confidence: null,
+        rating: null,
+        resultR: null,
+        notes: '',
+      }));
+      saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, freshDays, currentPledge);
+    }
     setShowClearConfirm(false);
     showToast(t.toastSuccessClear, 'info');
   };
@@ -897,6 +1043,30 @@ export default function App() {
           </div>
 
           <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
+            {/* Cloud Sync Button (Phone & PC Real-Time Sync) */}
+            <button
+              onClick={() => setShowCloudSyncModal(true)}
+              className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-xl transition-all border cursor-pointer shadow-xs ${
+                currentUser
+                  ? 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border-emerald-500/50'
+                  : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400 animate-pulse'
+              }`}
+              title={language === 'he' ? 'סנכרון ענן בזמן אמת בין המחשב לפלאפון' : 'Real-time sync between computer and phone'}
+            >
+              {currentUser ? (
+                <>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
+                  <Cloud className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>{language === 'he' ? 'מסונכרן מחשב 💻 ופלאפון 📱' : 'Synced PC & Phone 📱'}</span>
+                </>
+              ) : (
+                <>
+                  <Cloud className="w-3.5 h-3.5" />
+                  <span>{language === 'he' ? 'סנכרן מחשב 💻 ופלאפון 📱' : 'Sync PC & Phone 📱'}</span>
+                </>
+              )}
+            </button>
+
             {/* Open Billing & Account Settings */}
             <button
               onClick={() => setShowBillingModal(true)}
@@ -934,67 +1104,76 @@ export default function App() {
 
       {/* App Store / Google Play Premium Paywall Modal */}
       {showPaywallModal && (
-        <div className="fixed inset-0 z-55 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-md select-none">
-          <div className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full shadow-2xl overflow-hidden flex flex-col" dir={isRtl ? 'rtl' : 'ltr'}>
+        <div 
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPaywallModal(false);
+          }}
+          className="fixed inset-0 z-55 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md select-none overflow-y-auto"
+        >
+          <div 
+            className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] my-auto animate-fade-in" 
+            dir={isRtl ? 'rtl' : 'ltr'}
+          >
             
             {/* Paywall Header with Simulated Apple App Store interface */}
-            <div className="bg-slate-950 text-white p-6 relative">
-              <div className="absolute top-4 right-4">
+            <div className="bg-slate-950 text-white p-4.5 sm:p-5 relative shrink-0">
+              <div className="absolute top-3.5 end-3.5">
                 <button 
                   onClick={() => setShowPaywallModal(false)}
                   className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+                  aria-label="Close"
                 >
                   ✕
                 </button>
               </div>
               
-              <div className="flex items-center gap-4.5 pt-2">
-                <div className="w-16 h-16 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/30 shrink-0 border border-indigo-400/20 text-2xl">
+              <div className="flex items-center gap-3.5 pt-1 pe-8">
+                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/30 shrink-0 border border-indigo-400/20 text-xl sm:text-2xl">
                   📈
                 </div>
                 <div>
-                  <h3 className="text-lg font-black tracking-tight text-white flex items-center gap-1.5">
+                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5 flex-wrap">
                     <span>Trading Journal Pro</span>
-                    <span className="bg-indigo-600/30 text-indigo-400 text-[10px] px-2 py-0.5 rounded-full font-bold border border-indigo-500/20">PREMIUM</span>
+                    <span className="bg-indigo-600/40 text-indigo-300 text-[10px] px-2 py-0.5 rounded-full font-extrabold border border-indigo-500/30">PREMIUM</span>
                   </h3>
-                  <p className="text-slate-400 text-xs mt-1 leading-relaxed">{t.paywallLockedDesc}</p>
+                  <p className="text-slate-400 text-xs mt-0.5 leading-relaxed line-clamp-2">{t.paywallLockedDesc}</p>
                 </div>
               </div>
             </div>
 
-            {/* Paywall Features & Pricing */}
-            <div className="p-6 sm:p-7 space-y-6 flex-1 bg-slate-50/50">
-              <div className="space-y-4">
-                <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">{t.paywallFeaturesTitle}</div>
+            {/* Paywall Features & Pricing - Smooth internal scrolling */}
+            <div className="p-4 sm:p-5.5 space-y-3.5 sm:space-y-4 flex-1 overflow-y-auto bg-slate-50/60 overscroll-contain">
+              <div className="space-y-2.5">
+                <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">{t.paywallFeaturesTitle}</div>
                 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-2.5">
                   
-                  <div className="flex items-start gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/50 shrink-0">
-                      <TrendingUp className="w-4 h-4" />
+                  <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
+                    <div className="w-7.5 h-7.5 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/60 shrink-0 mt-0.5">
+                      <TrendingUp className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-extrabold text-slate-900">{t.paywallFeature1Title}</h4>
+                      <h4 className="text-xs font-black text-slate-900">{t.paywallFeature1Title}</h4>
                       <p className="text-slate-500 text-[11px] leading-relaxed mt-0.5">{t.paywallFeature1Desc}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-                    <div className="w-8 h-8 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/50 shrink-0">
-                      <Calendar className="w-4 h-4" />
+                  <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
+                    <div className="w-7.5 h-7.5 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/60 shrink-0 mt-0.5">
+                      <Calendar className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-extrabold text-slate-900">{t.paywallFeature2Title}</h4>
+                      <h4 className="text-xs font-black text-slate-900">{t.paywallFeature2Title}</h4>
                       <p className="text-slate-500 text-[11px] leading-relaxed mt-0.5">{t.paywallFeature2Desc}</p>
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-3 bg-white p-3 rounded-2xl border border-slate-200 shadow-2xs">
-                    <div className="w-8 h-8 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100/50 shrink-0">
-                      <Download className="w-4 h-4" />
+                  <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
+                    <div className="w-7.5 h-7.5 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100/60 shrink-0 mt-0.5">
+                      <Download className="w-3.5 h-3.5" />
                     </div>
                     <div>
-                      <h4 className="text-xs font-extrabold text-slate-900">{t.paywallFeature3Title}</h4>
+                      <h4 className="text-xs font-black text-slate-900">{t.paywallFeature3Title}</h4>
                       <p className="text-slate-500 text-[11px] leading-relaxed mt-0.5">{t.paywallFeature3Desc}</p>
                     </div>
                   </div>
@@ -1003,7 +1182,7 @@ export default function App() {
               </div>
 
               {/* 7-Day Free Trial & Pricing Box */}
-              <div className="bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-emerald-50/60 border-2 border-indigo-200/90 rounded-2xl p-4.5 space-y-3 shadow-xs">
+              <div className="bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-emerald-50/60 border-2 border-indigo-200/90 rounded-2xl p-3.5 sm:p-4 space-y-2.5 shadow-xs">
                 {/* Free Trial Badge & Highlight */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
                   <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white font-black text-[11px] px-3 py-1 rounded-full shadow-xs uppercase tracking-wider">
@@ -1016,14 +1195,14 @@ export default function App() {
                 </div>
 
                 {/* Price Display */}
-                <div className="text-center py-1">
+                <div className="text-center py-0.5">
                   <div className="flex items-baseline justify-center gap-2">
-                    <span className="text-3xl font-black text-indigo-950">$0.00</span>
-                    <span className="text-emerald-600 font-extrabold text-sm">
+                    <span className="text-2xl sm:text-3xl font-black text-indigo-950">$0.00</span>
+                    <span className="text-emerald-600 font-extrabold text-xs sm:text-sm">
                       {language === 'he' ? 'ב-7 הימים הראשונים' : 'for the first 7 days'}
                     </span>
                   </div>
-                  <div className="text-slate-500 text-xs font-semibold mt-1">
+                  <div className="text-slate-500 text-[11px] font-semibold mt-0.5">
                     {language === 'he' 
                       ? 'ואחרי 7 ימי ניסיון: רק $25 לחודש (חיוב אוטומטי אלא אם בוטל)' 
                       : 'then only $25/month auto-billed unless cancelled'}
@@ -1031,7 +1210,7 @@ export default function App() {
                 </div>
 
                 {/* 2-Step Transparent Timeline */}
-                <div className="bg-white/90 backdrop-blur-xs rounded-xl p-3 border border-indigo-100/80 space-y-2 text-[11px]">
+                <div className="bg-white/90 backdrop-blur-xs rounded-xl p-2.5 sm:p-3 border border-indigo-100/80 space-y-2 text-[11px]">
                   <div className="flex items-start gap-2 text-slate-700">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>
@@ -1055,7 +1234,7 @@ export default function App() {
             </div>
 
             {/* Subscription Checkout Button (Geo-IP: iCount for Israel / Payoneer for International) */}
-            <div className="p-6 border-t border-slate-200 bg-white text-center space-y-3">
+            <div className="p-3.5 sm:p-4.5 border-t border-slate-200 bg-white text-center space-y-2.5 shrink-0 shadow-xs">
               <a
                 href={geoInfo.checkoutUrl}
                 target="_blank"
@@ -1072,7 +1251,7 @@ export default function App() {
                     'info'
                   );
                 }}
-                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-indigo-600 to-indigo-700 hover:from-emerald-700 hover:via-indigo-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center flex items-center justify-center gap-2 group"
+                className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-emerald-600 via-indigo-600 to-indigo-700 hover:from-emerald-700 hover:via-indigo-700 hover:to-indigo-800 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center flex items-center justify-center gap-2 group"
               >
                 <Gift className="w-4 h-4 text-amber-300 shrink-0" />
                 <span>{t.paywallBtnStart}</span>
@@ -1080,8 +1259,8 @@ export default function App() {
               </a>
 
               {/* Geo-IP Provider Info badge with fast simulation toggle */}
-              <div className="flex flex-wrap items-center justify-center gap-2 text-[11px] text-slate-500 font-medium pt-0.5">
-                <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-1 rounded-full border border-slate-200 font-bold">
+              <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] sm:text-[11px] text-slate-500 font-medium">
+                <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200 font-bold">
                   <Globe className="w-3 h-3 text-indigo-600 shrink-0" />
                   <span>
                     {geoInfo.isIsrael
@@ -1109,7 +1288,7 @@ export default function App() {
                 </button>
               </div>
               
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-1.5 text-slate-400 text-[10px] px-1">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-1 text-slate-400 text-[10px] px-1">
                 <div className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
                   <span>
@@ -1129,7 +1308,7 @@ export default function App() {
                 </button>
               </div>
 
-              <div className="pt-1.5 border-t border-slate-100 mt-2">
+              <div className="pt-1 border-t border-slate-100">
                 <button
                   type="button"
                   onClick={() => {
@@ -1290,7 +1469,12 @@ export default function App() {
               <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblYear}</span>
               <select
                 value={selectedYear}
-                onChange={(e) => setSelectedYear(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setSelectedYear(val);
+                  localStorage.setItem('trading_tracker_selected_year', String(val));
+                  localStorage.setItem('trading_tracker_last_closed_year', String(val));
+                }}
                 className="bg-transparent border-none text-sm font-bold text-white focus:outline-none cursor-pointer"
               >
                 {YEARS.map(y => (
@@ -1305,7 +1489,12 @@ export default function App() {
               <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblMonth}</span>
               <select
                 value={selectedMonth}
-                onChange={(e) => setSelectedMonth(parseInt(e.target.value, 10))}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value, 10);
+                  setSelectedMonth(val);
+                  localStorage.setItem('trading_tracker_selected_month', String(val));
+                  localStorage.setItem('trading_tracker_last_closed_month', String(val));
+                }}
                 className="bg-transparent border-none text-sm font-bold text-white focus:outline-none cursor-pointer"
               >
                 {MONTH_NAMES.map(m => (
@@ -1439,17 +1628,84 @@ export default function App() {
 
             {/* SECTION 2: Daily Interactive Workspace (Table or Calendar style) */}
             <section className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
-                <h2 className="text-lg font-extrabold text-slate-950 flex items-center gap-2">
+              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <h2 className="text-lg font-extrabold text-slate-950 flex items-center gap-2 shrink-0">
                   <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
                   <span>
                     {language === 'he' ? 'יומן מעקב חודשי - ' : language === 'ar' ? 'دفتر التتبع الشهري - ' : language === 'ru' ? 'Ежемесячный журнал - ' : 'Monthly Trading Journal - '} 
                     {MONTH_NAMES.find(m => m.id === selectedMonth)?.name} {selectedYear}
                   </span>
                 </h2>
+
+                {/* Previous Month Commitment In Red (התחייבות מחודש שעבר באדום) - Only shown if written */}
+                {(Boolean(currentPledge.trim()) || isEditingPledge) && (
+                  <div className="flex items-center justify-center flex-1 max-w-2xl mx-0 xl:mx-4 w-full animate-fade-in">
+                    {isEditingPledge ? (
+                      <form 
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          handleSavePledge(pledgeDraft);
+                        }}
+                        className="w-full flex items-center gap-2 bg-red-50/95 border-2 border-red-500 rounded-xl p-1.5 shadow-xs animate-fade-in"
+                      >
+                        <input
+                          type="text"
+                          value={pledgeDraft}
+                          onChange={(e) => setPledgeDraft(e.target.value)}
+                          placeholder={language === 'he' ? 'ההתחייבות שלך מחודש שעבר...' : 'Your commitment from last month...'}
+                          className="flex-1 bg-white border border-red-200 rounded-lg px-2.5 py-1 text-xs text-red-700 font-extrabold placeholder-red-300 focus:outline-none focus:ring-1 focus:ring-red-500"
+                          autoFocus
+                        />
+                        <button
+                          type="submit"
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black transition-colors cursor-pointer shrink-0 flex items-center gap-1 shadow-2xs"
+                        >
+                          <Check className="w-3.5 h-3.5" />
+                          <span>{language === 'he' ? 'שמור' : 'Save'}</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setIsEditingPledge(false)}
+                          className="px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-semibold cursor-pointer shrink-0"
+                        >
+                          {language === 'he' ? 'ביטול' : 'Cancel'}
+                        </button>
+                      </form>
+                    ) : (
+                      <div 
+                        onClick={() => {
+                          setPledgeDraft(currentPledge);
+                          setIsEditingPledge(true);
+                        }}
+                        className="w-full bg-red-50/95 hover:bg-red-100/90 border border-red-300/90 rounded-xl px-3 sm:px-4 py-2 flex items-center justify-between gap-2 shadow-2xs transition-all cursor-pointer group"
+                        title={language === 'he' ? 'לחץ לעריכת ההתחייבות האישית מחודש שעבר' : 'Click to edit commitment from last month'}
+                      >
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="w-5 h-5 rounded-md bg-red-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                            <Target className="w-3.5 h-3.5" />
+                          </span>
+                          <div className="truncate text-xs">
+                            <span className="font-black text-red-700 me-1.5">
+                              {language === 'he' ? 'התחייבות מחודש שעבר:' : language === 'ar' ? 'التزام الشهر السابق:' : language === 'ru' ? 'Обязательство с прошлого месяца:' : 'Pledge from Last Month:'}
+                            </span>
+                            <span className="font-black text-red-600 tracking-tight">
+                              "{currentPledge}"
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-red-400 group-hover:text-red-700 transition-colors shrink-0 ps-2">
+                          <span className="text-[10px] font-bold hidden sm:inline text-red-600/80 group-hover:text-red-700">
+                            {language === 'he' ? 'ערוך' : 'Edit'}
+                          </span>
+                          <Edit3 className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
                 
                 {/* View Selector Tabs */}
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50 self-start sm:self-auto">
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50 self-start xl:self-auto shrink-0">
                   <button
                     type="button"
                     onClick={() => setActiveView('table')}

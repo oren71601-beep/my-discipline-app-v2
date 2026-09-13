@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "Trader profile and active view preferences",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "selectedYear": { "type": "number" },
+        "selectedMonth": { "type": "number" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["updatedAt"]
+    },
+    "trading_months": {
+      "title": "Trading Month Data",
+      "description": "Trading days, notes and commitments for a specific month",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "monthId": { "type": "string" },
+        "year": { "type": "number" },
+        "month": { "type": "number" },
+        "days": { "type": "array" },
+        "pledge": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["userId", "monthId", "days", "updatedAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "User profile document"
+    },
+    "/users/{userId}/months/{monthId}": {
+      "schema": "trading_months",
+      "description": "Monthly trading log per user"
+    }
+  }
+}
