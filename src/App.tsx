@@ -8,6 +8,7 @@ import { TradingDay } from './types';
 import { StatsDashboard } from './components/StatsDashboard';
 import { InteractiveTable } from './components/InteractiveTable';
 import { CalendarView } from './components/CalendarView';
+import { AppWalkthroughVideo } from './components/AppWalkthroughVideo';
 import LandingPage from './components/LandingPage';
 import { 
   Calendar, 
@@ -117,9 +118,9 @@ export default function App() {
   const [showBillingModal, setShowBillingModal] = useState<boolean>(false);
   const [isSimulatingSubPurchase, setIsSimulatingSubPurchase] = useState<boolean>(false);
   const [showLanding, setShowLanding] = useState<boolean>(() => {
-    const saved = localStorage.getItem('trading_tracker_show_landing');
-    return saved !== null ? saved === 'true' : true;
+    return false;
   });
+  const [showWalkthroughVideo, setShowWalkthroughVideo] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -1181,15 +1182,17 @@ export default function App() {
               </select>
             </div>
 
-            {/* Prepopulate Sample Data Button */}
-            <button
-              onClick={handlePopulateSampleData}
-              className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
-              title="Populate dynamic monthly simulation demo dataset"
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>{appLabels.btnSimulate}</span>
-            </button>
+            {/* Prepopulate Sample Data Button - only for premium users */}
+            {isPremium && (
+              <button
+                onClick={handlePopulateSampleData}
+                className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
+                title="Populate dynamic monthly simulation demo dataset"
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>{appLabels.btnSimulate}</span>
+              </button>
+            )}
 
           </div>
         </div>
@@ -1198,204 +1201,146 @@ export default function App() {
       {/* Main Workspace Body Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
         
-        {/* Quick Utility Actions and Control bar (Save/Load Data, Reset) */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
-          
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold text-slate-700">{appLabels.lblBackupGroup}</span>
-            <div className="flex items-center gap-2 mt-0.5">
-              <button
-                onClick={handleExportMonth}
-                className="inline-flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 text-xs font-semibold bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-              >
-                <Download className="w-3.5 h-3.5" />
-                <span>{appLabels.btnExport}</span>
-              </button>
+        {!isPremium ? (
+          /* INITIAL FREE STATE: Interactive Video Walkthrough showing how the app works */
+          <AppWalkthroughVideo 
+            language={language}
+            onOpenPaywall={() => setShowPaywallModal(true)}
+            onTogglePremium={handleTogglePremium}
+          />
+        ) : (
+          /* PREMIUM SUBSCRIBER STATE: Full Journal, Analytics, Data Sync, and Calendar */
+          <>
+            {/* Quick Utility Actions and Control bar (Save/Load Data, Reset) */}
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-xs">
               
-              <button
-                onClick={() => {
-                  if (!isPremium) {
-                    setShowPaywallModal(true);
-                  } else {
-                    fileInputRef.current?.click();
-                  }
-                }}
-                className="inline-flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 text-xs font-semibold bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-              >
-                <Upload className="w-3.5 h-3.5" />
-                <span>{appLabels.btnImport}</span>
-              </button>
-              <input 
-                ref={fileInputRef}
-                type="file" 
-                accept=".json" 
-                onChange={handleImportMonth}
-                className="hidden" 
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3">
-            
-            {/* ShowStats state toggle button */}
-            <button
-              onClick={() => setShowStats(!showStats)}
-              className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 bg-slate-50 px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer"
-            >
-              <span>{showStats ? appLabels.btnToggleStatsShow : appLabels.btnToggleStatsHide}</span>
-            </button>
-
-            {/* Clear button */}
-            <button
-              onClick={handleClearMonth}
-              className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              <span>{appLabels.btnReset}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* SECTION 1: Advanced Analytics Dashboard Panel */}
-        {showStats && (
-          <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-2">
-            {!isPremium ? (
-              <div className="relative">
-                {/* Blurred mockup of stats */}
-                <div className="opacity-10 blur-md pointer-events-none select-none">
-                  <StatsDashboard days={days} language={language} />
-                </div>
-                {/* Gorgeous Premium Paywall overlay */}
-                <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 backdrop-blur-xs">
-                  <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl shadow-2xl border border-slate-800 max-w-md w-full space-y-4 animate-fade-in">
-                    <div className="mx-auto w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-                      <Lock className="w-5 h-5 animate-pulse" />
-                    </div>
-                    <div className="space-y-1.5">
-                      <h4 className="text-base font-extrabold text-white">{t.paywallLockedTitle}</h4>
-                      <p className="text-slate-400 text-xs leading-relaxed">
-                        {t.paywallLockedDesc}
-                      </p>
-                    </div>
-                    <div className="pt-2 flex flex-col gap-2">
-                      <button
-                        onClick={() => setShowPaywallModal(true)}
-                        className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer transition-all"
-                      >
-                        {t.paywallUnlockBtn}
-                      </button>
-                      <button
-                        onClick={handleTogglePremium}
-                        className="text-indigo-400 hover:text-indigo-300 text-[10px] font-bold underline cursor-pointer bg-transparent border-none"
-                      >
-                        {t.devBypassBtn}
-                      </button>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold text-slate-700">{appLabels.lblBackupGroup}</span>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <button
+                    onClick={handleExportMonth}
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 text-xs font-semibold bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>{appLabels.btnExport}</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="inline-flex items-center gap-1.5 text-slate-600 hover:text-indigo-600 text-xs font-semibold bg-slate-50 hover:bg-indigo-50 border border-slate-200/60 px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    <span>{appLabels.btnImport}</span>
+                  </button>
+                  <input 
+                    ref={fileInputRef}
+                    type="file" 
+                    accept=".json" 
+                    onChange={handleImportMonth}
+                    className="hidden" 
+                  />
                 </div>
               </div>
-            ) : (
+
+              <div className="flex items-center gap-3">
+                {/* Watch video walkthrough again toggle button */}
+                <button
+                  onClick={() => setShowWalkthroughVideo(!showWalkthroughVideo)}
+                  className="inline-flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-700 border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer"
+                >
+                  <span>{showWalkthroughVideo 
+                    ? (language === 'he' ? '✕ סגור סרטון הדרכה' : '✕ Hide Video') 
+                    : (language === 'he' ? '🎬 צפה בסרטון ההסבר' : '🎬 Watch Video Guide')}</span>
+                </button>
+
+                {/* ShowStats state toggle button */}
+                <button
+                  onClick={() => setShowStats(!showStats)}
+                  className="inline-flex items-center gap-1.5 text-xs text-slate-600 hover:text-slate-900 border border-slate-200 bg-slate-50 px-3 py-1.5 rounded-lg font-semibold transition-colors cursor-pointer"
+                >
+                  <span>{showStats ? appLabels.btnToggleStatsShow : appLabels.btnToggleStatsHide}</span>
+                </button>
+
+                {/* Clear button */}
+                <button
+                  onClick={handleClearMonth}
+                  className="inline-flex items-center gap-1.5 text-rose-600 hover:text-rose-700 hover:bg-rose-50 text-xs font-semibold px-3 py-1.5 rounded-lg transition-colors cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>{appLabels.btnReset}</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Optional video walkthrough review for Pro members */}
+            {showWalkthroughVideo && (
               <div className="animate-fade-in">
-                <StatsDashboard days={days} language={language} />
+                <AppWalkthroughVideo 
+                  language={language}
+                  onOpenPaywall={() => setShowPaywallModal(true)}
+                  onTogglePremium={handleTogglePremium}
+                />
               </div>
             )}
-          </section>
-        )}
 
-        {/* SECTION 2: Daily Interactive Workspace (Table or Calendar style) */}
-        <section className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
-            <h2 className="text-lg font-extrabold text-slate-950 flex items-center gap-2">
-              <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
-              <span>
-                {language === 'he' ? 'יומן מעקב חודשי - ' : language === 'ar' ? 'دفتر التتبع الشهري - ' : language === 'ru' ? 'Ежемесячный журнал - ' : 'Monthly Trading Journal - '} 
-                {MONTH_NAMES.find(m => m.id === selectedMonth)?.name} {selectedYear}
-              </span>
-            </h2>
-            
-            {/* View Selector Tabs */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50 self-start sm:self-auto">
-              <button
-                type="button"
-                onClick={() => setActiveView('table')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                  activeView === 'table'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-650 hover:text-slate-900 bg-transparent'
-                }`}
-              >
-                {appLabels.tabTable}
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveView('calendar')}
-                className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
-                  activeView === 'calendar'
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'text-slate-650 hover:text-slate-900 bg-transparent'
-                }`}
-              >
-                <span>{appLabels.tabCalendar}</span>
-                <span className="text-xs">📅</span>
-              </button>
-            </div>
-          </div>
-
-          {activeView === 'table' ? (
-            <InteractiveTable 
-              days={days} 
-              onUpdateDay={handleUpdateDay}
-              selectedYear={selectedYear}
-              selectedMonth={selectedMonth}
-              language={language}
-              lastSelectedDay={lastSelectedDay}
-              onSelectDay={(day) => setLastSelectedDay(day)}
-            />
-          ) : (
-            <div className="relative">
-              {!isPremium ? (
-                <div className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white">
-                  {/* Blurred mockup of calendar */}
-                  <div className="opacity-10 blur-md pointer-events-none select-none">
-                    <CalendarView
-                      days={days}
-                      selectedYear={selectedYear}
-                      selectedMonth={selectedMonth}
-                      onUpdateDay={handleUpdateDay}
-                      language={language}
-                      lastSelectedDay={lastSelectedDay}
-                      onSelectDay={(day) => setLastSelectedDay(day)}
-                    />
-                  </div>
-                  {/* Gorgeous Premium Paywall overlay */}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 bg-slate-50/50 backdrop-blur-xs">
-                    <div className="bg-slate-900 text-white p-5 sm:p-6 rounded-3xl shadow-2xl border border-slate-800 max-w-md w-full space-y-4 animate-fade-in">
-                      <div className="mx-auto w-12 h-12 rounded-2xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20">
-                        <Calendar className="w-5 h-5 animate-pulse" />
-                      </div>
-                      <div className="space-y-1.5">
-                        <h4 className="text-base font-extrabold text-white">{appLabels.calendarLockedTitle}</h4>
-                        <p className="text-slate-400 text-xs leading-relaxed">
-                          {appLabels.calendarLockedDesc}
-                        </p>
-                      </div>
-                      <div className="pt-2 flex flex-col gap-2">
-                        <button
-                          onClick={() => setShowPaywallModal(true)}
-                          className="w-full py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-extrabold text-xs rounded-xl shadow-md cursor-pointer transition-all"
-                        >
-                          {appLabels.btnUnlockCalendar}
-                        </button>
-                        <button
-                          onClick={handleTogglePremium}
-                          className="text-indigo-400 hover:text-indigo-300 text-[10px] font-bold underline cursor-pointer bg-transparent border-none"
-                        >
-                          {t.devBypassBtn}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
+            {/* SECTION 1: Advanced Analytics Dashboard Panel */}
+            {showStats && (
+              <section className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white p-2 transition-all">
+                <div className="animate-fade-in">
+                  <StatsDashboard days={days} language={language} />
                 </div>
+              </section>
+            )}
+
+            {/* SECTION 2: Daily Interactive Workspace (Table or Calendar style) */}
+            <section className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-100 pb-3">
+                <h2 className="text-lg font-extrabold text-slate-950 flex items-center gap-2">
+                  <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
+                  <span>
+                    {language === 'he' ? 'יומן מעקב חודשי - ' : language === 'ar' ? 'دفتر التتبع الشهري - ' : language === 'ru' ? 'Ежемесячный журнал - ' : 'Monthly Trading Journal - '} 
+                    {MONTH_NAMES.find(m => m.id === selectedMonth)?.name} {selectedYear}
+                  </span>
+                </h2>
+                
+                {/* View Selector Tabs */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setActiveView('table')}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      activeView === 'table'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-650 hover:text-slate-900 bg-transparent'
+                    }`}
+                  >
+                    {appLabels.tabTable}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveView('calendar')}
+                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                      activeView === 'calendar'
+                        ? 'bg-slate-900 text-white shadow-xs'
+                        : 'text-slate-650 hover:text-slate-900 bg-transparent'
+                    }`}
+                  >
+                    <span>{appLabels.tabCalendar}</span>
+                    <span className="text-xs">📅</span>
+                  </button>
+                </div>
+              </div>
+
+              {activeView === 'table' ? (
+                <InteractiveTable 
+                  days={days} 
+                  onUpdateDay={handleUpdateDay}
+                  selectedYear={selectedYear}
+                  selectedMonth={selectedMonth}
+                  language={language}
+                  lastSelectedDay={lastSelectedDay}
+                  onSelectDay={(day) => setLastSelectedDay(day)}
+                />
               ) : (
                 <CalendarView
                   days={days}
@@ -1407,9 +1352,9 @@ export default function App() {
                   onSelectDay={(day) => setLastSelectedDay(day)}
                 />
               )}
-            </div>
-          )}
-        </section>
+            </section>
+          </>
+        )}
 
         {/* SECTION 3: Detailed explanatory guide matching the original user guidelines */}
         <section className="bg-slate-900 text-slate-300 rounded-2xl p-6 shadow-sm border border-slate-800 space-y-4">
