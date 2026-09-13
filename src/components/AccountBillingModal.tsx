@@ -18,7 +18,9 @@ import {
   ArrowLeft,
   Check,
   User,
-  Edit3
+  Edit3,
+  Gift,
+  Clock
 } from 'lucide-react';
 import { LanguageCode } from '../utils/translations';
 import { requestCancelSubscriptionAPI, CancelSubscriptionResponse } from '../utils/billingService';
@@ -615,6 +617,21 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                   <span>{l.feat4}</span>
                 </div>
+              </div>
+            </div>
+
+            {/* 7-Day Free Trial Policy Reminder */}
+            <div className="px-4 sm:px-5 py-3 bg-emerald-50/70 border-t border-emerald-100 flex items-start gap-2.5 text-[11px] text-emerald-900">
+              <Gift className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+              <div className="leading-relaxed">
+                <span className="font-extrabold">
+                  {language === 'he' ? 'מדיניות 7 ימי ניסיון חינם:' : '7-Day Free Trial Policy:'}{' '}
+                </span>
+                <span className="text-emerald-800">
+                  {language === 'he'
+                    ? 'כל מנוי חדש מתחיל ב-7 ימי ניסיון ללא חיוב ($0.00). החיוב החודשי ($25) מתבצע אוטומטית רק בסיום תקופת הניסיון, אלא אם המנוי מבוטל לפני כן. ניתן לבטל בכל עת בקליק אחד.'
+                    : 'Every new subscription starts with a 7-day trial ($0.00). Monthly billing ($25) begins automatically after the 7-day trial ends unless cancelled beforehand. You can cancel anytime in 1 click.'}
+                </span>
               </div>
             </div>
           </div>

@@ -92,6 +92,12 @@ export interface TranslationDictionary {
   paywallFeature3Desc: string;
   paywallPriceSub: string;
   paywallPriceDetails: string;
+  paywallTrialBadge: string;
+  paywallTrialDuration: string;
+  paywallTrialBillingTerms: string;
+  paywallTrialTimeline1: string;
+  paywallTrialTimeline2: string;
+  paywallTrialCancelAnytime: string;
   paywallBtnStart: string;
   paywallConnecting: string;
   paywallSecuredText: string;
@@ -215,7 +221,13 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallFeature3Desc: 'ייצוא קבצי גיבוי של העסקאות וטעינתם בכל זמן מכל מכשיר לשליטה מוחלטת במידע שלכם.',
     paywallPriceSub: 'מנוי מתחדש אוטומטית',
     paywallPriceDetails: 'הורדה בחינם מהאפליקציה, ביטול מנוי קל ומהיר בכל עת דרך ה-App Store / Google Play',
-    paywallBtnStart: '⚡ Subscribe Now ($25/month)',
+    paywallTrialBadge: '7 ימי ניסיון חינם ללא תשלום 🎁',
+    paywallTrialDuration: '7 ימי ניסיון חינם (0.00$ היום)',
+    paywallTrialBillingTerms: 'החיוב האוטומטי ($25 לחודש) יחל רק בתום 7 ימי הניסיון, אלא אם תבטל לפני כן. ניתן לבטל בקליק אחד בכל עת.',
+    paywallTrialTimeline1: 'היום: התחברות, מילוי פרטים ופתיחה מיידית של כל הפיצ׳רים בחינם (0$).',
+    paywallTrialTimeline2: 'בעוד 7 ימים: חיוב אוטומטי של $25/חודש מתחיל — אלא אם ביטלת את המנוי לפני כן.',
+    paywallTrialCancelAnytime: 'ביטול קל בקליק בכל עת ללא התחייבות',
+    paywallBtnStart: '⚡ התחל 7 ימי ניסיון חינם • Subscribe ($25/חודש)',
     paywallConnecting: 'מתחבר ל-App Store ומאשר תשלום...',
     paywallSecuredText: 'רכישה מאובטחת. חיוב יחל רק לאחר אישור Apple ID או Google Account.',
 
@@ -335,7 +347,13 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallFeature3Desc: 'Download entire backup files and load them anywhere to maintain absolute data control.',
     paywallPriceSub: 'Auto-Renewable Subscription',
     paywallPriceDetails: 'Free download, cancel easily anytime directly in App Store / Google Play account settings.',
-    paywallBtnStart: '⚡ Subscribe Now ($25/month)',
+    paywallTrialBadge: '7-Day Free Trial Included 🎁',
+    paywallTrialDuration: '7-Day Free Trial ($0.00 today)',
+    paywallTrialBillingTerms: 'Automatic billing of $25/month begins automatically after your 7-day free trial ends, unless cancelled beforehand.',
+    paywallTrialTimeline1: 'Today: Sign in, enter details & unlock full Pro access immediately for free ($0).',
+    paywallTrialTimeline2: 'In 7 days: Auto-renewal charges $25/month unless you cancel before the trial ends.',
+    paywallTrialCancelAnytime: 'Cancel anytime in 1-click with zero commitment',
+    paywallBtnStart: '⚡ Start 7-Day Free Trial • Subscribe ($25/mo)',
     paywallConnecting: 'Connecting to App Store & authorizing...',
     paywallSecuredText: 'Secured purchase. Billing starts only after Apple ID or Google Play confirmation.',
 
@@ -455,7 +473,13 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallFeature3Desc: 'تصدير كامل بياناتك واستيرادها في أي وقت ومن أي جهاز للتحكم الكامل ببياناتك.',
     paywallPriceSub: 'اشتراك يتجدد تلقائياً',
     paywallPriceDetails: 'تحميل مجاني، يمكنك إلغاء الاشتراك بسهولة وفي أي وقت من إعدادات حسابك في متجر التطبيقات.',
-    paywallBtnStart: '⚡ اشترك الآن (25$/شهرياً)',
+    paywallTrialBadge: 'فترة تجريبية مجانية لمدة 7 أيام 🎁',
+    paywallTrialDuration: 'تجربة مجانية لمدة 7 أيام (0.00$ اليوم)',
+    paywallTrialBillingTerms: 'يبدأ الخصم التلقائي بمبلغ 25$ شهرياً بعد انتهاء الـ 7 أيام التجريبية، ما لم تقم بإلغاء الاشتراك قبل ذلك.',
+    paywallTrialTimeline1: 'اليوم: تسجيل الدخول وتعبئة البيانات وفتح جميع ميزات البريميوم مجاناً (0$).',
+    paywallTrialTimeline2: 'بعد 7 أيام: يبدأ الخصم التلقائي 25$/شهر إلا إذا ألغيت الاشتراك قبل ذلك.',
+    paywallTrialCancelAnytime: 'إلغاء سهل بنقرة واحدة في أي وقت دون التزام',
+    paywallBtnStart: '⚡ بدء التجربة المجانية لمدة 7 أيام • Subscribe (25$/شهر)',
     paywallConnecting: 'جاري الاتصال بمتجر التطبيقات وإتمام الدفع...',
     paywallSecuredText: 'عملية شراء آمنة. يبدأ الخصم فقط بعد تأكيد الهوية وحساب المتجر.',
 
@@ -575,7 +599,13 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallFeature3Desc: 'Выгружайте файлы бэкапа и загружайте их на любом устройстве для полного контроля над данными.',
     paywallPriceSub: 'Автопродлеваемая подписка',
     paywallPriceDetails: 'Скачивание бесплатно, отмена в любое время в настройках учетной записи App Store / Google Play.',
-    paywallBtnStart: '⚡ Оформить Подписку ($25/месяц)',
+    paywallTrialBadge: '7 дней бесплатного пробного периода 🎁',
+    paywallTrialDuration: '7 дней бесплатно ($0.00 сегодня)',
+    paywallTrialBillingTerms: 'Автоматическое списание $25/месяц начнется только по завершении 7 дней, если подписка не была отменена ранее.',
+    paywallTrialTimeline1: 'Сегодня: Вход, ввод данных и мгновенный доступ ко всем функциям бесплатно ($0).',
+    paywallTrialTimeline2: 'Через 7 дней: Начнется автоматическая оплата $25/мес, если вы не отмените подписку до этого времени.',
+    paywallTrialCancelAnytime: 'Простая отмена в 1 клик в любое время без обязательств',
+    paywallBtnStart: '⚡ Начать 7 дней бесплатно • Subscribe ($25/мес)',
     paywallConnecting: 'Подключение к App Store и авторизация платежа...',
     paywallSecuredText: 'Безопасная покупка. Списание начнется только после подтверждения Apple ID или Google Play.',
 

@@ -22,14 +22,19 @@ import {
   HelpCircle,
   Lock,
   Unlock,
-  Smartphone,
   ExternalLink,
   ShieldCheck,
   Globe,
   CreditCard,
   UserCheck,
-  Crown
+  Crown,
+  Brain,
+  Gift,
+  CheckCircle2,
+  Clock,
+  CalendarDays
 } from 'lucide-react';
+import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
 import { CancelSubscriptionResponse } from './utils/billingService';
@@ -121,8 +126,46 @@ export default function App() {
     return false;
   });
   const [showWalkthroughVideo, setShowWalkthroughVideo] = useState<boolean>(false);
+  const [showEndOfMonthModal, setShowEndOfMonthModal] = useState<boolean>(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Derive month string layout like "2026-06"
+  const monthId = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
+
+  // Auto popup at the end of each month with mental and strategic insights
+  useEffect(() => {
+    if (!isPremium) return;
+
+    // Check if dismissed for this specific month
+    const dismissed = localStorage.getItem(`eom_popup_seen_${monthId}`) === 'true';
+    if (dismissed) return;
+
+    // Check if there are sufficient trades entered (at least 3 trades)
+    const executedCount = days.filter(d => d.executed === 'Y').length;
+    if (executedCount < 3) return;
+
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonth = now.getMonth() + 1; // 1-12
+    const currentDay = now.getDate();
+
+    // 1. Is this a past month?
+    const isPastMonth = selectedYear < currentYear || (selectedYear === currentYear && selectedMonth < currentMonth);
+
+    // 2. Is this the current month and we are at the end of the month (day >= 25)?
+    const isEndOfCurrentMonth = selectedYear === currentYear && selectedMonth === currentMonth && currentDay >= 25;
+
+    // 3. Or did the trader log trades on late days of the month (day >= 24)?
+    const hasLateDaysLogged = days.some(d => d.day >= 24 && d.executed !== null);
+
+    if (isPastMonth || isEndOfCurrentMonth || hasLateDaysLogged) {
+      const timer = setTimeout(() => {
+        setShowEndOfMonthModal(true);
+      }, 900);
+      return () => clearTimeout(timer);
+    }
+  }, [monthId, isPremium, days, selectedYear, selectedMonth]);
 
   // Synchronize state preferences to LocalStorage for full session continuity
   useEffect(() => {
@@ -146,9 +189,6 @@ export default function App() {
       localStorage.setItem('trading_tracker_last_day', String(lastSelectedDay));
     }
   }, [lastSelectedDay]);
-
-  // Derive month string layout like "2026-06"
-  const monthId = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}`;
 
   // Derivations for "Professional Polish" premium header statistics
   const executedDays = days.filter(d => d.executed === 'Y');
@@ -385,6 +425,58 @@ export default function App() {
           notes: language === 'he' ? 'סטאפ תקין אך יחס סיכון/סיכוי היה נמוך.' : 'No entry because Risk-Reward was below plan.',
         };
       }
+      if (dNum === 19) {
+        return {
+          day: dNum,
+          executed: 'Y',
+          mentalState: 'calm',
+          noEntryReason: null,
+          deviation: 'none',
+          confidence: 5,
+          rating: 9,
+          resultR: 2.4,
+          notes: language === 'he' ? 'מימוש מלא ביעד 2.4R לפי כללי התוכנית.' : 'Clean trade execution with full 2.4R target hit.',
+        };
+      }
+      if (dNum === 23) {
+        return {
+          day: dNum,
+          executed: 'Y',
+          mentalState: 'calm',
+          noEntryReason: null,
+          deviation: 'none',
+          confidence: 4,
+          rating: 8,
+          resultR: 1.6,
+          notes: language === 'he' ? 'סבלנות ומשמעת ברמה גבוהה.' : 'High discipline and patience rewarded.',
+        };
+      }
+      if (dNum === 26) {
+        return {
+          day: dNum,
+          executed: 'Y',
+          mentalState: 'stressed',
+          noEntryReason: null,
+          deviation: 'early_exit',
+          confidence: 3,
+          rating: 6,
+          resultR: 0.6,
+          notes: language === 'he' ? 'יציאה מוקדמת בגלל פחד לאבד את הרווח.' : 'Early exit due to fear of giving back gains.',
+        };
+      }
+      if (dNum === 28) {
+        return {
+          day: dNum,
+          executed: 'N',
+          mentalState: 'calm',
+          noEntryReason: 'discipline',
+          deviation: null,
+          confidence: null,
+          rating: null,
+          resultR: 0,
+          notes: language === 'he' ? 'סוף חודש: שמרתי על הרווח החודשי ולא חיפשתי עסקאות מיותרות.' : 'End of month: Protected profits, skipped unnecessary trades.',
+        };
+      }
 
       // Safe placeholder default for other days
       return {
@@ -403,6 +495,10 @@ export default function App() {
     setDays(demoDays);
     saveToStorage(demoDays);
     showToast(t.toastSuccessSample, 'success');
+    // Open end-of-month insights review modal after short delay
+    setTimeout(() => {
+      setShowEndOfMonthModal(true);
+    }, 500);
   };
 
   // Action: Toggle Premium Mode (for simulation/testing by the developer)
@@ -786,12 +882,6 @@ export default function App() {
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3">
           
           <div className="flex items-center flex-wrap gap-2 text-xs">
-            <span className="inline-flex items-center gap-1 bg-indigo-500/10 text-indigo-300 font-extrabold px-2.5 py-1 rounded-full border border-indigo-500/20 uppercase tracking-wider text-[10px]">
-              <Smartphone className="w-3 h-3 text-indigo-400" />
-              {appLabels.subHeaderTitle}
-            </span>
-            <span className="text-slate-300 font-medium">{appLabels.subHeaderDesc}</span>
-            
             <div className="inline-flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700">
               <span className="text-slate-400 text-[11px]">{appLabels.statusLabel}</span>
               {isPremium ? (
@@ -912,14 +1002,55 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Price Tag Box */}
-              <div className="bg-indigo-50 border border-indigo-100 rounded-2xl p-4.5 text-center space-y-1">
-                <div className="text-[11px] text-indigo-600 font-extrabold tracking-wider uppercase">{t.paywallPriceSub}</div>
-                <div className="flex items-baseline justify-center gap-1">
-                  <span className="text-2xl font-black text-indigo-950">$25</span>
-                  <span className="text-slate-500 text-xs font-medium">{language === 'he' ? '/ לחודש' : '/ month'}</span>
+              {/* 7-Day Free Trial & Pricing Box */}
+              <div className="bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-emerald-50/60 border-2 border-indigo-200/90 rounded-2xl p-4.5 space-y-3 shadow-xs">
+                {/* Free Trial Badge & Highlight */}
+                <div className="flex items-center justify-between gap-2 flex-wrap">
+                  <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white font-black text-[11px] px-3 py-1 rounded-full shadow-xs uppercase tracking-wider">
+                    <Gift className="w-3.5 h-3.5" />
+                    <span>{t.paywallTrialBadge}</span>
+                  </div>
+                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
+                    {t.paywallTrialCancelAnytime}
+                  </span>
                 </div>
-                <p className="text-slate-400 text-[10px]">{t.paywallPriceDetails}</p>
+
+                {/* Price Display */}
+                <div className="text-center py-1">
+                  <div className="flex items-baseline justify-center gap-2">
+                    <span className="text-3xl font-black text-indigo-950">$0.00</span>
+                    <span className="text-emerald-600 font-extrabold text-sm">
+                      {language === 'he' ? 'ב-7 הימים הראשונים' : 'for the first 7 days'}
+                    </span>
+                  </div>
+                  <div className="text-slate-500 text-xs font-semibold mt-1">
+                    {language === 'he' 
+                      ? 'ואחרי 7 ימי ניסיון: רק $25 לחודש (חיוב אוטומטי אלא אם בוטל)' 
+                      : 'then only $25/month auto-billed unless cancelled'}
+                  </div>
+                </div>
+
+                {/* 2-Step Transparent Timeline */}
+                <div className="bg-white/90 backdrop-blur-xs rounded-xl p-3 border border-indigo-100/80 space-y-2 text-[11px]">
+                  <div className="flex items-start gap-2 text-slate-700">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="text-slate-900 font-bold">{language === 'he' ? 'שלב 1 (היום): ' : 'Step 1 (Today): '}</strong>
+                      {t.paywallTrialTimeline1}
+                    </span>
+                  </div>
+                  <div className="flex items-start gap-2 text-slate-700">
+                    <Clock className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <span>
+                      <strong className="text-slate-900 font-bold">{language === 'he' ? 'שלב 2 (בעוד 7 ימים): ' : 'Step 2 (In 7 days): '}</strong>
+                      {t.paywallTrialTimeline2}
+                    </span>
+                  </div>
+                </div>
+
+                <p className="text-slate-500 text-[10px] text-center leading-relaxed font-medium">
+                  {t.paywallTrialBillingTerms}
+                </p>
               </div>
             </div>
 
@@ -933,17 +1064,18 @@ export default function App() {
                   showToast(
                     geoInfo.isIsrael
                       ? (language === 'he'
-                          ? 'מעביר לעמוד התשלום המאובטח של iCount (סליקה בישראל) בטאב חדש 🚀'
-                          : 'Opening iCount secure subscription checkout in a new tab 🚀')
+                          ? 'מעביר לעמוד התשלום המאובטח של iCount (סליקה בישראל עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
+                          : 'Opening iCount secure checkout with 7-day free trial in a new tab 🚀')
                       : (language === 'he'
-                          ? 'מעביר לעמוד התשלום המאובטח של Payoneer בטאב חדש 🚀'
-                          : 'Opening Payoneer secure subscription checkout in a new tab 🚀'),
+                          ? 'מעביר לעמוד התשלום המאובטח של Payoneer (עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
+                          : 'Opening Payoneer secure checkout with 7-day free trial in a new tab 🚀'),
                     'info'
                   );
                 }}
-                className="w-full py-3.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center flex items-center justify-center gap-2 group"
+                className="w-full py-3.5 bg-gradient-to-r from-emerald-600 via-indigo-600 to-indigo-700 hover:from-emerald-700 hover:via-indigo-700 hover:to-indigo-800 text-white font-black text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center flex items-center justify-center gap-2 group"
               >
-                <span>Subscribe Now ($25/month)</span>
+                <Gift className="w-4 h-4 text-amber-300 shrink-0" />
+                <span>{t.paywallBtnStart}</span>
                 <ExternalLink className="w-4 h-4 text-indigo-200 group-hover:text-white transition-colors shrink-0" />
               </a>
 
@@ -1243,6 +1375,19 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-3">
+                {/* End of Month Insights & Coaching Button */}
+                <button
+                  onClick={() => setShowEndOfMonthModal(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-indigo-700 hover:text-indigo-900 border border-indigo-300 bg-indigo-50/90 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer relative"
+                  title={language === 'he' ? 'צפה בתובנות מנטליות ואסטרטגיות לסוף חודש' : 'View End of Month Mental & Strategic Insights'}
+                >
+                  <Brain className="w-3.5 h-3.5 text-indigo-600 animate-pulse" />
+                  <span>{language === 'he' ? '🧠 תובנות סוף חודש' : language === 'ar' ? '🧠 تحليلات نهاية الشهر' : language === 'ru' ? '🧠 Инсайты конца месяца' : '🧠 End of Month Insights'}</span>
+                  {executedDaysCount > 0 && (
+                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
+                  )}
+                </button>
+
                 {/* Watch video walkthrough again toggle button */}
                 <button
                   onClick={() => setShowWalkthroughVideo(!showWalkthroughVideo)}
@@ -1419,6 +1564,16 @@ export default function App() {
         onReactivateSubscription={handleReactivateSubscription}
         accountName={accountName}
         onUpdateAccountName={handleUpdateAccountName}
+        language={language}
+      />
+
+      {/* End of Month Mental & Strategic Insights Modal */}
+      <EndOfMonthInsightsModal
+        isOpen={showEndOfMonthModal}
+        onClose={() => setShowEndOfMonthModal(false)}
+        days={days}
+        selectedYear={selectedYear}
+        selectedMonth={selectedMonth}
         language={language}
       />
 
