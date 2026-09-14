@@ -14,7 +14,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { User } from 'firebase/auth';
-import { loginWithGoogle, loginWithEmail, registerWithEmail, logoutUser } from '../firebase';
+import { loginWithGoogle, loginWithEmail, registerWithEmail, logoutUser, isFirebaseConfigured } from '../firebase';
 import { LanguageCode } from '../utils/translations';
 
 interface CloudSyncModalProps {
@@ -229,6 +229,20 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
                   ? 'התחבר לחשבונך כדי שכל עסקה, חודש והתחייבות שאתה מזין יישמרו בענן ויופיעו באופן זהה לחלוטין גם במחשב וגם בפלאפון.'
                   : 'Sign in so every trade and note is saved securely in the cloud and synced across computer and phone.'}
               </p>
+
+              {!isFirebaseConfigured && (
+                <div className="p-3.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs space-y-1">
+                  <div className="font-bold flex items-center gap-1.5 text-amber-800">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    <span>{language === 'he' ? 'מצב שמירה מקומי פעיל (Local Offline)' : 'Local Offline Mode Active'}</span>
+                  </div>
+                  <p className="text-[11px] text-amber-800/90 leading-relaxed">
+                    {language === 'he'
+                      ? 'כל הנתונים נשמרים כרגע בדפדפן המקומי במכשיר זה. לסנכרון אוטומטי בין מכשירים (מחשב ונייד), יש להגדיר את פרטי Firebase (VITE_FIREBASE_API_KEY) בקובץ הסביבה.'
+                      : 'All your data is saved locally on this device. To sync seamlessly across devices, configure your Firebase keys (VITE_FIREBASE_API_KEY).'}
+                  </p>
+                </div>
+              )}
 
               {errorMsg && (
                 <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold animate-shake">

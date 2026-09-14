@@ -20,7 +20,9 @@ import {
   User,
   Edit3,
   Gift,
-  Clock
+  Clock,
+  Scale,
+  RotateCcw
 } from 'lucide-react';
 import { LanguageCode } from '../utils/translations';
 import { requestCancelSubscriptionAPI, CancelSubscriptionResponse } from '../utils/billingService';
@@ -42,6 +44,7 @@ interface AccountBillingModalProps {
   accountName?: string;
   onUpdateAccountName?: (name: string) => void;
   language: LanguageCode;
+  onOpenLegalTerms?: (tab: 'terms' | 'cancellation') => void;
 }
 
 export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
@@ -53,11 +56,18 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
   accountName = '',
   onUpdateAccountName,
   language,
+  onOpenLegalTerms,
 }) => {
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [currentName, setCurrentName] = useState(accountName || '');
+
+  // Legal terms acceptance state in billing modal
+  const [hasAcceptedBillingTerms, setHasAcceptedBillingTerms] = useState<boolean>(() => {
+    return localStorage.getItem('trading_tracker_accepted_terms') === 'true';
+  });
+  const [billingTermsShake, setBillingTermsShake] = useState(false);
 
   useEffect(() => {
     if (accountName) {
@@ -699,37 +709,96 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
               )}
             </div>
           ) : (
-            <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div>
-                <h4 className="text-xs font-black text-indigo-950">
-                  {language === 'he' ? 'רוצה להחזיר את כל הפיצ׳רים?' : 'Ready to restore full Pro access?'}
-                </h4>
-                <p className="text-indigo-800/80 text-[11px] mt-0.5">
-                  {language === 'he' ? 'הפעל מחדש את המנוי ב-$25 לחודש וקבל גישה מיידית ללוח השנה ולאנליטיקה.' : 'Reactivate your $25/mo plan to instantly unlock the mental calendar & analytics.'}
-                </p>
+            <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-4 sm:p-5 space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <h4 className="text-xs font-black text-indigo-950">
+                    {language === 'he' ? 'רוצה להחזיר את כל הפיצ׳רים?' : 'Ready to restore full Pro access?'}
+                  </h4>
+                  <p className="text-indigo-800/80 text-[11px] mt-0.5">
+                    {language === 'he' ? 'הפעל מחדש את המנוי ב-$25 לחודש וקבל גישה מיידית ללוח השנה ולאנליטיקה.' : 'Reactivate your $25/mo plan to instantly unlock the mental calendar & analytics.'}
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0">
+                  <a
+                    href={hasAcceptedBillingTerms ? geoInfo.checkoutUrl : undefined}
+                    target={hasAcceptedBillingTerms ? "_blank" : undefined}
+                    rel={hasAcceptedBillingTerms ? "noopener noreferrer" : undefined}
+                    onClick={(e) => {
+                      if (!hasAcceptedBillingTerms) {
+                        e.preventDefault();
+                        setBillingTermsShake(true);
+                        setTimeout(() => setBillingTermsShake(false), 800);
+                        return;
+                      }
+                    }}
+                    className={`w-full sm:w-auto px-4 py-2.5 font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 shrink-0 group ${
+                      hasAcceptedBillingTerms
+                        ? 'bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20 cursor-pointer'
+                        : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed shadow-none'
+                    }`}
+                  >
+                    <Crown className={`w-4 h-4 ${hasAcceptedBillingTerms ? 'text-amber-300' : 'text-slate-400'}`} />
+                    <span>Subscribe Now ($25/month)</span>
+                    <ExternalLink className="w-3.5 h-3.5 text-indigo-200 group-hover:text-white" />
+                  </a>
+
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={handleReactivate}
+                    className="text-[10px] text-slate-500 hover:text-indigo-600 font-bold underline cursor-pointer py-1 px-2"
+                    title="Test Reactivation"
+                  >
+                    {language === 'he' ? 'שחזור מהיר (בדיקה)' : 'Quick Test Restore'}
+                  </button>
+                </div>
               </div>
 
-              <div className="flex flex-col sm:flex-row items-center gap-2 shrink-0">
-                <a
-                  href={geoInfo.checkoutUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full sm:w-auto px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-xs rounded-xl shadow-md shadow-indigo-600/20 transition-all flex items-center justify-center gap-1.5 cursor-pointer shrink-0 group"
-                >
-                  <Crown className="w-4 h-4 text-amber-300" />
-                  <span>Subscribe Now ($25/month)</span>
-                  <ExternalLink className="w-3.5 h-3.5 text-indigo-200 group-hover:text-white" />
-                </a>
-
-                <button
-                  type="button"
-                  disabled={isProcessing}
-                  onClick={handleReactivate}
-                  className="text-[10px] text-slate-500 hover:text-indigo-600 font-bold underline cursor-pointer py-1 px-2"
-                  title="Test Reactivation"
-                >
-                  {language === 'he' ? 'שחזור מהיר (בדיקה)' : 'Quick Test Restore'}
-                </button>
+              {/* Checkbox and Terms Links directly under Subscribe in Billing Modal */}
+              <div 
+                className={`p-2.5 rounded-xl border text-start transition-all ${
+                  billingTermsShake 
+                    ? 'ring-2 ring-rose-500 bg-rose-50/80 border-rose-300 animate-shake' 
+                    : hasAcceptedBillingTerms 
+                    ? 'bg-white/90 border-emerald-300' 
+                    : 'bg-white/80 border-indigo-100'
+                }`}
+              >
+                <label className="flex items-start gap-2 cursor-pointer select-none text-[11px] text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={hasAcceptedBillingTerms}
+                    onChange={(e) => {
+                      setHasAcceptedBillingTerms(e.target.checked);
+                      localStorage.setItem('trading_tracker_accepted_terms', e.target.checked ? 'true' : 'false');
+                    }}
+                    className="mt-0.5 w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0"
+                  />
+                  <div>
+                    <span className="font-semibold">
+                      {language === 'he' ? 'קראתי ואישרתי את ' : 'I agree to the '}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => onOpenLegalTerms?.('terms')}
+                      className="font-bold text-indigo-600 hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                    >
+                      <Scale className="w-3 h-3 text-indigo-600 inline" />
+                      <span>{language === 'he' ? 'התקנון ותנאי השימוש' : 'Terms of Service'}</span>
+                    </button>
+                    <span className="font-semibold">{language === 'he' ? ' ואת ' : ' and '}</span>
+                    <button
+                      type="button"
+                      onClick={() => onOpenLegalTerms?.('cancellation')}
+                      className="font-bold text-rose-600 hover:underline cursor-pointer inline-flex items-center gap-0.5"
+                    >
+                      <RotateCcw className="w-3 h-3 text-rose-600 inline" />
+                      <span>{language === 'he' ? 'מדיניות ביטול העסקה (חוק הגנת הצרכן)' : 'Cancellation Policy'}</span>
+                    </button>
+                  </div>
+                </label>
               </div>
             </div>
           )}
@@ -805,16 +874,38 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="p-4 border-t border-slate-200 bg-white flex items-center justify-between">
-          <div className="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-            <Shield className="w-3.5 h-3.5 text-slate-400" />
-            <span>Secure 256-Bit SSL Billing</span>
+        <div className="p-4 border-t border-slate-200 bg-white flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500">
+            <div className="flex items-center gap-1 font-medium text-slate-400">
+              <Shield className="w-3.5 h-3.5 text-slate-400" />
+              <span>Secure 256-Bit SSL</span>
+            </div>
+            
+            <span className="text-slate-300">•</span>
+
+            <button
+              type="button"
+              onClick={() => onOpenLegalTerms?.('terms')}
+              className="text-slate-500 hover:text-indigo-600 font-medium underline cursor-pointer"
+            >
+              {language === 'he' ? 'תקנון ותנאי שימוש' : 'Terms'}
+            </button>
+
+            <span className="text-slate-300">•</span>
+
+            <button
+              type="button"
+              onClick={() => onOpenLegalTerms?.('cancellation')}
+              className="text-slate-500 hover:text-rose-600 font-medium underline cursor-pointer"
+            >
+              {language === 'he' ? 'מדיניות ביטול עסקה (חוק הגנת הצרכן)' : 'Cancellation Policy'}
+            </button>
           </div>
 
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs"
+            className="w-full sm:w-auto px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs rounded-xl transition-all cursor-pointer shadow-xs"
           >
             {l.btnClose}
           </button>

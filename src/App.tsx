@@ -38,7 +38,9 @@ import {
   Check,
   Cloud,
   Smartphone,
-  Monitor
+  Monitor,
+  Scale,
+  RotateCcw
 } from 'lucide-react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { 
@@ -53,6 +55,7 @@ import { CloudSyncModal } from './components/CloudSyncModal';
 import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
+import { LegalTermsModal, LegalTab } from './components/LegalTermsModal';
 import { CancelSubscriptionResponse } from './utils/billingService';
 import { 
   ICOUNT_CHECKOUT_URL, 
@@ -147,6 +150,19 @@ export default function App() {
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
   const [showBillingModal, setShowBillingModal] = useState<boolean>(false);
   const [isSimulatingSubPurchase, setIsSimulatingSubPurchase] = useState<boolean>(false);
+
+  // Legal terms acceptance & modal states (Israeli Consumer Protection Law & Terms of Service)
+  const [hasAcceptedTerms, setHasAcceptedTerms] = useState<boolean>(() => {
+    return localStorage.getItem('trading_tracker_accepted_terms') === 'true';
+  });
+  const [showLegalTermsModal, setShowLegalTermsModal] = useState<boolean>(false);
+  const [legalTermsTab, setLegalTermsTab] = useState<LegalTab>('terms');
+  const [termsCheckboxShake, setTermsCheckboxShake] = useState<boolean>(false);
+
+  const handleToggleTerms = (accepted: boolean) => {
+    setHasAcceptedTerms(accepted);
+    localStorage.setItem('trading_tracker_accepted_terms', accepted ? 'true' : 'false');
+  };
   // Reopening page always returns cleanly to the main workspace (הדף הראשי)
   const [showLanding, setShowLanding] = useState<boolean>(false);
   const [showWalkthroughVideo, setShowWalkthroughVideo] = useState<boolean>(false);
@@ -1143,7 +1159,7 @@ export default function App() {
             </div>
 
             {/* Paywall Features & Pricing - Smooth internal scrolling */}
-            <div className="p-4 sm:p-5.5 space-y-3.5 sm:space-y-4 flex-1 overflow-y-auto bg-slate-50/60 overscroll-contain">
+            <div className="p-4 sm:p-5.5 pb-6 sm:pb-8 space-y-3.5 sm:space-y-4 flex-1 overflow-y-auto bg-slate-50/60 overscroll-contain touch-pan-y">
               <div className="space-y-2.5">
                 <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">{t.paywallFeaturesTitle}</div>
                 
@@ -1232,95 +1248,186 @@ export default function App() {
                   {t.paywallTrialBillingTerms}
                 </p>
               </div>
-            </div>
 
-            {/* Subscription Checkout Button (Geo-IP: iCount for Israel / Payoneer for International) */}
-            <div className="p-3.5 sm:p-4.5 border-t border-slate-200 bg-white text-center space-y-2.5 shrink-0 shadow-xs">
-              <a
-                href={geoInfo.checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                onClick={() => {
-                  showToast(
-                    geoInfo.isIsrael
-                      ? (language === 'he'
-                          ? 'מעביר לעמוד התשלום המאובטח של iCount (סליקה בישראל עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
-                          : 'Opening iCount secure checkout with 7-day free trial in a new tab 🚀')
-                      : (language === 'he'
-                          ? 'מעביר לעמוד התשלום המאובטח של Payoneer (עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
-                          : 'Opening Payoneer secure checkout with 7-day free trial in a new tab 🚀'),
-                    'info'
-                  );
-                }}
-                className="w-full py-3 sm:py-3.5 bg-gradient-to-r from-emerald-600 via-indigo-600 to-indigo-700 hover:from-emerald-700 hover:via-indigo-700 hover:to-indigo-800 text-white font-black text-xs sm:text-sm rounded-2xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] cursor-pointer text-center flex items-center justify-center gap-2 group"
-              >
-                <Gift className="w-4 h-4 text-amber-300 shrink-0" />
-                <span>{t.paywallBtnStart}</span>
-                <ExternalLink className="w-4 h-4 text-indigo-200 group-hover:text-white transition-colors shrink-0" />
-              </a>
-
-              {/* Geo-IP Provider Info badge with fast simulation toggle */}
-              <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] sm:text-[11px] text-slate-500 font-medium">
-                <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200 font-bold">
-                  <Globe className="w-3 h-3 text-indigo-600 shrink-0" />
-                  <span>
-                    {geoInfo.isIsrael
-                      ? (language === 'he' ? 'זיהוי מיקום: ישראל (iCount 🇮🇱)' : 'Detected: Israel (iCount 🇮🇱)')
-                      : (language === 'he' ? 'זיהוי מיקום: בינלאומי (Payoneer 🌐)' : 'Detected: International (Payoneer 🌐)')}
-                  </span>
-                </span>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const next = setSimulatedCountry(geoInfo.isIsrael ? 'US' : 'IL');
-                    setGeoInfo(next);
+              {/* Complete Subscription Checkout & Legal Card - Fully inside the scrollable view */}
+              <div className="bg-white p-3.5 sm:p-4.5 rounded-2xl border border-slate-200 shadow-xs text-center space-y-3">
+                
+                {/* Primary Subscribe Button - Locked until terms checkbox is checked */}
+                <a
+                  href={hasAcceptedTerms ? geoInfo.checkoutUrl : undefined}
+                  target={hasAcceptedTerms ? "_blank" : undefined}
+                  rel={hasAcceptedTerms ? "noopener noreferrer" : undefined}
+                  onClick={(e) => {
+                    if (!hasAcceptedTerms) {
+                      e.preventDefault();
+                      setTermsCheckboxShake(true);
+                      setTimeout(() => setTermsCheckboxShake(false), 800);
+                      showToast(
+                        language === 'he'
+                          ? 'יש לסמן אישור במרובע הקטן שקראת את התקנון ומדיניות הביטול כדי להמשיך לסובסקרייב ⚖️'
+                          : 'Please check the box confirming you agree to the Terms & Cancellation Policy to proceed ⚖️',
+                        'error'
+                      );
+                      return;
+                    }
                     showToast(
-                      next.isIsrael 
-                        ? (language === 'he' ? 'מיקום הוגדר: ישראל 🇮🇱 (קישור iCount נטען)' : 'Location set: Israel 🇮🇱 (iCount link active)') 
-                        : (language === 'he' ? 'מיקום הוגדר: בינלאומי 🌐 (קישור Payoneer נטען)' : 'Location set: International 🌐 (Payoneer link active)'),
+                      geoInfo.isIsrael
+                        ? (language === 'he'
+                            ? 'מעביר לעמוד התשלום המאובטח של iCount (סליקה בישראל עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
+                            : 'Opening iCount secure checkout with 7-day free trial in a new tab 🚀')
+                        : (language === 'he'
+                            ? 'מעביר לעמוד התשלום המאובטח של Payoneer (עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
+                            : 'Opening Payoneer secure checkout with 7-day free trial in a new tab 🚀'),
                       'info'
                     );
                   }}
-                  className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold underline cursor-pointer"
-                  title="Toggle location detection simulation"
+                  className={`w-full py-3 sm:py-3.5 font-black text-xs sm:text-sm rounded-2xl shadow-lg transition-all text-center flex items-center justify-center gap-2 group select-none ${
+                    hasAcceptedTerms
+                      ? 'bg-gradient-to-r from-emerald-600 via-indigo-600 to-indigo-700 hover:from-emerald-700 hover:via-indigo-700 hover:to-indigo-800 text-white hover:shadow-xl hover:scale-[1.01] cursor-pointer ring-2 ring-emerald-400/40'
+                      : 'bg-slate-100 text-slate-400 border border-slate-300 hover:bg-slate-200/80 cursor-pointer shadow-none opacity-80'
+                  }`}
+                  title={!hasAcceptedTerms ? (language === 'he' ? 'יש לסמן אישור לתקנון במרובע למטה כדי להמשיך' : 'Check the terms box below to enable') : undefined}
                 >
-                  {geoInfo.isIsrael ? (language === 'he' ? 'החלף לגלובלי (Payoneer)' : 'Switch to Global (Payoneer)') : (language === 'he' ? 'החלף לישראל (iCount)' : 'Switch to Israel (iCount)')}
-                </button>
-              </div>
-              
-              <div className="flex flex-col sm:flex-row items-center justify-between gap-1 text-slate-400 text-[10px] px-1">
-                <div className="flex items-center gap-1.5">
-                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-                  <span>
-                    {geoInfo.isIsrael
-                      ? (language === 'he' ? 'סליקה מאובטחת ע״י iCount (ש״ח / כרטיסי אשראי ישראליים)' : 'Secured via iCount payment gateway')
-                      : t.paywallSecuredText}
-                  </span>
+                  <Gift className={`w-4 h-4 shrink-0 ${hasAcceptedTerms ? 'text-amber-300' : 'text-slate-400'}`} />
+                  <span>{t.paywallBtnStart}</span>
+                  <ExternalLink className={`w-4 h-4 shrink-0 ${hasAcceptedTerms ? 'text-indigo-200 group-hover:text-white transition-colors' : 'text-slate-400'}`} />
+                </a>
+
+                {/* Legal Terms & Cancellation Policy Checkbox - Placed directly under Subscribe */}
+                <div 
+                  className={`p-3 rounded-2xl border text-start transition-all duration-300 ${
+                    termsCheckboxShake 
+                      ? 'ring-2 ring-rose-500 bg-rose-50/80 border-rose-300 animate-shake' 
+                      : hasAcceptedTerms 
+                      ? 'bg-emerald-50/60 border-emerald-300 text-emerald-950' 
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                  }`}
+                >
+                  <label className="flex items-start gap-2.5 cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      id="terms-paywall-checkbox"
+                      checked={hasAcceptedTerms}
+                      onChange={(e) => handleToggleTerms(e.target.checked)}
+                      className="mt-0.5 w-4.5 h-4.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer shrink-0 accent-indigo-600"
+                    />
+                    <div className="text-[11px] leading-relaxed">
+                      <span className="font-bold text-slate-900">
+                        {language === 'he' 
+                          ? 'קראתי, הבנתי ואני מאשר/ת את ' 
+                          : 'I have read, understood, and agree to the '}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setLegalTermsTab('terms');
+                          setShowLegalTermsModal(true);
+                        }}
+                        className="font-black text-indigo-600 hover:text-indigo-800 underline underline-offset-2 cursor-pointer inline-flex items-center gap-0.5 mx-0.5"
+                      >
+                        <Scale className="w-3 h-3 text-indigo-600 inline shrink-0" />
+                        <span>{language === 'he' ? 'התקנון ותנאי השימוש' : 'Terms of Service'}</span>
+                      </button>
+                      <span className="font-bold text-slate-900">{language === 'he' ? ' וכן את ' : ' and the '}</span>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setLegalTermsTab('cancellation');
+                          setShowLegalTermsModal(true);
+                        }}
+                        className="font-black text-rose-600 hover:text-rose-800 underline underline-offset-2 cursor-pointer inline-flex items-center gap-0.5 mx-0.5"
+                      >
+                        <RotateCcw className="w-3 h-3 text-rose-600 inline shrink-0" />
+                        <span>{language === 'he' ? 'מדיניות ביטול העסקה לפי חוק' : 'Cancellation Policy by Law'}</span>
+                      </button>
+                      
+                      <div className="text-[10px] text-slate-500 mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                        <span className="inline-flex items-center gap-1 text-emerald-700 font-semibold">
+                          <Check className="w-3 h-3 text-emerald-600" />
+                          <span>{language === 'he' ? '7 ימי ניסיון חינם ב-0 ש״ח' : '7-Day Free Trial ($0.00 today)'}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
+                          <span>•</span>
+                          <span>{language === 'he' ? 'ביטול בקליק אחד ללא דמי ביטול' : 'Cancel anytime in 1-click, no fees'}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-1 text-slate-600 font-medium">
+                          <span>•</span>
+                          <span>{language === 'he' ? 'חוק הגנת הצרכן (סעיף 14ג/14ט)' : 'Distance Selling Protection'}</span>
+                        </span>
+                      </div>
+                    </div>
+                  </label>
                 </div>
-                {/* Developer simulation bypass */}
-                <button
-                  type="button"
-                  onClick={handleSimulatePurchase}
-                  className="text-[10px] text-slate-400 hover:text-indigo-600 underline cursor-pointer"
-                  title="Simulate instant activation for testing"
-                >
-                  {t.devBypassBtn}
-                </button>
+
+                {/* Geo-IP Provider Info badge with fast simulation toggle */}
+                <div className="flex flex-wrap items-center justify-center gap-2 text-[10px] sm:text-[11px] text-slate-500 font-medium">
+                  <span className="inline-flex items-center gap-1.5 bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200 font-bold">
+                    <Globe className="w-3 h-3 text-indigo-600 shrink-0" />
+                    <span>
+                      {geoInfo.isIsrael
+                        ? (language === 'he' ? 'זיהוי מיקום: ישראל (iCount 🇮🇱)' : 'Detected: Israel (iCount 🇮🇱)')
+                        : (language === 'he' ? 'זיהוי מיקום: בינלאומי (Payoneer 🌐)' : 'Detected: International (Payoneer 🌐)')}
+                    </span>
+                  </span>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const next = setSimulatedCountry(geoInfo.isIsrael ? 'US' : 'IL');
+                      setGeoInfo(next);
+                      showToast(
+                        next.isIsrael 
+                          ? (language === 'he' ? 'מיקום הוגדר: ישראל 🇮🇱 (קישור iCount נטען)' : 'Location set: Israel 🇮🇱 (iCount link active)') 
+                          : (language === 'he' ? 'מיקום הוגדר: בינלאומי 🌐 (קישור Payoneer נטען)' : 'Location set: International 🌐 (Payoneer link active)'),
+                        'info'
+                      );
+                    }}
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold underline cursor-pointer"
+                    title="Toggle location detection simulation"
+                  >
+                    {geoInfo.isIsrael ? (language === 'he' ? 'החלף לגלובלי (Payoneer)' : 'Switch to Global (Payoneer)') : (language === 'he' ? 'החלף לישראל (iCount)' : 'Switch to Israel (iCount)')}
+                  </button>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-1 text-slate-400 text-[10px] px-1">
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                    <span>
+                      {geoInfo.isIsrael
+                        ? (language === 'he' ? 'סליקה מאובטחת ע״י iCount (ש״ח / כרטיסי אשראי ישראליים)' : 'Secured via iCount payment gateway')
+                        : t.paywallSecuredText}
+                    </span>
+                  </div>
+                  {/* Developer simulation bypass */}
+                  <button
+                    type="button"
+                    onClick={handleSimulatePurchase}
+                    className="text-[10px] text-slate-400 hover:text-indigo-600 underline cursor-pointer"
+                    title="Simulate instant activation for testing"
+                  >
+                    {t.devBypassBtn}
+                  </button>
+                </div>
+
+                <div className="pt-1 border-t border-slate-100">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowPaywallModal(false);
+                      setShowBillingModal(true);
+                    }}
+                    className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                  >
+                    {language === 'he' ? 'כבר מנוי? נהל את המנוי והחשבון שלך כאן ⚙️' : 'Already subscribed? Manage billing & account here ⚙️'}
+                  </button>
+                </div>
+
               </div>
 
-              <div className="pt-1 border-t border-slate-100">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPaywallModal(false);
-                    setShowBillingModal(true);
-                  }}
-                  className="text-[11px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
-                >
-                  {language === 'he' ? 'כבר מנוי? נהל את המנוי והחשבון שלך כאן ⚙️' : 'Already subscribed? Manage billing & account here ⚙️'}
-                </button>
-              </div>
             </div>
 
           </div>
@@ -1366,7 +1473,7 @@ export default function App() {
       )}
 
       {/* Main Top Header Section bar */}
-      <header className="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+      <header className="bg-slate-900 text-white shadow-md sticky top-0 z-50 isolate">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           
           {/* Brand/Heading block */}
@@ -1830,16 +1937,47 @@ export default function App() {
 
       </main>
 
-      {/* Compact footer */}
+      {/* Compact footer with legal terms & cancellation policy links */}
       <footer className="mt-8 border-t border-slate-200 py-6 text-center text-xs text-slate-400 max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
         <p>{appLabels.footerCopyright}</p>
-        <button
-          onClick={() => setShowBillingModal(true)}
-          className="text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
-        >
-          <CreditCard className="w-3.5 h-3.5" />
-          <span>{language === 'he' ? 'ניהול מנוי וחשבון (Billing)' : 'Subscription & Billing'}</span>
-        </button>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              setLegalTermsTab('terms');
+              setShowLegalTermsModal(true);
+            }}
+            className="text-xs text-slate-500 hover:text-indigo-600 font-medium hover:underline cursor-pointer flex items-center gap-1 transition-colors"
+          >
+            <Scale className="w-3.5 h-3.5 text-slate-400" />
+            <span>{language === 'he' ? 'תקנון ותנאי שימוש' : 'Terms of Service'}</span>
+          </button>
+
+          <span className="text-slate-300">•</span>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLegalTermsTab('cancellation');
+              setShowLegalTermsModal(true);
+            }}
+            className="text-xs text-slate-500 hover:text-rose-600 font-medium hover:underline cursor-pointer flex items-center gap-1 transition-colors"
+          >
+            <RotateCcw className="w-3.5 h-3.5 text-rose-400" />
+            <span>{language === 'he' ? 'מדיניות ביטול (חוק הגנת הצרכן)' : 'Cancellation Policy'}</span>
+          </button>
+
+          <span className="text-slate-300">•</span>
+
+          <button
+            type="button"
+            onClick={() => setShowBillingModal(true)}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            <span>{language === 'he' ? 'ניהול מנוי וחשבון (Billing)' : 'Subscription & Billing'}</span>
+          </button>
+        </div>
       </footer>
 
       {/* Account & Billing Settings Modal */}
@@ -1852,6 +1990,10 @@ export default function App() {
         accountName={accountName}
         onUpdateAccountName={handleUpdateAccountName}
         language={language}
+        onOpenLegalTerms={(tab) => {
+          setLegalTermsTab(tab);
+          setShowLegalTermsModal(true);
+        }}
       />
 
       {/* End of Month Mental & Strategic Insights Modal */}
@@ -1871,6 +2013,23 @@ export default function App() {
         currentUser={currentUser}
         language={language}
         onSuccessToast={(msg) => showToast(msg, 'success')}
+      />
+
+      {/* Legal Terms & Cancellation Policy Official Modal (Israeli Consumer Protection Law) */}
+      <LegalTermsModal
+        isOpen={showLegalTermsModal}
+        onClose={() => setShowLegalTermsModal(false)}
+        initialTab={legalTermsTab}
+        language={language}
+        onAccept={() => {
+          handleToggleTerms(true);
+          showToast(
+            language === 'he' 
+              ? 'אישור התקנון ומדיניות הביטול נשמר בהצלחה ✔️ כעת כפתור הסובסקרייב פתוח' 
+              : 'Terms & Cancellation Policy accepted ✔️ Subscribe button enabled', 
+            'success'
+          );
+        }}
       />
 
     </div>

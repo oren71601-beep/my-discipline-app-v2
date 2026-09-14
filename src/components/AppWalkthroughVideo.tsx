@@ -547,26 +547,26 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
   };
 
   return (
-    <div className="space-y-4 sm:space-y-6 animate-fade-in">
+    <div className="space-y-4 sm:space-y-6 animate-fade-in relative isolate z-10">
       
       {/* Header presentation */}
-      <div className="bg-slate-900 text-white rounded-2xl sm:rounded-3xl p-4 sm:p-7 border border-slate-800 shadow-xl relative overflow-hidden">
+      <div className="bg-slate-900 text-white rounded-2xl sm:rounded-3xl p-3.5 sm:p-7 border border-slate-800 shadow-xl relative overflow-hidden">
         
         {/* Glow ambient background accents */}
         <div className="absolute top-0 right-0 w-80 sm:w-96 h-80 sm:h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
         <div className="absolute bottom-0 left-1/4 w-60 sm:w-80 h-60 sm:h-80 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="relative z-10 max-w-3xl space-y-2 sm:space-y-3">
-          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[11px] sm:text-xs font-bold">
-            <span className="w-2 h-2 rounded-full bg-indigo-400 animate-pulse" />
+        <div className="relative z-10 max-w-3xl space-y-1.5 sm:space-y-3">
+          <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-0.5 sm:py-1 rounded-full bg-indigo-500/20 border border-indigo-400/30 text-indigo-300 text-[10px] sm:text-xs font-bold">
+            <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-indigo-400 animate-pulse" />
             <span>{currentTexts.headerBadge}</span>
           </div>
 
-          <h1 className="text-lg sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-snug">
+          <h1 className="text-base sm:text-2xl md:text-3xl font-black text-white tracking-tight leading-snug">
             {currentTexts.mainTitle}
           </h1>
 
-          <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+          <p className="text-slate-300 text-[11px] sm:text-sm leading-relaxed">
             {currentTexts.mainSubtitle}
           </p>
         </div>
@@ -574,25 +574,25 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
         {/* Video Player Showcase Frame with Ref for Fullscreen */}
         <div 
           ref={videoContainerRef}
-          className={`mt-4 sm:mt-6 relative rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl transition-all ${
+          className={`mt-3 sm:mt-6 relative rounded-xl sm:rounded-2xl overflow-hidden border border-slate-800 bg-slate-950 shadow-2xl transition-all relative isolate z-10 ${
             isFullscreen ? 'fixed inset-0 z-50 rounded-none m-0 p-0 flex flex-col justify-between bg-black' : ''
           }`}
         >
           
           {/* Top browser chrome with Fullscreen button */}
-          <div className="bg-slate-900/95 backdrop-blur-md px-3 sm:px-4 py-2 sm:py-2.5 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
-            <div className="flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
-              <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
-              <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-              <div className="ms-1.5 hidden sm:flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 font-mono">
+          <div className="bg-slate-900/95 backdrop-blur-md px-2.5 sm:px-4 py-1.5 sm:py-2.5 border-b border-slate-800 flex items-center justify-between text-xs text-slate-400 shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2">
+              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-rose-500/80 inline-block" />
+              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-amber-500/80 inline-block" />
+              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+              <div className="ms-1 sm:ms-1.5 hidden sm:flex items-center gap-1 px-2.5 py-0.5 rounded-lg bg-slate-950/80 border border-slate-800 text-[11px] text-slate-300 font-mono">
                 <span className="text-emerald-400">🔒</span>
                 <span>mindset-trading-journal.app</span>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <span className="flex items-center gap-1 text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full font-bold">
+              <span className="flex items-center gap-1 text-[9px] sm:text-[10px] text-emerald-400 bg-emerald-950/60 border border-emerald-800/40 px-2 py-0.5 rounded-full font-bold">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
                 <span>{currentTexts.liveBadge}</span>
               </span>
@@ -600,7 +600,7 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
               {/* Fullscreen Toggle in Top Header */}
               <button
                 onClick={toggleFullscreen}
-                className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
+                className="p-1 sm:p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors cursor-pointer"
                 title={isFullscreen ? currentTexts.exitFullscreenTip : currentTexts.fullscreenTip}
               >
                 {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -612,36 +612,36 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
           <div className={`relative ${
             isFullscreen 
               ? 'flex-1 min-h-0 py-2 px-3 sm:px-6' 
-              : 'aspect-[16/11] sm:aspect-[16/9] min-h-[360px] sm:min-h-[460px] p-2.5 sm:p-4'
+              : 'w-full aspect-[4/3] xs:aspect-[16/10] sm:aspect-[16/9] min-h-[290px] sm:min-h-[440px] p-2 sm:p-4'
           } bg-slate-950 flex flex-col justify-between overflow-y-auto sm:overflow-hidden select-none`}>
             
             {/* Play/Pause overlay when paused or initially stopped */}
             {!isPlaying && (
               <div 
                 onClick={togglePlay}
-                className="absolute inset-0 bg-slate-950/80 backdrop-blur-[3px] z-40 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-slate-950/70 group p-4"
+                className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] z-20 flex flex-col items-center justify-center cursor-pointer transition-all hover:bg-slate-950/75 group p-3 sm:p-4 text-center"
               >
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-tr from-amber-500 via-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-2xl shadow-indigo-500/50 group-hover:scale-110 transition-transform ring-4 ring-white/20">
-                  <Play className="w-8 h-8 sm:w-10 sm:h-10 fill-white ml-1 text-white" />
+                <div className="w-12 h-12 sm:w-18 sm:h-18 rounded-full bg-gradient-to-tr from-amber-500 via-indigo-600 to-indigo-500 text-white flex items-center justify-center shadow-xl shadow-indigo-500/40 group-hover:scale-105 transition-transform ring-4 ring-white/20">
+                  <Play className="w-6 h-6 sm:w-8 sm:h-8 fill-white ml-0.5 text-white" />
                 </div>
                 
-                <div className="mt-4 bg-slate-900/95 border border-slate-700/80 px-4 sm:px-5 py-2 rounded-2xl text-white text-xs sm:text-sm font-bold shadow-xl flex items-center gap-2 max-w-sm text-center">
-                  <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>
+                <div className="mt-3 sm:mt-4 bg-slate-900/95 border border-slate-700/80 px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl text-white text-xs sm:text-sm font-bold shadow-xl flex items-center gap-1.5 sm:gap-2 max-w-xs sm:max-w-sm text-center">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                  <span className="line-clamp-2">
                     {currentTime === 0 
                       ? (language === 'he' ? 'לחץ כאן להפעלת סרטון ההדגמה (20 שניות)' : 'Click here to play 20s walkthrough')
                       : (language === 'he' ? 'הסרטון מושהה • לחץ להמשך נגינה' : 'Video paused • Click to resume')}
                   </span>
                 </div>
-                <span className="text-[11px] text-slate-400 font-medium mt-2">
+                <span className="text-[10px] sm:text-[11px] text-slate-400 font-medium mt-1.5">
                   {language === 'he' ? 'סאונד ואפקטים מסונכרנים לכל קליק בסרטון 🔊' : 'Synchronized audio effects for every click 🔊'}
                 </span>
               </div>
             )}
 
             {/* Top in-video timestamp */}
-            <div className="flex items-center justify-end z-20 mb-2 shrink-0">
-              <div className="bg-black/60 backdrop-blur-md px-2 sm:px-2.5 py-1 rounded-lg text-[10px] sm:text-[11px] font-mono font-bold text-slate-300 border border-white/10 shrink-0">
+            <div className="flex items-center justify-end z-10 mb-1 sm:mb-2 shrink-0">
+              <div className="bg-black/60 backdrop-blur-md px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg text-[9px] sm:text-[11px] font-mono font-bold text-slate-300 border border-white/10 shrink-0">
                 {formatTime(currentTime)} / 0:20
               </div>
             </div>
@@ -653,20 +653,20 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
               {/* SCENE 1 (0-5s): The Subscribe Click & Site Unlock Simulation              */}
               {/* ========================================================================= */}
               {currentSceneIndex === 0 && (
-                <div className="w-full max-w-xl space-y-3 sm:space-y-4 text-center animate-fade-in relative py-1 sm:py-2">
+                <div className="w-full max-w-xl space-y-2 sm:space-y-4 text-center animate-fade-in relative py-1 sm:py-2">
                   
                   {currentTime < 2.2 ? (
                     // Paywall lock card before clicking Subscribe
-                    <div className="bg-slate-900/95 border border-amber-500/40 rounded-2xl sm:rounded-3xl p-4 sm:p-7 shadow-2xl relative overflow-hidden transition-all duration-300">
-                      <div className="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 mb-2.5 shadow-lg">
-                        <Lock className="w-6 h-6 sm:w-7 sm:h-7" />
+                    <div className="bg-slate-900/95 border border-amber-500/40 rounded-xl sm:rounded-3xl p-3 sm:p-7 shadow-2xl relative overflow-hidden transition-all duration-300">
+                      <div className="w-10 h-10 sm:w-14 sm:h-14 mx-auto rounded-xl sm:rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center text-amber-300 mb-2 shadow-lg">
+                        <Lock className="w-5 h-5 sm:w-7 sm:h-7" />
                       </div>
 
-                      <h2 className="text-base sm:text-xl font-black text-white">
+                      <h2 className="text-sm sm:text-xl font-black text-white">
                         {language === 'he' ? 'פתח גישה מלאה ליומן המסחר המנטלי' : 'Unlock Full Access to Mental Trading Journal'}
                       </h2>
                       
-                      <p className="text-[11px] sm:text-xs text-slate-300 max-w-md mx-auto mt-1 mb-4 sm:mb-5">
+                      <p className="text-[10px] sm:text-xs text-slate-300 max-w-md mx-auto mt-0.5 sm:mt-1 mb-2.5 sm:mb-5">
                         {language === 'he' 
                           ? 'לחץ על Subscribe עכשיו כדי לפתוח את לוח הרישום היומי, הניתוחים והמילוי המהיר.'
                           : 'Click Subscribe now to unlock daily tracking, analytics, and fast trade logging.'}
@@ -674,16 +674,16 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
 
                       {/* Prominent Subscribe Button targeted by simulated cursor */}
                       <div className="relative inline-block">
-                        <div className={`px-6 sm:px-8 py-2.5 sm:py-3.5 bg-gradient-to-r from-amber-500 via-indigo-600 to-indigo-700 text-white font-black text-xs sm:text-sm rounded-2xl shadow-xl shadow-indigo-600/40 flex items-center gap-2 transition-transform duration-200 ${
+                        <div className={`px-5 sm:px-8 py-2 sm:py-3.5 bg-gradient-to-r from-amber-500 via-indigo-600 to-indigo-700 text-white font-black text-xs sm:text-sm rounded-xl sm:rounded-2xl shadow-xl shadow-indigo-600/40 flex items-center gap-1.5 sm:gap-2 transition-transform duration-200 ${
                           currentTime >= 1.9 ? 'scale-95 ring-4 ring-amber-400/50' : 'scale-100'
                         }`}>
-                          <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-200" />
+                          <Crown className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-amber-200" />
                           <span>{language === 'he' ? 'הצטרף עכשיו ל-Pro • Subscribe' : 'Subscribe to Pro Now'}</span>
                         </div>
 
                         {/* Simulated Animated Mouse Cursor moving towards Subscribe Button */}
                         <div 
-                          className="absolute pointer-events-none transition-all duration-500 ease-out z-30"
+                          className="absolute pointer-events-none transition-all duration-500 ease-out z-15"
                           style={{
                             top: currentTime < 0.8 ? '90px' : currentTime < 1.9 ? '18px' : '16px',
                             right: currentTime < 0.8 ? '-40px' : currentTime < 1.9 ? '20px' : '25px',
@@ -691,9 +691,9 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
                           }}
                         >
                           <div className="relative">
-                            <MousePointer className="w-6 h-6 sm:w-7 sm:h-7 text-white fill-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] filter -rotate-12" />
+                            <MousePointer className="w-5 h-5 sm:w-7 sm:h-7 text-white fill-white drop-shadow-[0_4px_10px_rgba(0,0,0,0.8)] filter -rotate-12" />
                             {clickRipple && (
-                              <span className="absolute -top-3 -left-3 w-12 h-12 rounded-full bg-amber-400/60 animate-ping" />
+                              <span className="absolute -top-2.5 -left-2.5 w-10 h-10 rounded-full bg-amber-400/60 animate-ping" />
                             )}
                           </div>
                         </div>
@@ -1122,28 +1122,28 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
 
                   {/* Animated Hand/Cursor tapping in Scene 4 */}
                   <div 
-                    className="absolute pointer-events-none transition-all duration-500 ease-out z-30"
+                    className="absolute pointer-events-none transition-all duration-500 ease-out z-15"
                     style={{
                       top: currentTime < 16.2 
-                        ? '115px' 
+                        ? '30%' 
                         : currentTime < 17.2 
-                        ? '115px' 
+                        ? '30%' 
                         : currentTime < 18.2 
-                        ? '200px' 
-                        : '200px',
+                        ? '65%' 
+                        : '65%',
                       left: currentTime < 16.2 
-                        ? '120px' 
+                        ? '25%' 
                         : currentTime < 17.2 
-                        ? '320px' 
+                        ? '65%' 
                         : currentTime < 18.2 
-                        ? '140px' 
-                        : '420px',
+                        ? '30%' 
+                        : '70%',
                       opacity: 1
                     }}
                   >
                     <div className="relative">
-                      <MousePointer className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 fill-indigo-600 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] filter -rotate-12" />
-                      <span className="absolute -top-2 -left-2 w-8 h-8 rounded-full bg-indigo-500/40 animate-ping" />
+                      <MousePointer className="w-5 h-5 sm:w-7 sm:h-7 text-indigo-600 fill-indigo-600 drop-shadow-[0_4px_10px_rgba(0,0,0,0.5)] filter -rotate-12" />
+                      <span className="absolute -top-2 -left-2 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-indigo-500/40 animate-ping" />
                     </div>
                   </div>
 
