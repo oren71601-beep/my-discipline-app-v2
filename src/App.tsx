@@ -222,6 +222,7 @@ export default function App() {
 
   // 1. Firebase Auth listener: Automatically handles user session & local-to-cloud migration
   useEffect(() => {
+    if (!auth) return;
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
       if (user) {

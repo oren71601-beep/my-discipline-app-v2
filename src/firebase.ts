@@ -18,23 +18,43 @@ import {
   collection, 
   serverTimestamp 
 } from 'firebase/firestore';
-import firebaseConfig from '../firebase-applet-config.json';
 import { TradingDay } from './types';
 
-// Initialize Firebase App
-const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+// Safely load config: from Vite environment variables (production / GitHub)
+// or fallback to gitignored local firebase-applet-config.json if present
+const rawConfigMap = import.meta.glob('/firebase-applet-config.json', { eager: true }) as Record<string, any>;
+const rawConfig = rawConfigMap['/firebase-applet-config.json']?.default || rawConfigMap['/firebase-applet-config.json'] || {};
+
+export const firebaseConfig = {
+  apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || rawConfig.apiKey || '',
+  authDomain: (import.meta.env.VITE_FIREBASE_AUTH_DOMAIN as string) || rawConfig.authDomain || '',
+  projectId: (import.meta.env.VITE_FIREBASE_PROJECT_ID as string) || rawConfig.projectId || '',
+  storageBucket: (import.meta.env.VITE_FIREBASE_STORAGE_BUCKET as string) || rawConfig.storageBucket || '',
+  messagingSenderId: (import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID as string) || rawConfig.messagingSenderId || '',
+  appId: (import.meta.env.VITE_FIREBASE_APP_ID as string) || rawConfig.appId || '',
+  firestoreDatabaseId: (import.meta.env.VITE_FIREBASE_DATABASE_ID as string) || rawConfig.firestoreDatabaseId || '',
+};
+
+export const isFirebaseConfigured = Boolean(firebaseConfig.apiKey && firebaseConfig.projectId);
+
+// Initialize Firebase App safely
+const app = getApps().length === 0 
+  ? (isFirebaseConfigured ? initializeApp(firebaseConfig) : null) 
+  : getApp();
 
 // Initialize Auth
-export const auth = getAuth(app);
+export const auth = app ? getAuth(app) : null;
 export const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firestore with specific database ID from config
-export const db = getFirestore(
-  app, 
-  firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)' 
-    ? firebaseConfig.firestoreDatabaseId 
-    : undefined
-);
+export const db = app 
+  ? getFirestore(
+      app, 
+      firebaseConfig.firestoreDatabaseId && firebaseConfig.firestoreDatabaseId !== '(default)' 
+        ? firebaseConfig.firestoreDatabaseId 
+        : undefined
+    )
+  : null;
 
 // Types
 export interface MonthCloudData {
@@ -58,21 +78,25 @@ export interface UserCloudProfile {
 
 // Authentication Helpers
 export async function loginWithGoogle(): Promise<User> {
+  if (!auth) throw new Error('Firebase Auth is not initialized');
   const result = await signInWithPopup(auth, googleProvider);
   return result.user;
 }
 
 export async function loginWithEmail(email: string, pass: string): Promise<User> {
+  if (!auth) throw new Error('Firebase Auth is not initialized');
   const result = await signInWithEmailAndPassword(auth, email, pass);
   return result.user;
 }
 
 export async function registerWithEmail(email: string, pass: string): Promise<User> {
+  if (!auth) throw new Error('Firebase Auth is not initialized');
   const result = await createUserWithEmailAndPassword(auth, email, pass);
   return result.user;
 }
 
 export async function logoutUser(): Promise<void> {
+  if (!auth) return;
   await signOut(auth);
 }
 
@@ -82,6 +106,10 @@ export function subscribeToMonthData(
   monthId: string, 
   onData: (data: MonthCloudData | null) => void
 ) {
+  if (!db) {
+    onData(null);
+    return () => {};
+  }
   const docRef = doc(db, 'users', userId, 'months', monthId);
   return onSnapshot(docRef, (snapshot) => {
     if (snapshot.exists()) {
@@ -103,6 +131,7 @@ export async function saveMonthToCloud(
   days: TradingDay[], 
   pledge?: string
 ) {
+  if (!db) return;
   try {
     const docRef = doc(db, 'users', userId, 'months', monthId);
     const data: MonthCloudData = {
@@ -124,6 +153,7 @@ export async function saveUserProfileToCloud(
   userId: string, 
   profile: Partial<UserCloudProfile>
 ) {
+  if (!db) return;
   try {
     const docRef = doc(db, 'users', userId);
     await setDoc(docRef, {
@@ -140,6 +170,10 @@ export function subscribeToUserProfile(
   userId: string, 
   onData: (profile: UserCloudProfile | null) => void
 ) {
+  if (!db) {
+    onData(null);
+    return () => {};
+  }
   const docRef = doc(db, 'users', userId);
   return onSnapshot(docRef, (snapshot) => {
     if (snapshot.exists()) {
@@ -154,6 +188,7 @@ export function subscribeToUserProfile(
 
 // Migrate all existing localStorage trading data to Firebase cloud for seamless transition
 export async function migrateLocalDataToCloud(userId: string) {
+  if (!db) return;
   try {
     // Scan localStorage for all trading months
     for (let i = 0; i < localStorage.length; i++) {
