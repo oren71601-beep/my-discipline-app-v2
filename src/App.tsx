@@ -1474,6 +1474,9 @@ export default function App() {
                   setSelectedYear(val);
                   localStorage.setItem('trading_tracker_selected_year', String(val));
                   localStorage.setItem('trading_tracker_last_closed_year', String(val));
+                  if (currentUser) {
+                    saveUserProfileToCloud(currentUser.uid, { selectedYear: val, selectedMonth });
+                  }
                 }}
                 className="bg-transparent border-none text-sm font-bold text-white focus:outline-none cursor-pointer"
               >
@@ -1494,6 +1497,9 @@ export default function App() {
                   setSelectedMonth(val);
                   localStorage.setItem('trading_tracker_selected_month', String(val));
                   localStorage.setItem('trading_tracker_last_closed_month', String(val));
+                  if (currentUser) {
+                    saveUserProfileToCloud(currentUser.uid, { selectedYear, selectedMonth: val });
+                  }
                 }}
                 className="bg-transparent border-none text-sm font-bold text-white focus:outline-none cursor-pointer"
               >
@@ -1560,6 +1566,30 @@ export default function App() {
                     onChange={handleImportMonth}
                     className="hidden" 
                   />
+
+                  {/* Cloud Sync Quick Status Button */}
+                  <button
+                    onClick={() => setShowCloudSyncModal(true)}
+                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
+                      currentUser
+                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                        : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
+                    }`}
+                    title={language === 'he' ? 'סנכרון ענן בזמן אמת בין המחשב לפלאפון' : 'Real-time sync between PC and phone'}
+                  >
+                    {currentUser ? (
+                      <>
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                        <Cloud className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>{language === 'he' ? 'ענן מסונכרן (מחשב ונייד)' : 'Synced (PC & Phone)'}</span>
+                      </>
+                    ) : (
+                      <>
+                        <Cloud className="w-3.5 h-3.5 text-indigo-600" />
+                        <span>{language === 'he' ? 'סנכרן מחשב ופלאפון ☁️' : 'Sync to Mobile ☁️'}</span>
+                      </>
+                    )}
+                  </button>
                 </div>
               </div>
 
@@ -1831,6 +1861,15 @@ export default function App() {
         selectedYear={selectedYear}
         selectedMonth={selectedMonth}
         language={language}
+      />
+
+      {/* Cloud Sync (PC & Smartphone Live Synchronization) Modal */}
+      <CloudSyncModal
+        isOpen={showCloudSyncModal}
+        onClose={() => setShowCloudSyncModal(false)}
+        currentUser={currentUser}
+        language={language}
+        onSuccessToast={(msg) => showToast(msg, 'success')}
       />
 
     </div>
