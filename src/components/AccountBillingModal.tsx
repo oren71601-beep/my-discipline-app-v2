@@ -353,36 +353,39 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-55 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-md select-none overflow-y-auto">
+    <div className="fixed inset-0 z-55 flex flex-col items-center justify-start sm:justify-center p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-md select-none overflow-y-auto overscroll-none pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div 
-        className="bg-white rounded-3xl border border-slate-200 max-w-xl w-full shadow-2xl overflow-hidden flex flex-col my-auto transition-all"
+        className="bg-white rounded-3xl border border-slate-200 max-w-xl w-full shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] min-h-0 shrink-0 my-auto transition-all"
         dir={isRtl ? 'rtl' : 'ltr'}
       >
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 text-white p-5 sm:p-6 relative border-b border-indigo-500/20">
-          <div className="absolute top-4.5 end-4.5">
+        <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 text-white p-4 sm:p-6 relative border-b border-indigo-500/20 shrink-0">
+          <div className="absolute top-3.5 end-3.5 sm:top-4.5 sm:end-4.5">
             <button 
               onClick={onClose}
-              className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+              className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-base sm:text-sm font-bold active:scale-95 shadow-xs"
               aria-label="Close"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 shrink-0">
+          <div className="flex items-center gap-3 pe-10">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/30 shrink-0">
               <CreditCard className="w-5 h-5 text-indigo-100" />
             </div>
             <div>
-              <h2 className="text-lg font-black text-white">{l.modalTitle}</h2>
-              <p className="text-slate-400 text-xs mt-0.5">{l.modalSubtitle}</p>
+              <h2 className="text-base sm:text-lg font-black text-white">{l.modalTitle}</h2>
+              <p className="text-slate-400 text-[11px] sm:text-xs mt-0.5">{l.modalSubtitle}</p>
             </div>
           </div>
         </div>
 
         {/* Body Content */}
-        <div className="p-5 sm:p-6 space-y-5 max-h-[75vh] overflow-y-auto bg-slate-50/50">
+        <div 
+          className="p-4 sm:p-6 pb-10 space-y-4 sm:space-y-5 flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y bg-slate-50/50"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           
           {/* User Profile Card - Shown conditionally: Free vs. Active Pro Account Name */}
           <div className="bg-white rounded-2xl p-4 border border-slate-200/80 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-3">

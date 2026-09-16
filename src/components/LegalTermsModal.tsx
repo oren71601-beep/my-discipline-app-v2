@@ -46,9 +46,9 @@ export const LegalTermsModal: React.FC<LegalTermsModalProps> = ({
   const isRTL = language === 'he' || language === 'ar';
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in">
+    <div className="fixed inset-0 z-50 flex flex-col items-center justify-start sm:justify-center p-2.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-fade-in overflow-y-auto overscroll-none pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]">
       <div 
-        className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden border border-slate-200"
+        className="bg-white rounded-3xl shadow-2xl w-full max-w-3xl max-h-[calc(100dvh-2rem)] sm:max-h-[90vh] flex flex-col min-h-0 shrink-0 my-auto overflow-hidden border border-slate-200"
         dir={isRTL ? 'rtl' : 'ltr'}
       >
         {/* Modal Top Header */}
@@ -133,7 +133,10 @@ export const LegalTermsModal: React.FC<LegalTermsModalProps> = ({
         </div>
 
         {/* Scrollable Content Body */}
-        <div className="flex-1 overflow-y-auto p-5 sm:p-7 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-6">
+        <div 
+          className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y p-5 sm:p-7 pb-10 text-xs sm:text-sm text-slate-700 leading-relaxed space-y-6"
+          style={{ WebkitOverflowScrolling: 'touch' }}
+        >
           
           {/* TAB 1: TERMS OF SERVICE */}
           {activeTab === 'terms' && (

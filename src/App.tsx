@@ -1125,48 +1125,51 @@ export default function App() {
           onClick={(e) => {
             if (e.target === e.currentTarget) setShowPaywallModal(false);
           }}
-          className="fixed inset-0 z-55 flex items-center justify-center p-3 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md select-none overflow-y-auto"
+          className="fixed inset-0 z-55 flex flex-col items-center justify-start sm:justify-center p-2.5 sm:p-4 md:p-6 bg-slate-950/80 backdrop-blur-md select-none overflow-y-auto overscroll-none pt-[max(0.75rem,env(safe-area-inset-top))] pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         >
           <div 
-            className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[92vh] sm:max-h-[88vh] my-auto animate-fade-in" 
+            className="bg-white rounded-3xl border border-slate-200 max-w-lg w-full shadow-2xl overflow-hidden flex flex-col max-h-[calc(100dvh-2rem)] sm:max-h-[88vh] min-h-0 shrink-0 my-auto animate-fade-in" 
             dir={isRtl ? 'rtl' : 'ltr'}
           >
             
-            {/* Paywall Header with Simulated Apple App Store interface */}
-            <div className="bg-slate-950 text-white p-4.5 sm:p-5 relative shrink-0">
-              <div className="absolute top-3.5 end-3.5">
+            {/* Paywall Header with Simulated Apple App Store interface - Always sticky at top */}
+            <div className="bg-slate-950 text-white p-3.5 sm:p-5 relative shrink-0 z-10 border-b border-slate-800 shadow-xs">
+              <div className="absolute top-3 end-3 sm:top-3.5 sm:end-3.5">
                 <button 
                   onClick={() => setShowPaywallModal(false)}
-                  className="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-sm font-bold"
+                  className="w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-slate-800/90 hover:bg-slate-700 text-slate-300 hover:text-white flex items-center justify-center transition-colors cursor-pointer text-base sm:text-sm font-bold active:scale-95 shadow-xs"
                   aria-label="Close"
                 >
                   ✕
                 </button>
               </div>
               
-              <div className="flex items-center gap-3.5 pt-1 pe-8">
-                <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/30 shrink-0 border border-indigo-400/20 text-xl sm:text-2xl">
+              <div className="flex items-center gap-3 pt-0.5 pe-10">
+                <div className="w-11 h-11 sm:w-14 sm:h-14 rounded-2xl bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black shadow-lg shadow-indigo-500/30 shrink-0 border border-indigo-400/20 text-lg sm:text-2xl">
                   📈
                 </div>
                 <div>
-                  <h3 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-sm sm:text-lg font-black tracking-tight text-white flex items-center gap-1.5 flex-wrap">
                     <span>Trading Journal Pro</span>
-                    <span className="bg-indigo-600/40 text-indigo-300 text-[10px] px-2 py-0.5 rounded-full font-extrabold border border-indigo-500/30">PREMIUM</span>
+                    <span className="bg-indigo-600/40 text-indigo-300 text-[9px] sm:text-[10px] px-2 py-0.5 rounded-full font-extrabold border border-indigo-500/30">PREMIUM</span>
                   </h3>
-                  <p className="text-slate-400 text-xs mt-0.5 leading-relaxed line-clamp-2">{t.paywallLockedDesc}</p>
+                  <p className="text-slate-400 text-[11px] sm:text-xs mt-0.5 leading-relaxed line-clamp-2">{t.paywallLockedDesc}</p>
                 </div>
               </div>
             </div>
 
-            {/* Paywall Features & Pricing - Smooth internal scrolling */}
-            <div className="p-4 sm:p-5.5 pb-6 sm:pb-8 space-y-3.5 sm:space-y-4 flex-1 overflow-y-auto bg-slate-50/60 overscroll-contain touch-pan-y">
-              <div className="space-y-2.5">
-                <div className="text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">{t.paywallFeaturesTitle}</div>
+            {/* Paywall Features & Pricing - Smooth internal scrolling with safe bottom padding for iOS */}
+            <div 
+              className="p-3.5 sm:p-5.5 pb-10 sm:pb-8 space-y-3 sm:space-y-4 flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y bg-slate-50/60"
+              style={{ WebkitOverflowScrolling: 'touch' }}
+            >
+              <div className="space-y-2 sm:space-y-2.5">
+                <div className="text-[10px] sm:text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">{t.paywallFeaturesTitle}</div>
                 
-                <div className="grid grid-cols-1 gap-2.5">
+                <div className="grid grid-cols-1 gap-2 sm:gap-2.5">
                   
-                  <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
-                    <div className="w-7.5 h-7.5 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/60 shrink-0 mt-0.5">
+                  <div className="flex items-start gap-2.5 bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
+                    <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600 border border-indigo-100/60 shrink-0 mt-0.5">
                       <TrendingUp className="w-3.5 h-3.5" />
                     </div>
                     <div>
@@ -1175,8 +1178,8 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
-                    <div className="w-7.5 h-7.5 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/60 shrink-0 mt-0.5">
+                  <div className="flex items-start gap-2.5 bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
+                    <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600 border border-emerald-100/60 shrink-0 mt-0.5">
                       <Calendar className="w-3.5 h-3.5" />
                     </div>
                     <div>
@@ -1185,8 +1188,8 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex items-start gap-2.5 bg-white p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
-                    <div className="w-7.5 h-7.5 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100/60 shrink-0 mt-0.5">
+                  <div className="flex items-start gap-2.5 bg-white p-2.5 sm:p-3 rounded-2xl border border-slate-200/90 shadow-2xs">
+                    <div className="w-7 h-7 sm:w-7.5 sm:h-7.5 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600 border border-amber-100/60 shrink-0 mt-0.5">
                       <Download className="w-3.5 h-3.5" />
                     </div>
                     <div>
@@ -1199,14 +1202,14 @@ export default function App() {
               </div>
 
               {/* 7-Day Free Trial & Pricing Box */}
-              <div className="bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-emerald-50/60 border-2 border-indigo-200/90 rounded-2xl p-3.5 sm:p-4 space-y-2.5 shadow-xs">
+              <div className="bg-gradient-to-br from-indigo-50 via-indigo-50/70 to-emerald-50/60 border-2 border-indigo-200/90 rounded-2xl p-3 sm:p-4 space-y-2 sm:space-y-2.5 shadow-xs">
                 {/* Free Trial Badge & Highlight */}
                 <div className="flex items-center justify-between gap-2 flex-wrap">
-                  <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white font-black text-[11px] px-3 py-1 rounded-full shadow-xs uppercase tracking-wider">
-                    <Gift className="w-3.5 h-3.5" />
+                  <div className="inline-flex items-center gap-1.5 bg-emerald-500 text-white font-black text-[10px] sm:text-[11px] px-2.5 sm:px-3 py-1 rounded-full shadow-xs uppercase tracking-wider">
+                    <Gift className="w-3 sm:w-3.5 h-3 sm:h-3.5" />
                     <span>{t.paywallTrialBadge}</span>
                   </div>
-                  <span className="text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2.5 py-0.5 rounded-lg border border-emerald-300">
+                  <span className="text-[10px] sm:text-[11px] font-bold text-emerald-700 bg-emerald-100/70 px-2 py-0.5 rounded-lg border border-emerald-300">
                     {t.paywallTrialCancelAnytime}
                   </span>
                 </div>
@@ -1227,16 +1230,16 @@ export default function App() {
                 </div>
 
                 {/* 2-Step Transparent Timeline */}
-                <div className="bg-white/90 backdrop-blur-xs rounded-xl p-2.5 sm:p-3 border border-indigo-100/80 space-y-2 text-[11px]">
+                <div className="bg-white/90 backdrop-blur-xs rounded-xl p-2.5 sm:p-3 border border-indigo-100/80 space-y-1.5 sm:space-y-2 text-[11px]">
                   <div className="flex items-start gap-2 text-slate-700">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0 mt-0.5" />
+                    <CheckCircle2 className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-emerald-600 shrink-0 mt-0.5" />
                     <span>
                       <strong className="text-slate-900 font-bold">{language === 'he' ? 'שלב 1 (היום): ' : 'Step 1 (Today): '}</strong>
                       {t.paywallTrialTimeline1}
                     </span>
                   </div>
                   <div className="flex items-start gap-2 text-slate-700">
-                    <Clock className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                    <Clock className="w-3.5 sm:w-4 h-3.5 sm:h-4 text-indigo-600 shrink-0 mt-0.5" />
                     <span>
                       <strong className="text-slate-900 font-bold">{language === 'he' ? 'שלב 2 (בעוד 7 ימים): ' : 'Step 2 (In 7 days): '}</strong>
                       {t.paywallTrialTimeline2}
@@ -1250,7 +1253,7 @@ export default function App() {
               </div>
 
               {/* Complete Subscription Checkout & Legal Card - Fully inside the scrollable view */}
-              <div className="bg-white p-3.5 sm:p-4.5 rounded-2xl border border-slate-200 shadow-xs text-center space-y-3">
+              <div className="bg-white p-3 sm:p-4.5 rounded-2xl border border-slate-200 shadow-xs text-center space-y-2.5 sm:space-y-3">
                 
                 {/* Primary Subscribe Button - Locked until terms checkbox is checked */}
                 <a
@@ -1281,7 +1284,7 @@ export default function App() {
                       'info'
                     );
                   }}
-                  className={`w-full py-3 sm:py-3.5 font-black text-xs sm:text-sm rounded-2xl shadow-lg transition-all text-center flex items-center justify-center gap-2 group select-none ${
+                  className={`w-full py-3.5 font-black text-xs sm:text-sm rounded-2xl shadow-lg transition-all text-center flex items-center justify-center gap-2 group select-none ${
                     hasAcceptedTerms
                       ? 'bg-gradient-to-r from-emerald-600 via-indigo-600 to-indigo-700 hover:from-emerald-700 hover:via-indigo-700 hover:to-indigo-800 text-white hover:shadow-xl hover:scale-[1.01] cursor-pointer ring-2 ring-emerald-400/40'
                       : 'bg-slate-100 text-slate-400 border border-slate-300 hover:bg-slate-200/80 cursor-pointer shadow-none opacity-80'
@@ -1295,7 +1298,7 @@ export default function App() {
 
                 {/* Legal Terms & Cancellation Policy Checkbox - Placed directly under Subscribe */}
                 <div 
-                  className={`p-3 rounded-2xl border text-start transition-all duration-300 ${
+                  className={`p-2.5 sm:p-3 rounded-2xl border text-start transition-all duration-300 ${
                     termsCheckboxShake 
                       ? 'ring-2 ring-rose-500 bg-rose-50/80 border-rose-300 animate-shake' 
                       : hasAcceptedTerms 
@@ -1426,6 +1429,17 @@ export default function App() {
                   </button>
                 </div>
 
+              </div>
+
+              {/* Easy Close button for mobile at the bottom */}
+              <div className="pt-2 text-center pb-2">
+                <button
+                  type="button"
+                  onClick={() => setShowPaywallModal(false)}
+                  className="text-xs text-slate-400 hover:text-slate-700 font-semibold py-1.5 px-4 rounded-xl hover:bg-slate-200/60 cursor-pointer transition-colors active:scale-95"
+                >
+                  {language === 'he' ? 'סגור חלונית ✕' : 'Close window ✕'}
+                </button>
               </div>
 
             </div>
