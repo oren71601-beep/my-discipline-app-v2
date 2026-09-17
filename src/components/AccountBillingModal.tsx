@@ -22,7 +22,8 @@ import {
   Gift,
   Clock,
   Scale,
-  RotateCcw
+  RotateCcw,
+  Cloud
 } from 'lucide-react';
 import { LanguageCode } from '../utils/translations';
 import { requestCancelSubscriptionAPI, CancelSubscriptionResponse } from '../utils/billingService';
@@ -632,6 +633,25 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                 </div>
               </div>
             </div>
+
+            {/* Automatic Cloud Sync Status for Subscribers */}
+            {isPremium && (
+              <div className="px-4 sm:px-5 py-2.5 bg-indigo-50/70 border-t border-indigo-100 flex items-center justify-between text-xs text-indigo-950">
+                <div className="flex items-center gap-2">
+                  <Cloud className="w-4 h-4 text-indigo-600 shrink-0" />
+                  <span className="font-bold">
+                    {language === 'he' ? 'סנכרון ענן אוטומטי פעיל' : 'Automatic Cloud Sync Active'}
+                  </span>
+                  <span className="text-[10px] text-indigo-700 bg-white border border-indigo-200 px-2 py-0.5 rounded-full font-semibold">
+                    {language === 'he' ? 'מחשב ונייד 💻📱' : 'PC & Mobile 💻📱'}
+                  </span>
+                </div>
+                <span className="text-emerald-700 font-bold text-[11px] flex items-center gap-1.5">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                  {language === 'he' ? 'מסונכרן ומגובה' : 'Synced & Backed Up'}
+                </span>
+              </div>
+            )}
 
             {/* 7-Day Free Trial Policy Reminder */}
             <div className="px-4 sm:px-5 py-3 bg-emerald-50/70 border-t border-emerald-100 flex items-start gap-2.5 text-[11px] text-emerald-900">

@@ -5,6 +5,7 @@ import {
   signInWithPopup, 
   signInWithEmailAndPassword, 
   createUserWithEmailAndPassword, 
+  signInAnonymously,
   signOut, 
   onAuthStateChanged,
   User 
@@ -98,6 +99,19 @@ export async function registerWithEmail(email: string, pass: string): Promise<Us
 export async function logoutUser(): Promise<void> {
   if (!auth) return;
   await signOut(auth);
+}
+
+// Automatic invisible sign-in for subscribers to enable zero-friction cloud sync
+export async function autoSignInUser(): Promise<User | null> {
+  if (!auth) return null;
+  if (auth.currentUser) return auth.currentUser;
+  try {
+    const res = await signInAnonymously(auth);
+    return res.user;
+  } catch (err) {
+    console.warn('Silent auto-sign-in notice (normal in offline mode):', err);
+    return null;
+  }
 }
 
 // Subscribe to real-time month data

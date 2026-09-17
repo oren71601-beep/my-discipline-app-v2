@@ -45,6 +45,8 @@ import {
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { 
   auth, 
+  isFirebaseConfigured,
+  autoSignInUser,
   subscribeToMonthData, 
   saveMonthToCloud, 
   migrateLocalDataToCloud,
@@ -173,6 +175,44 @@ export default function App() {
   const [showCloudSyncModal, setShowCloudSyncModal] = useState<boolean>(false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
+  // Owner / Developer view (Promote to Pro button visible only to Oren / Admin)
+  const [isOwnerView, setIsOwnerView] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return (
+      localStorage.getItem('trading_tracker_owner_view') === 'true' ||
+      window.location.search.includes('admin') ||
+      window.location.search.includes('owner') ||
+      window.location.hostname.includes('run.app') ||
+      window.location.hostname.includes('localhost')
+    );
+  });
+  const [ownerClickCount, setOwnerClickCount] = useState<number>(0);
+
+  useEffect(() => {
+    if (currentUser?.email?.toLowerCase() === 'oren71601@gmail.com') {
+      setIsOwnerView(true);
+      localStorage.setItem('trading_tracker_owner_view', 'true');
+    }
+  }, [currentUser]);
+
+  const handleBrandClick = () => {
+    const next = ownerClickCount + 1;
+    if (next >= 5) {
+      const newState = !isOwnerView;
+      setIsOwnerView(newState);
+      localStorage.setItem('trading_tracker_owner_view', String(newState));
+      setOwnerClickCount(0);
+      showToast(
+        newState 
+          ? (language === 'he' ? 'מצב מנהל הופעל 🔓 (כפתור Promote to Pro גלוי)' : 'Admin mode enabled 🔓')
+          : (language === 'he' ? 'מצב מנהל כובה 🔒' : 'Admin mode disabled 🔒'),
+        'info'
+      );
+    } else {
+      setOwnerClickCount(next);
+    }
+  };
+
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Derive month string layout like "2026-06"
@@ -256,6 +296,20 @@ export default function App() {
     });
     return () => unsubscribe();
   }, []);
+
+  // Automatic Cloud Sync for Pro Subscribers:
+  // When a user has an active subscription, cloud sync activates seamlessly in the background
+  useEffect(() => {
+    if (isPremium && isFirebaseConfigured && auth && !currentUser) {
+      autoSignInUser().then((user) => {
+        if (user) {
+          setCurrentUser(user);
+        }
+      }).catch((err) => {
+        console.warn('Silent auto-sync initialization:', err);
+      });
+    }
+  }, [isPremium, currentUser]);
 
   // 2. Real-time Month Sync: Live Firestore listener so phone & PC update instantly
   useEffect(() => {
@@ -1040,85 +1094,6 @@ export default function App() {
         </div>
       )}
 
-      {/* Monetization & App Store Developer Control Center Panel */}
-      <div className="bg-gradient-to-r from-slate-900 via-slate-950 to-indigo-950 text-white border-b border-indigo-500/30 px-4 py-2.5 sm:px-6">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-          
-          <div className="flex items-center flex-wrap gap-2 text-xs">
-            <div className="inline-flex items-center gap-1.5 bg-slate-800/80 px-2.5 py-1 rounded-xl border border-slate-700">
-              <span className="text-slate-400 text-[11px]">{appLabels.statusLabel}</span>
-              {isPremium ? (
-                <span className="text-emerald-400 font-black flex items-center gap-1">
-                  {appLabels.premiumActive}
-                </span>
-              ) : (
-                <span className="text-amber-400 font-bold flex items-center gap-1">
-                  {appLabels.freeActive}
-                </span>
-              )}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 self-start md:self-auto flex-wrap">
-            {/* Cloud Sync Button (Phone & PC Real-Time Sync) */}
-            <button
-              onClick={() => setShowCloudSyncModal(true)}
-              className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-1.5 rounded-xl transition-all border cursor-pointer shadow-xs ${
-                currentUser
-                  ? 'bg-emerald-950/70 hover:bg-emerald-900 text-emerald-300 border-emerald-500/50'
-                  : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-400 animate-pulse'
-              }`}
-              title={language === 'he' ? 'סנכרון ענן בזמן אמת בין המחשב לפלאפון' : 'Real-time sync between computer and phone'}
-            >
-              {currentUser ? (
-                <>
-                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping inline-block" />
-                  <Cloud className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{language === 'he' ? 'מסונכרן מחשב 💻 ופלאפון 📱' : 'Synced PC & Phone 📱'}</span>
-                </>
-              ) : (
-                <>
-                  <Cloud className="w-3.5 h-3.5" />
-                  <span>{language === 'he' ? 'סנכרן מחשב 💻 ופלאפון 📱' : 'Sync PC & Phone 📱'}</span>
-                </>
-              )}
-            </button>
-
-            {/* Open Billing & Account Settings */}
-            <button
-              onClick={() => setShowBillingModal(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-white border-slate-700 cursor-pointer shadow-xs"
-            >
-              <CreditCard className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{language === 'he' ? 'ניהול מנוי וחיובים 💳' : 'Billing & Account 💳'}</span>
-            </button>
-
-            {/* Open marketing landing page & media hub */}
-            <button
-              onClick={() => setShowLanding(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-extrabold px-3 py-1.5 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border-slate-700 cursor-pointer"
-            >
-              <Globe className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-              <span>{language === 'he' ? 'דף נחיתה ומדיה 📱' : 'Marketing Hub 📱'}</span>
-            </button>
-
-            {/* Toggle subscription simulation */}
-            <button
-              onClick={handleTogglePremium}
-              className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl transition-all border cursor-pointer ${
-                isPremium 
-                  ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400' 
-                  : 'bg-indigo-600 hover:bg-indigo-700 text-white border-indigo-500'
-              }`}
-            >
-              {isPremium ? <Lock className="w-3 h-3" /> : <Unlock className="w-3 h-3" />}
-              <span>{isPremium ? appLabels.btnFree : appLabels.btnPremium}</span>
-            </button>
-          </div>
-
-        </div>
-      </div>
-
       {/* App Store / Google Play Premium Paywall Modal */}
       {showPaywallModal && (
         <div 
@@ -1491,7 +1466,11 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           
           {/* Brand/Heading block */}
-          <div className="flex items-center gap-3">
+          <div 
+            onClick={handleBrandClick}
+            className="flex items-center gap-3 cursor-pointer select-none"
+            title={isOwnerView ? 'Admin/Owner mode active 👑' : undefined}
+          >
             <div className="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-md shadow-indigo-500/30">
               <TrendingUp className="w-6 h-6" />
             </div>
@@ -1499,6 +1478,11 @@ export default function App() {
               <div className="flex items-center gap-2">
                 <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">{t.appTitle}</h1>
                 <span className="bg-slate-800 text-indigo-400 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase shrink-0">{appLabels.brandBadge}</span>
+                {isOwnerView && (
+                  <span className="bg-amber-500/20 text-amber-300 border border-amber-500/40 text-[9px] font-bold px-1.5 py-0.2 rounded-md uppercase shrink-0 font-mono">
+                    Admin
+                  </span>
+                )}
               </div>
               <p className="text-slate-400 text-xs mt-0.5 sm:mt-1 font-medium">{t.appSubtitle}</p>
             </div>
@@ -1569,6 +1553,43 @@ export default function App() {
                 </span>
               </div>
             </button>
+
+            {/* Billing & Account Button */}
+            <button
+              onClick={() => setShowBillingModal(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 cursor-pointer shadow-xs"
+              title={language === 'he' ? 'ניהול מנוי וחיובים 💳' : 'Billing & Account 💳'}
+            >
+              <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>{language === 'he' ? 'ניהול מנוי 💳' : 'Billing & Account 💳'}</span>
+            </button>
+
+            {/* Marketing Hub Landing Page Button */}
+            <button
+              onClick={() => setShowLanding(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border-slate-700 cursor-pointer shadow-xs"
+              title={language === 'he' ? 'דף נחיתה ומדיה שיווקית 📱' : 'Marketing Hub 📱'}
+            >
+              <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0 animate-pulse" />
+              <span>{language === 'he' ? 'דף נחיתה 📱' : 'Marketing Hub 📱'}</span>
+            </button>
+
+            {/* Promote to Pro (Developer simulation toggle - visible ONLY to Oren / Admin) */}
+            {isOwnerView && (
+              <button
+                onClick={handleTogglePremium}
+                className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border cursor-pointer shadow-xs ${
+                  isPremium 
+                    ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400' 
+                    : 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400 animate-pulse'
+                }`}
+                title={language === 'he' ? 'בדיקת מפתח: החלף מצב פרימיום (גלוי למנהל בלבד)' : 'Developer Test: Toggle Premium (Admin Only)'}
+              >
+                {isPremium ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                <span>{isPremium ? appLabels.btnFree : appLabels.btnPremium}</span>
+                <span className="text-[9px] uppercase px-1 py-0.2 bg-black/30 rounded text-white font-mono">Dev</span>
+              </button>
+            )}
             
             {/* Language Selector */}
             <div className="flex items-center gap-1.5 bg-slate-800 rounded-xl px-2.5 py-1.5 border border-slate-700">
