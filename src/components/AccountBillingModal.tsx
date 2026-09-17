@@ -27,6 +27,7 @@ import {
 import { LanguageCode } from '../utils/translations';
 import { requestCancelSubscriptionAPI, CancelSubscriptionResponse } from '../utils/billingService';
 import {
+  ICOUNT_CHECKOUT_URL,
   PAYONEER_CHECKOUT_URL,
   detectGeoLocation,
   getCachedGeoLocation,
@@ -88,8 +89,8 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     return {
       isIsrael: isIL,
       countryCode: isIL ? 'IL' : 'US',
-      providerName: 'Payoneer',
-      checkoutUrl: PAYONEER_CHECKOUT_URL,
+      providerName: isIL ? 'iCount' : 'Payoneer',
+      checkoutUrl: isIL ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
       source: 'heuristic',
     };
   });
