@@ -1,12 +1,11 @@
 /**
- * Geo-IP Location & Subscription Routing Service
- * Automatically detects if the user is visiting from Israel (IL) or International
- * - Israel (IL): Routes to iCount checkout
- * - International: Routes to Payoneer checkout
+ * Subscription Checkout Routing Service
+ * Exclusively powered by Payoneer for all users (domestic & international)
  */
 
-export const ICOUNT_CHECKOUT_URL = 'https://app.icount.co.il/hash/paynow.php?code=d243TitWNE9MWW1qS21ER1ZEVmFFemRPdVVIQnBpM1lsOHltOG9XdXRTYzM5NTdld0NrVk53PT0=&lang=he';
 export const PAYONEER_CHECKOUT_URL = 'https://link.payoneer.com/Token?t=ABB2FE3653554304AC7F081556E8CF02&src=dpl';
+// Deprecated alias pointing directly to Payoneer
+export const ICOUNT_CHECKOUT_URL = PAYONEER_CHECKOUT_URL;
 
 const STORAGE_KEY_COUNTRY = 'trading_tracker_user_country';
 const STORAGE_KEY_IS_ISRAEL = 'trading_tracker_is_israel';
@@ -14,7 +13,7 @@ const STORAGE_KEY_IS_ISRAEL = 'trading_tracker_is_israel';
 export interface GeoLocationState {
   isIsrael: boolean;
   countryCode: string;
-  providerName: 'iCount' | 'Payoneer';
+  providerName: 'Payoneer';
   checkoutUrl: string;
   source: 'cache' | 'api' | 'heuristic' | 'fallback';
 }
@@ -54,8 +53,8 @@ export function getCachedGeoLocation(): GeoLocationState | null {
       return {
         isIsrael,
         countryCode: cachedCountry,
-        providerName: isIsrael ? 'iCount' : 'Payoneer',
-        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+        providerName: 'Payoneer',
+        checkoutUrl: PAYONEER_CHECKOUT_URL,
         source: 'cache',
       };
     }
@@ -96,8 +95,8 @@ export async function detectGeoLocation(): Promise<GeoLocationState> {
       return {
         isIsrael,
         countryCode: code,
-        providerName: isIsrael ? 'iCount' : 'Payoneer',
-        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+        providerName: 'Payoneer',
+        checkoutUrl: PAYONEER_CHECKOUT_URL,
         source: 'api',
       };
     }
@@ -125,8 +124,8 @@ export async function detectGeoLocation(): Promise<GeoLocationState> {
       return {
         isIsrael,
         countryCode: code,
-        providerName: isIsrael ? 'iCount' : 'Payoneer',
-        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+        providerName: 'Payoneer',
+        checkoutUrl: PAYONEER_CHECKOUT_URL,
         source: 'api',
       };
     }
@@ -142,8 +141,8 @@ export async function detectGeoLocation(): Promise<GeoLocationState> {
   return {
     isIsrael: heuristicIsrael,
     countryCode: fallbackCode,
-    providerName: heuristicIsrael ? 'iCount' : 'Payoneer',
-    checkoutUrl: heuristicIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+    providerName: 'Payoneer',
+    checkoutUrl: PAYONEER_CHECKOUT_URL,
     source: 'heuristic',
   };
 }
@@ -169,8 +168,8 @@ export function setSimulatedCountry(countryCode: 'IL' | 'US' | null): GeoLocatio
     return {
       isIsrael: heuristicIsrael,
       countryCode: heuristicIsrael ? 'IL' : 'US',
-      providerName: heuristicIsrael ? 'iCount' : 'Payoneer',
-      checkoutUrl: heuristicIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+      providerName: 'Payoneer',
+      checkoutUrl: PAYONEER_CHECKOUT_URL,
       source: 'heuristic',
     };
   }
@@ -179,19 +178,15 @@ export function setSimulatedCountry(countryCode: 'IL' | 'US' | null): GeoLocatio
   return {
     isIsrael,
     countryCode,
-    providerName: isIsrael ? 'iCount' : 'Payoneer',
-    checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+    providerName: 'Payoneer',
+    checkoutUrl: PAYONEER_CHECKOUT_URL,
     source: 'cache',
   };
 }
 
 /**
- * Returns current checkout URL synchronously based on best available info
+ * Returns current checkout URL synchronously (exclusively Payoneer)
  */
 export function getCurrentSubscriptionUrl(): string {
-  const cached = getCachedGeoLocation();
-  if (cached) {
-    return cached.checkoutUrl;
-  }
-  return detectIsraelHeuristic() ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL;
+  return PAYONEER_CHECKOUT_URL;
 }
