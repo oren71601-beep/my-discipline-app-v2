@@ -23,10 +23,19 @@ import {
   Clock,
   Scale,
   RotateCcw,
-  Cloud
+  Cloud,
+  Printer,
+  Download,
+  Eye
 } from 'lucide-react';
 import { LanguageCode } from '../utils/translations';
-import { requestCancelSubscriptionAPI, CancelSubscriptionResponse } from '../utils/billingService';
+import { 
+  requestCancelSubscriptionAPI, 
+  CancelSubscriptionResponse,
+  InvoiceRecord,
+  getStoredInvoices,
+  recordNewPurchaseInvoice
+} from '../utils/billingService';
 import {
   ICOUNT_CHECKOUT_URL,
   PAYONEER_CHECKOUT_URL,
@@ -121,6 +130,20 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     }
   }, [isOpen, isPremium]);
 
+  // Dynamic Invoices State (loaded ONLY when user has actually purchased)
+  const [invoices, setInvoices] = useState<InvoiceRecord[]>(() => getStoredInvoices());
+  const [selectedInvoice, setSelectedInvoice] = useState<InvoiceRecord | null>(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setInvoices(getStoredInvoices());
+    const handleInvoiceUpdate = () => {
+      setInvoices(getStoredInvoices());
+    };
+    window.addEventListener('invoices_updated', handleInvoiceUpdate);
+    return () => window.removeEventListener('invoices_updated', handleInvoiceUpdate);
+  }, [isOpen, isPremium]);
+
   const isRtl = language === 'he' || language === 'ar';
 
   if (!isOpen) return null;
@@ -169,10 +192,11 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
       confirmationRef: 'אסמכתת ביטול:',
       appStoreNotice: 'מנויים שנרכשו דרך Apple App Store או Google Play ניתנים לניהול וביטול גם ישירות בהגדרות ה-Apple ID או Google Account של המכשיר שלך.',
       historyTitle: 'קבלות וחיובים אחרונים',
-      receiptDate1: '11 ספטמבר 2026',
-      receiptDate2: '11 אוגוסט 2026',
+      noInvoicesTitle: 'אין עדיין קבלות או חיובים',
+      noInvoicesDesc: 'חשבונית מס קבלה תופק ותופיע כאן אוטומטית לאחר ביצוע רכישת מנוי.',
       receiptStatusPaid: 'שולם',
       receiptInvoice: 'חשבונית מס קבלה',
+      viewInvoiceBtn: 'צפה בחשבונית 📄',
       btnClose: 'סגור',
     },
     en: {
@@ -217,10 +241,11 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
       confirmationRef: 'Confirmation Ref:',
       appStoreNotice: 'Subscriptions purchased through the Apple App Store or Google Play can also be managed directly in your Apple ID or Google Play device settings.',
       historyTitle: 'Recent Invoices & Receipts',
-      receiptDate1: 'September 11, 2026',
-      receiptDate2: 'August 11, 2026',
+      noInvoicesTitle: 'No Receipts or Invoices Yet',
+      noInvoicesDesc: 'Official receipts and invoices will appear here automatically after purchasing a subscription.',
       receiptStatusPaid: 'Paid',
       receiptInvoice: 'Official Receipt',
+      viewInvoiceBtn: 'View Invoice 📄',
       btnClose: 'Close',
     },
     ar: {
@@ -265,10 +290,11 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
       confirmationRef: 'رمز التأكيد:',
       appStoreNotice: 'الاشتراكات المشتراة عبر متجر App Store أو Google Play يمكن إدارتها أو إلغاؤها مباشرة من إعدادات الحساب بهاتفك.',
       historyTitle: 'الفواتير والإيصالات الأخيرة',
-      receiptDate1: '11 سبتمبر 2026',
-      receiptDate2: '11 أغسطس 2026',
+      noInvoicesTitle: 'لا توجد فواتير أو إيصالات حتى الآن',
+      noInvoicesDesc: 'ستظهر الفواتير والإيصالات الرسمية هنا تلقائياً بعد شراء الاشتراك.',
       receiptStatusPaid: 'تم الدفع',
       receiptInvoice: 'فاتورة رسمية',
+      viewInvoiceBtn: 'عرض الفاتورة 📄',
       btnClose: 'إغلاق',
     },
     ru: {
@@ -313,10 +339,11 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
       confirmationRef: 'Код подтверждения:',
       appStoreNotice: 'Подписки, оформленные через App Store или Google Play, можно также отменить в настройках вашей учетной записи на телефоне.',
       historyTitle: 'История Счетов и Квитанций',
-      receiptDate1: '11 сентября 2026',
-      receiptDate2: '11 августа 2026',
+      noInvoicesTitle: 'История счетов пуста',
+      noInvoicesDesc: 'Официальные счета и квитанции появятся здесь автоматически после оформления подписки.',
       receiptStatusPaid: 'Оплачено',
       receiptInvoice: 'Квитанция об оплате',
+      viewInvoiceBtn: 'Посмотреть счет 📄',
       btnClose: 'Закрыть',
     }
   };
@@ -348,6 +375,11 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     setTimeout(() => {
       setCancellationRecord(null);
       localStorage.removeItem('trading_tracker_cancellation_record');
+      recordNewPurchaseInvoice({
+        planName: language === 'he' ? 'מנוי Pro חודשי ($25/חודש)' : 'Monthly Pro Plan ($25/mo)',
+        paymentMethod: 'Credit Card / Apple Pay',
+      });
+      setInvoices(getStoredInvoices());
       onReactivateSubscription();
       setIsProcessing(false);
     }, 400);
@@ -866,31 +898,51 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                 </div>
               )}
 
-              <div className="py-2.5 flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-800">{l.receiptInvoice} #STJ-2026-09</div>
-                  <div className="text-[10px] text-slate-400">{l.receiptDate1}</div>
+              {/* Empty state when no invoices exist yet */}
+              {invoices.length === 0 && !cancellationRecord && (
+                <div className="py-6 px-4 text-center bg-slate-50/80 rounded-2xl border border-dashed border-slate-200 my-1">
+                  <FileText className="w-6 h-6 mx-auto mb-1.5 text-slate-400" />
+                  <div className="font-bold text-slate-700 text-xs sm:text-sm">{l.noInvoicesTitle}</div>
+                  <p className="text-[11px] text-slate-500 mt-1 max-w-sm mx-auto leading-relaxed">
+                    {l.noInvoicesDesc}
+                  </p>
                 </div>
-                <div className="text-end">
-                  <div className="font-mono font-bold text-slate-900">$25.00</div>
-                  <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/50">
-                    {l.receiptStatusPaid}
-                  </span>
-                </div>
-              </div>
+              )}
 
-              <div className="py-2.5 flex items-center justify-between">
-                <div>
-                  <div className="font-bold text-slate-800">{l.receiptInvoice} #STJ-2026-08</div>
-                  <div className="text-[10px] text-slate-400">{l.receiptDate2}</div>
+              {/* Dynamic invoices rendered strictly upon purchase */}
+              {invoices.map((inv) => (
+                <div key={inv.id} className="py-2.5 flex items-center justify-between gap-3 border-b border-slate-100 last:border-b-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-bold text-slate-800 text-xs sm:text-sm flex flex-wrap items-center gap-1.5">
+                      <span>{l.receiptInvoice}</span>
+                      <span className="font-mono text-indigo-600 font-bold text-[11px]">#{inv.id}</span>
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
+                      <span>{inv.date}</span>
+                      <span>•</span>
+                      <span>{inv.planName}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2.5 shrink-0 text-end">
+                    <div>
+                      <div className="font-mono font-bold text-slate-900 text-xs sm:text-sm">{inv.amount}</div>
+                      <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/50">
+                        {l.receiptStatusPaid}
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => setSelectedInvoice(inv)}
+                      className="p-1.5 rounded-lg text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-slate-200 hover:border-indigo-200 transition-colors cursor-pointer"
+                      title={l.viewInvoiceBtn}
+                    >
+                      <Eye className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
-                <div className="text-end">
-                  <div className="font-mono font-bold text-slate-900">$25.00</div>
-                  <span className="inline-block text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200/50">
-                    {l.receiptStatusPaid}
-                  </span>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
 
@@ -933,6 +985,93 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
             {l.btnClose}
           </button>
         </div>
+
+        {/* Invoice Detail Modal */}
+        {selectedInvoice && (
+          <div className="fixed inset-0 z-60 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-4">
+            <div className="bg-white rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl border border-slate-200 text-slate-800 animate-in fade-in zoom-in-95">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600">
+                    <FileText className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-sm text-slate-900">
+                      {language === 'he' ? 'חשבונית מס / קבלה' : 'Tax Invoice / Receipt'}
+                    </h3>
+                    <p className="text-[11px] font-mono text-indigo-600">#{selectedInvoice.id}</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInvoice(null)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">{language === 'he' ? 'תאריך הנפקה:' : 'Date Issued:'}</span>
+                  <span className="font-medium text-slate-800">{selectedInvoice.date}</span>
+                </div>
+
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">{language === 'he' ? 'שם הלקוח:' : 'Billed To:'}</span>
+                  <span className="font-semibold text-slate-900">{accountName || selectedInvoice.customerName}</span>
+                </div>
+
+                <div className="flex justify-between py-1.5 border-b border-slate-100">
+                  <span className="text-slate-500">{language === 'he' ? 'אמצעי תשלום:' : 'Payment Method:'}</span>
+                  <span className="font-medium text-slate-800">{selectedInvoice.paymentMethod}</span>
+                </div>
+
+                <div className="bg-slate-50 rounded-xl p-3 my-2 border border-slate-100">
+                  <div className="flex justify-between font-bold text-slate-800 mb-1">
+                    <span>{selectedInvoice.planName}</span>
+                    <span className="font-mono">{selectedInvoice.amount}</span>
+                  </div>
+                  <div className="text-[11px] text-slate-500">
+                    {language === 'he' 
+                      ? 'מנוי חודשי מלא — גישה לכל הכלים, אנליטיקה וסנכרון ענן אוטומטי' 
+                      : 'Full monthly access to all analytics, mental log & auto cloud sync'}
+                  </div>
+                </div>
+
+                <div className="flex justify-between items-center pt-2 font-bold text-sm">
+                  <span>{language === 'he' ? 'סה"כ שולם:' : 'Total Paid:'}</span>
+                  <span className="font-mono text-base text-emerald-600">{selectedInvoice.amount}</span>
+                </div>
+                
+                <div className="text-center pt-1">
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-full border border-emerald-200">
+                    <Check className="w-3 h-3" />
+                    {language === 'he' ? 'החיוב בוצע בהצלחה • חשבונית סגורה' : 'Payment Confirmed • Settled'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-3 py-1.5 rounded-lg border border-slate-200 hover:border-indigo-300 hover:text-indigo-600 text-slate-600 text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  <Printer className="w-3.5 h-3.5" />
+                  <span>{language === 'he' ? 'הדפס / שמור כ-PDF' : 'Print / Save PDF'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSelectedInvoice(null)}
+                  className="px-4 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-colors cursor-pointer"
+                >
+                  {l.btnClose}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
       </div>
     </div>

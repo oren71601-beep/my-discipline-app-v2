@@ -64,3 +64,60 @@ export async function requestCancelSubscriptionAPI(params: {
     message: 'Subscription successfully cancelled with the payment provider. You will not be charged next month.',
   };
 }
+
+export interface InvoiceRecord {
+  id: string;
+  date: string;
+  amount: string;
+  planName: string;
+  status: 'paid' | 'cancelled' | 'refunded';
+  timestamp: string;
+  paymentMethod?: string;
+}
+
+export function getStoredInvoices(): InvoiceRecord[] {
+  try {
+    const raw = localStorage.getItem('trading_tracker_invoices');
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+export function recordNewPurchaseInvoice(params?: {
+  amount?: string;
+  planName?: string;
+  paymentMethod?: string;
+}): InvoiceRecord {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+  const id = `STJ-${year}-${month}-${randomSuffix}`;
+  
+  const dateStr = now.toLocaleDateString('he-IL', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric'
+  });
+
+  const newInvoice: InvoiceRecord = {
+    id,
+    date: dateStr,
+    amount: params?.amount || '$25.00',
+    planName: params?.planName || 'מנוי Pro חודשי ($25/חודש)',
+    status: 'paid',
+    timestamp: now.toISOString(),
+    paymentMethod: params?.paymentMethod || 'Credit Card / Payoneer'
+  };
+
+  const existing = getStoredInvoices();
+  const updated = [newInvoice, ...existing];
+  try {
+    localStorage.setItem('trading_tracker_invoices', JSON.stringify(updated));
+  } catch (e) {
+    console.error(e);
+  }
+  window.dispatchEvent(new Event('invoices_updated'));
+  return newInvoice;
+}

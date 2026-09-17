@@ -15,7 +15,6 @@ import {
   Lock, 
   Unlock, 
   TrendingUp, 
-  Award, 
   Zap, 
   RotateCcw,
   Volume2,
@@ -454,19 +453,6 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
                     <Video className="w-4 h-4 text-indigo-400" />
                     <span>{currentTexts.btnMediaKit}</span>
                   </button>
-                </div>
-
-                {/* Simulated Stores Badges */}
-                <div className="pt-6 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 text-slate-400 text-xs">
-                  <div className="flex items-center gap-1">
-                    <Award className="w-4 h-4 text-amber-500" />
-                    <span className="font-bold text-slate-300">Apple Editors Choice 2026</span>
-                  </div>
-                  <div className="hidden sm:block text-slate-800">|</div>
-                  <div className="flex items-center gap-1">
-                    <TrendingUp className="w-4 h-4 text-emerald-500" />
-                    <span className="font-bold text-slate-300">4.9 App Store Rating</span>
-                  </div>
                 </div>
               </div>
 

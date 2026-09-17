@@ -58,7 +58,7 @@ import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
 import { LegalTermsModal, LegalTab } from './components/LegalTermsModal';
-import { CancelSubscriptionResponse } from './utils/billingService';
+import { CancelSubscriptionResponse, recordNewPurchaseInvoice } from './utils/billingService';
 import { 
   ICOUNT_CHECKOUT_URL,
   PAYONEER_CHECKOUT_URL, 
@@ -738,6 +738,10 @@ export default function App() {
     setIsPremium(true);
     localStorage.setItem('trading_tracker_premium', 'true');
     localStorage.removeItem('trading_tracker_cancellation_record');
+    recordNewPurchaseInvoice({
+      planName: language === 'he' ? 'מנוי Pro חודשי ($25/חודש)' : 'Pro Monthly Subscription ($25/mo)',
+      paymentMethod: 'Credit Card / Gateway',
+    });
     if (!accountName) {
       const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
       setAccountName(defaultName);
@@ -760,6 +764,10 @@ export default function App() {
       setIsPremium(true);
       localStorage.setItem('trading_tracker_premium', 'true');
       setShowPaywallModal(false);
+      recordNewPurchaseInvoice({
+        planName: language === 'he' ? 'מנוי Pro חודשי ($25/חודש)' : 'Pro Monthly Subscription ($25/mo)',
+        paymentMethod: 'Apple Pay / App Store',
+      });
       if (!accountName) {
         const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
         setAccountName(defaultName);
@@ -1709,30 +1717,6 @@ export default function App() {
                     onChange={handleImportMonth}
                     className="hidden" 
                   />
-
-                  {/* Cloud Sync Quick Status Button */}
-                  <button
-                    onClick={() => setShowCloudSyncModal(true)}
-                    className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-lg border transition-all cursor-pointer ${
-                      currentUser
-                        ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
-                        : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100'
-                    }`}
-                    title={language === 'he' ? 'סנכרון ענן בזמן אמת בין המחשב לפלאפון' : 'Real-time sync between PC and phone'}
-                  >
-                    {currentUser ? (
-                      <>
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <Cloud className="w-3.5 h-3.5 text-emerald-600" />
-                        <span>{language === 'he' ? 'ענן מסונכרן (מחשב ונייד)' : 'Synced (PC & Phone)'}</span>
-                      </>
-                    ) : (
-                      <>
-                        <Cloud className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>{language === 'he' ? 'סנכרן מחשב ופלאפון ☁️' : 'Sync to Mobile ☁️'}</span>
-                      </>
-                    )}
-                  </button>
                 </div>
               </div>
 
