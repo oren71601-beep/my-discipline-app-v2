@@ -5,7 +5,7 @@
  * - International: Routes to Payoneer checkout
  */
 
-export const ICOUNT_CHECKOUT_URL = 'https://app.icount.co.il/hash/paynow.php?code=d243TitWNE9MWW1qS21ER1ZEVmFFemRPdVVIQnBpM1lsOHltOG9XdXRTYzM5NTdld0NrVk53PT0=&lang=he';
+export const ICOUNT_CHECKOUT_URL = 'https://app.icount.co.il/m/a1cc5/c693bf5fp5u6aad0ac3?utm_source=iCount&utm_medium=paypage&utm_campaign=5';
 export const PAYONEER_CHECKOUT_URL = 'https://link.payoneer.com/Token?t=ABB2FE3653554304AC7F081556E8CF02&src=dpl';
 
 const STORAGE_KEY_COUNTRY = 'trading_tracker_user_country';
