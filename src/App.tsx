@@ -40,7 +40,8 @@ import {
   Smartphone,
   Monitor,
   Scale,
-  RotateCcw
+  RotateCcw,
+  Mail
 } from 'lucide-react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { 
@@ -135,14 +136,15 @@ export default function App() {
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  // Subscription & Paywall States - defaults to active workspace for returning or pro users
+  // Subscription & Paywall States - defaults to Free for new visitors unless subscribed
   const [isPremium, setIsPremium] = useState<boolean>(() => {
     const saved = localStorage.getItem('trading_tracker_premium');
-    return saved === null ? true : saved === 'true';
+    return saved === 'true';
   });
   const [accountName, setAccountName] = useState<string>(() => {
     return localStorage.getItem('trading_tracker_account_name') || '';
   });
+  const [activateEmailInput, setActivateEmailInput] = useState<string>('');
 
   const handleUpdateAccountName = (newName: string) => {
     setAccountName(newName);
@@ -192,8 +194,58 @@ export default function App() {
     if (currentUser?.email?.toLowerCase() === 'oren71601@gmail.com') {
       setIsOwnerView(true);
       localStorage.setItem('trading_tracker_owner_view', 'true');
+      setIsPremium(true);
+      localStorage.setItem('trading_tracker_premium', 'true');
+      if (!accountName || accountName === 'סוחר Pro' || accountName === 'Pro Trader') {
+        setAccountName('oren71601@gmail.com');
+        localStorage.setItem('trading_tracker_account_name', 'oren71601@gmail.com');
+      }
+    } else if (currentUser?.email) {
+      if (!accountName || accountName === 'סוחר Pro' || accountName === 'Pro Trader') {
+        setAccountName(currentUser.email);
+        localStorage.setItem('trading_tracker_account_name', currentUser.email);
+      }
     }
   }, [currentUser]);
+
+  // Automatic detection of payment return (e.g. from iCount or Payoneer with ?paid=true / ?email=...)
+  useEffect(() => {
+    try {
+      if (typeof window === 'undefined') return;
+      const search = window.location.search;
+      if (!search) return;
+      const params = new URLSearchParams(search);
+      const paidParam = params.get('paid') || params.get('payment') || params.get('status') || params.get('pro') || params.get('success');
+      const emailParam = params.get('email') || params.get('mail') || params.get('client_email') || params.get('customer_email');
+      
+      const isPaidSuccess = paidParam === 'true' || paidParam === 'success' || paidParam === 'approved' || paidParam === '1' || Boolean(emailParam);
+
+      if (isPaidSuccess) {
+        setIsPremium(true);
+        localStorage.setItem('trading_tracker_premium', 'true');
+        
+        const extractedEmail = emailParam ? decodeURIComponent(emailParam).trim() : '';
+        if (extractedEmail) {
+          setAccountName(extractedEmail);
+          localStorage.setItem('trading_tracker_account_name', extractedEmail);
+        }
+        
+        recordNewPurchaseInvoice({
+          planName: language === 'he' ? 'מנוי Pro חודשי (iCount הוראת קבע)' : 'Pro Monthly Subscription (iCount)',
+          paymentMethod: 'Credit Card / iCount',
+        });
+        
+        showToast(
+          language === 'he' 
+            ? `ברוך הבא ל-Pro! המנוי הופעל בהצלחה${extractedEmail ? ` עבור ${extractedEmail}` : ''} 👑`
+            : `Welcome to Pro! Subscription activated successfully${extractedEmail ? ` for ${extractedEmail}` : ''} 👑`,
+          'success'
+        );
+      }
+    } catch (e) {
+      console.error('Error parsing payment URL params:', e);
+    }
+  }, [language]);
 
   const handleBrandClick = () => {
     const next = ownerClickCount + 1;
@@ -734,26 +786,40 @@ export default function App() {
   };
 
   // Action: Reactivate Subscription (Upgrade to Pro)
-  const handleReactivateSubscription = () => {
+  const handleReactivateSubscription = (email?: string) => {
     setIsPremium(true);
     localStorage.setItem('trading_tracker_premium', 'true');
     localStorage.removeItem('trading_tracker_cancellation_record');
     recordNewPurchaseInvoice({
-      planName: language === 'he' ? 'מנוי Pro חודשי ($25/חודש)' : 'Pro Monthly Subscription ($25/mo)',
+      planName: language === 'he' ? 'מנוי Pro חודשי (הוראת קבע)' : 'Pro Monthly Subscription ($25/mo)',
       paymentMethod: 'Credit Card / Gateway',
     });
-    if (!accountName) {
-      const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
-      setAccountName(defaultName);
-      localStorage.setItem('trading_tracker_account_name', defaultName);
+    const finalEmail = email?.trim() || currentUser?.email || accountName;
+    if (finalEmail) {
+      setAccountName(finalEmail);
+      localStorage.setItem('trading_tracker_account_name', finalEmail);
     }
     const msg = {
-      he: 'המנוי חודש בהצלחה! כל הפיצ׳רים נפתחו מחדש 👑',
-      en: 'Subscription reactivated successfully! Pro features unlocked 👑',
+      he: `המנוי הופעל בהצלחה${finalEmail ? ` עבור ${finalEmail}` : ''}! כל כלי ה-Pro נפתחו 👑`,
+      en: `Subscription activated successfully${finalEmail ? ` for ${finalEmail}` : ''}! Pro features unlocked 👑`,
       ar: 'تمت إعادة تفعيل الاشتراك بنجاح! ميزات البريميوم مفتوحة 👑',
       ru: 'Подписка успешно возобновлена! Все Pro функции разблокированы 👑'
     }[language];
     showToast(msg, 'success');
+  };
+
+  // Action: Activate Pro via user-provided email after payment
+  const handleActivateWithEmail = (emailInput: string) => {
+    const trimmed = emailInput.trim();
+    if (!trimmed || !trimmed.includes('@')) {
+      showToast(
+        language === 'he' ? 'אנא הזן כתובת אימייל תקינה (למשל user@gmail.com) ✉️' : 'Please enter a valid email address ✉️',
+        'error'
+      );
+      return;
+    }
+    handleReactivateSubscription(trimmed);
+    setShowPaywallModal(false);
   };
 
   // Action: Simulate App Store IAP Purchase
@@ -1399,6 +1465,56 @@ export default function App() {
                   </button>
                 </div>
 
+                {/* Already Paid / Enter Email to Activate Pro Card */}
+                <div className="p-3 sm:p-4 bg-gradient-to-br from-indigo-50/90 to-purple-50/50 rounded-2xl border border-indigo-200 text-start space-y-2.5 shadow-xs">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2 text-xs font-black text-slate-900">
+                      <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                        <Sparkles className="w-3.5 h-3.5" />
+                      </div>
+                      <span>
+                        {language === 'he' ? 'שילמת כבר? הפעל את המנוי לפי אימייל' : 'Already paid? Activate Pro by email'}
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full border border-indigo-200">
+                      {language === 'he' ? 'הפעלה מיידית' : 'Instant'}
+                    </span>
+                  </div>
+                  
+                  <p className="text-[11px] text-slate-600 leading-relaxed">
+                    {language === 'he' 
+                      ? 'הזן את כתובת האימייל שאיתה שילמת ב-iCount/Payoneer כדי לחבר את המנוי לאתר ולהציג את המייל שלך בראש הדף:' 
+                      : 'Enter the email you paid with to connect your subscription and display your email in the top bar:'}
+                  </p>
+                  
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="relative flex-1">
+                      <Mail className="w-4 h-4 text-slate-400 absolute start-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                      <input
+                        type="email"
+                        value={activateEmailInput}
+                        onChange={(e) => setActivateEmailInput(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            handleActivateWithEmail(activateEmailInput);
+                          }
+                        }}
+                        placeholder={language === 'he' ? 'הזן את כתובת האימייל שלך (למשל name@gmail.com)' : 'Enter your email (e.g. name@gmail.com)'}
+                        className="w-full text-xs ps-9 pe-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleActivateWithEmail(activateEmailInput)}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all shadow-xs shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      <span>{language === 'he' ? 'הפעל Pro' : 'Activate Pro'}</span>
+                    </button>
+                  </div>
+                </div>
+
                 <div className="pt-1 border-t border-slate-100">
                   <button
                     type="button"
@@ -1519,7 +1635,13 @@ export default function App() {
 
             {/* User Account / Upgrade to Pro Button */}
             <button
-              onClick={() => setShowBillingModal(true)}
+              onClick={() => {
+                if (isPremium) {
+                  setShowBillingModal(true);
+                } else {
+                  setShowPaywallModal(true);
+                }
+              }}
               className="flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl px-2.5 py-1.5 border border-slate-700 transition-all cursor-pointer shadow-xs group"
               title={
                 isPremium
@@ -1540,7 +1662,7 @@ export default function App() {
               </div>
               <div className="flex flex-col text-start leading-tight">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-200">
+                  <span className="text-[11px] font-bold text-slate-200 max-w-[130px] sm:max-w-[180px] truncate" title={isPremium ? (accountName || (language === 'he' ? 'סוחר Pro' : 'Pro Trader')) : undefined}>
                     {isPremium ? (accountName || (language === 'he' ? 'סוחר Pro' : 'Pro Trader')) : (
                       language === 'he' ? 'שדרוג ל-Pro' :
                       language === 'ar' ? 'ترقية إلى Pro' :

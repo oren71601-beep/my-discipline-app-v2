@@ -50,7 +50,7 @@ interface AccountBillingModalProps {
   onClose: () => void;
   isPremium: boolean;
   onCancelSubscription: (info?: CancelSubscriptionResponse) => void;
-  onReactivateSubscription: () => void;
+  onReactivateSubscription: (email?: string) => void;
   accountName?: string;
   onUpdateAccountName?: (name: string) => void;
   language: LanguageCode;
@@ -78,6 +78,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     return localStorage.getItem('trading_tracker_accepted_terms') === 'true';
   });
   const [billingTermsShake, setBillingTermsShake] = useState(false);
+  const [activateEmailInput, setActivateEmailInput] = useState('');
 
   useEffect(() => {
     if (accountName) {
@@ -370,7 +371,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     }
   };
 
-  const handleReactivate = () => {
+  const handleReactivate = (customEmail?: string) => {
     setIsProcessing(true);
     setTimeout(() => {
       setCancellationRecord(null);
@@ -380,7 +381,8 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
         paymentMethod: 'Credit Card / Apple Pay',
       });
       setInvoices(getStoredInvoices());
-      onReactivateSubscription();
+      const emailToUse = customEmail || activateEmailInput || currentName || accountName;
+      onReactivateSubscription(emailToUse);
       setIsProcessing(false);
     }, 400);
   };
@@ -802,11 +804,39 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                   <button
                     type="button"
                     disabled={isProcessing}
-                    onClick={handleReactivate}
+                    onClick={() => handleReactivate()}
                     className="text-[10px] text-slate-500 hover:text-indigo-600 font-bold underline cursor-pointer py-1 px-2"
                     title="Test Reactivation"
                   >
                     {language === 'he' ? 'שחזור מהיר (בדיקה)' : 'Quick Test Restore'}
+                  </button>
+                </div>
+              </div>
+
+              {/* Already Paid Email Activation Card */}
+              <div className="p-3 bg-indigo-50/80 rounded-2xl border border-indigo-200/80 text-start space-y-2">
+                <div className="flex items-center gap-2 text-xs font-black text-slate-800">
+                  <Mail className="w-3.5 h-3.5 text-indigo-600" />
+                  <span>
+                    {language === 'he' ? 'שילמת כבר? הפעלת מנוי לפי אימייל' : 'Already paid? Activate Pro by email'}
+                  </span>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="email"
+                    value={activateEmailInput}
+                    onChange={(e) => setActivateEmailInput(e.target.value)}
+                    placeholder={language === 'he' ? 'כתובת האימייל שאיתה שילמת' : 'Email used during checkout'}
+                    className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                  <button
+                    type="button"
+                    disabled={isProcessing}
+                    onClick={() => handleReactivate(activateEmailInput)}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer shrink-0 flex items-center justify-center gap-1.5"
+                  >
+                    <Check className="w-3.5 h-3.5" />
+                    <span>{language === 'he' ? 'הפעל Pro' : 'Activate Pro'}</span>
                   </button>
                 </div>
               </div>
