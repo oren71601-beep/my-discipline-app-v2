@@ -84,10 +84,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({
     const local = findLocalAccount(clean);
     if (local?.isPremium) return true;
 
-    // Check localStorage active premium email match
-    const storedAccountName = (localStorage.getItem('trading_tracker_account_name') || '').toLowerCase().trim();
-    const storedIsPremium = localStorage.getItem('trading_tracker_premium') === 'true';
-    if (storedIsPremium && storedAccountName === clean) return true;
+    // Check persistent paid emails registry
+    try {
+      const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
+      if (paidEmails.map(e => e.toLowerCase().trim()).includes(clean)) return true;
+    } catch {}
 
     // Check Firestore user profile if uid available
     if (uid) {
@@ -494,19 +495,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({
               </div>
             )}
 
-            {/* Remember Me Checkbox */}
+            {/* Session Security Note */}
             {mode === 'login' && (
-              <div className="flex items-center gap-2 text-xs text-slate-600">
-                <input
-                  type="checkbox"
-                  id="rememberMeCheckbox"
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
-                />
-                <label htmlFor="rememberMeCheckbox" className="cursor-pointer font-medium select-none">
-                  {language === 'he' ? 'זכור אותי במכשיר זה' : 'Remember me on this device'}
-                </label>
+              <div className="text-[11px] text-slate-500 text-start bg-slate-50 p-2.5 rounded-xl border border-slate-200">
+                {language === 'he' 
+                  ? '🔒 אבטחת חשבון: סגירת הדפדפן מנתקת אוטומטית את החשבון להגנה על הנתונים שלך.' 
+                  : '🔒 Account Security: Closing the browser tab logs you out automatically to protect your trading journal.'}
               </div>
             )}
 

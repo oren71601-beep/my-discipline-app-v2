@@ -8,6 +8,8 @@ import {
   signInAnonymously,
   signOut, 
   onAuthStateChanged,
+  setPersistence,
+  browserSessionPersistence,
   User 
 } from 'firebase/auth';
 import { 
@@ -45,6 +47,11 @@ const app = getApps().length === 0
 
 // Initialize Auth
 export const auth = app ? getAuth(app) : null;
+if (auth) {
+  setPersistence(auth, browserSessionPersistence).catch((err) => {
+    console.warn('Could not set browser session persistence:', err);
+  });
+}
 export const googleProvider = new GoogleAuthProvider();
 
 // Initialize Firestore with specific database ID from config

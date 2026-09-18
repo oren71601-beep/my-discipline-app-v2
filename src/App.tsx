@@ -46,7 +46,7 @@ import {
   UserPlus,
   LogOut
 } from 'lucide-react';
-import { User, onAuthStateChanged } from 'firebase/auth';
+import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
   auth, 
   isFirebaseConfigured,
@@ -141,19 +141,28 @@ export default function App() {
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  // Subscription & Paywall States - defaults to Free for new visitors unless subscribed
+  // Subscription & Paywall States - strictly session-based so closing the tab/window ('X') terminates the login
   const [isPremium, setIsPremium] = useState<boolean>(() => {
-    const saved = localStorage.getItem('trading_tracker_premium');
-    return saved === 'true';
+    if (typeof window === 'undefined') return false;
+    const sessionActive = sessionStorage.getItem('trading_tracker_session_active') === 'true';
+    if (!sessionActive) {
+      localStorage.removeItem('trading_tracker_premium');
+      localStorage.removeItem('trading_tracker_account_name');
+      return false;
+    }
+    return sessionStorage.getItem('trading_tracker_session_premium') === 'true';
   });
   const [accountName, setAccountName] = useState<string>(() => {
-    return localStorage.getItem('trading_tracker_account_name') || '';
+    if (typeof window === 'undefined') return '';
+    const sessionActive = sessionStorage.getItem('trading_tracker_session_active') === 'true';
+    if (!sessionActive) return '';
+    return sessionStorage.getItem('trading_tracker_session_email') || '';
   });
   const [activateEmailInput, setActivateEmailInput] = useState<string>('');
 
   const handleUpdateAccountName = (newName: string) => {
     setAccountName(newName);
-    localStorage.setItem('trading_tracker_account_name', newName);
+    sessionStorage.setItem('trading_tracker_session_email', newName);
   };
 
   const [showPaywallModal, setShowPaywallModal] = useState<boolean>(false);
@@ -207,10 +216,17 @@ export default function App() {
 
   const handleLogout = async () => {
     try {
+      sessionStorage.removeItem('trading_tracker_session_active');
+      sessionStorage.removeItem('trading_tracker_session_email');
+      sessionStorage.removeItem('trading_tracker_session_premium');
+      localStorage.removeItem('trading_tracker_premium');
+      localStorage.removeItem('trading_tracker_account_name');
       await logoutUser();
       setCurrentUser(null);
+      setAccountName('');
+      setIsPremium(false);
       showToast(
-        language === 'he' ? 'התנתקת בהצלחה מהחשבון' : 'Logged out successfully',
+        language === 'he' ? 'התנתקת בהצלחה מהחשבון. חזרת לדף הבית.' : 'Logged out successfully. Returned to home.',
         'info'
       );
     } catch (e) {
@@ -219,6 +235,13 @@ export default function App() {
   };
 
   const handleAuthSuccess = (authEmail: string, authUser: User | null, isPro?: boolean) => {
+    const userIsPro = Boolean(isPro || authEmail.toLowerCase() === 'oren71601@gmail.com');
+
+    // Store in sessionStorage so closing the tab ('X') disconnects session automatically
+    sessionStorage.setItem('trading_tracker_session_active', 'true');
+    sessionStorage.setItem('trading_tracker_session_email', authEmail);
+    sessionStorage.setItem('trading_tracker_session_premium', userIsPro ? 'true' : 'false');
+
     if (authUser) {
       setCurrentUser(authUser);
     } else {
@@ -230,11 +253,18 @@ export default function App() {
     }
 
     setAccountName(authEmail);
-    localStorage.setItem('trading_tracker_account_name', authEmail);
+    setIsPremium(userIsPro);
 
-    if (isPro || authEmail.toLowerCase() === 'oren71601@gmail.com') {
-      setIsPremium(true);
-      localStorage.setItem('trading_tracker_premium', 'true');
+    // If user paid/pro, register in persistent paid registry so their future logins recognize Pro
+    if (userIsPro) {
+      try {
+        const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
+        if (!paidEmails.includes(authEmail.toLowerCase().trim())) {
+          paidEmails.push(authEmail.toLowerCase().trim());
+          localStorage.setItem('trading_tracker_paid_emails', JSON.stringify(paidEmails));
+        }
+      } catch {}
+
       showToast(
         language === 'he' 
           ? `התחברת בהצלחה כמנוי Pro (${authEmail}) 👑` 
@@ -269,15 +299,16 @@ export default function App() {
       setIsOwnerView(true);
       localStorage.setItem('trading_tracker_owner_view', 'true');
       setIsPremium(true);
-      localStorage.setItem('trading_tracker_premium', 'true');
+      sessionStorage.setItem('trading_tracker_session_active', 'true');
+      sessionStorage.setItem('trading_tracker_session_premium', 'true');
       if (!accountName || accountName === 'סוחר Pro' || accountName === 'Pro Trader') {
         setAccountName('oren71601@gmail.com');
-        localStorage.setItem('trading_tracker_account_name', 'oren71601@gmail.com');
+        sessionStorage.setItem('trading_tracker_session_email', 'oren71601@gmail.com');
       }
     } else if (currentUser?.email) {
       if (!accountName || accountName === 'סוחר Pro' || accountName === 'Pro Trader') {
         setAccountName(currentUser.email);
-        localStorage.setItem('trading_tracker_account_name', currentUser.email);
+        sessionStorage.setItem('trading_tracker_session_email', currentUser.email);
       }
     }
   }, [currentUser]);
@@ -296,12 +327,20 @@ export default function App() {
 
       if (isPaidSuccess) {
         setIsPremium(true);
-        localStorage.setItem('trading_tracker_premium', 'true');
+        sessionStorage.setItem('trading_tracker_session_active', 'true');
+        sessionStorage.setItem('trading_tracker_session_premium', 'true');
         
         const extractedEmail = emailParam ? decodeURIComponent(emailParam).trim() : '';
         if (extractedEmail) {
           setAccountName(extractedEmail);
-          localStorage.setItem('trading_tracker_account_name', extractedEmail);
+          sessionStorage.setItem('trading_tracker_session_email', extractedEmail);
+          try {
+            const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
+            if (!paidEmails.includes(extractedEmail.toLowerCase())) {
+              paidEmails.push(extractedEmail.toLowerCase());
+              localStorage.setItem('trading_tracker_paid_emails', JSON.stringify(paidEmails));
+            }
+          } catch {}
         }
         
         recordNewPurchaseInvoice({
@@ -405,12 +444,25 @@ export default function App() {
     window.dispatchEvent(new Event('pledge_updated'));
   };
 
-  // 1. Firebase Auth listener: Automatically handles user session & local-to-cloud migration
+  // 1. Firebase Auth listener: Session-scoped authentication (disconnects when tab is closed)
   useEffect(() => {
     if (!auth) return;
+
+    // If user closed the tab and returned freshly, ensure user starts logged out
+    const isSessionActive = sessionStorage.getItem('trading_tracker_session_active') === 'true';
+    if (!isSessionActive) {
+      if (auth.currentUser) {
+        signOut(auth).catch(() => {});
+      }
+      setCurrentUser(null);
+      setIsPremium(false);
+      setAccountName('');
+    }
+
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      setCurrentUser(user);
-      if (user) {
+      const activeNow = sessionStorage.getItem('trading_tracker_session_active') === 'true';
+      if (user && activeNow) {
+        setCurrentUser(user);
         setCloudSyncStatus('syncing');
         try {
           await migrateLocalDataToCloud(user.uid);
@@ -420,16 +472,20 @@ export default function App() {
           setCloudSyncStatus('error');
         }
       } else {
+        setCurrentUser(null);
         setCloudSyncStatus('idle');
+        if (user && !activeNow) {
+          signOut(auth).catch(() => {});
+        }
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Automatic Cloud Sync for Pro Subscribers:
-  // When a user has an active subscription, cloud sync activates seamlessly in the background
+  // Automatic Cloud Sync for Pro Subscribers (only runs within active logged-in session)
   useEffect(() => {
-    if (isPremium && isFirebaseConfigured && auth && !currentUser) {
+    const isSessionActive = sessionStorage.getItem('trading_tracker_session_active') === 'true';
+    if (isSessionActive && isPremium && isFirebaseConfigured && auth && !currentUser) {
       autoSignInUser().then((user) => {
         if (user) {
           setCurrentUser(user);
@@ -836,11 +892,12 @@ export default function App() {
   const handleTogglePremium = () => {
     const nextVal = !isPremium;
     setIsPremium(nextVal);
-    localStorage.setItem('trading_tracker_premium', String(nextVal));
+    sessionStorage.setItem('trading_tracker_session_active', String(nextVal));
+    sessionStorage.setItem('trading_tracker_session_premium', String(nextVal));
     if (nextVal && !accountName) {
       const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
       setAccountName(defaultName);
-      localStorage.setItem('trading_tracker_account_name', defaultName);
+      sessionStorage.setItem('trading_tracker_session_email', defaultName);
     }
     showToast(nextVal ? t.toastSuccessClear : 'Simulating free account status...', 'info');
   };
@@ -848,7 +905,9 @@ export default function App() {
   // Action: Cancel Subscription (Revert to Free mode with API notification)
   const handleCancelSubscription = (info?: CancelSubscriptionResponse) => {
     setIsPremium(false);
-    localStorage.setItem('trading_tracker_premium', 'false');
+    sessionStorage.removeItem('trading_tracker_session_premium');
+    sessionStorage.setItem('trading_tracker_session_premium', 'false');
+    localStorage.removeItem('trading_tracker_premium');
     if (info) {
       localStorage.setItem('trading_tracker_cancellation_record', JSON.stringify(info));
     }
@@ -865,7 +924,8 @@ export default function App() {
   // Action: Reactivate Subscription (Upgrade to Pro)
   const handleReactivateSubscription = (email?: string) => {
     setIsPremium(true);
-    localStorage.setItem('trading_tracker_premium', 'true');
+    sessionStorage.setItem('trading_tracker_session_active', 'true');
+    sessionStorage.setItem('trading_tracker_session_premium', 'true');
     localStorage.removeItem('trading_tracker_cancellation_record');
     recordNewPurchaseInvoice({
       planName: language === 'he' ? 'מנוי Pro חודשי (הוראת קבע)' : 'Pro Monthly Subscription ($25/mo)',
@@ -874,7 +934,14 @@ export default function App() {
     const finalEmail = email?.trim() || currentUser?.email || accountName;
     if (finalEmail) {
       setAccountName(finalEmail);
-      localStorage.setItem('trading_tracker_account_name', finalEmail);
+      sessionStorage.setItem('trading_tracker_session_email', finalEmail);
+      try {
+        const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
+        if (!paidEmails.includes(finalEmail.toLowerCase().trim())) {
+          paidEmails.push(finalEmail.toLowerCase().trim());
+          localStorage.setItem('trading_tracker_paid_emails', JSON.stringify(paidEmails));
+        }
+      } catch {}
     }
     const msg = {
       he: `המנוי הופעל בהצלחה${finalEmail ? ` עבור ${finalEmail}` : ''}! כל כלי ה-Pro נפתחו 👑`,
@@ -907,7 +974,8 @@ export default function App() {
     setTimeout(() => {
       setIsSimulatingSubPurchase(false);
       setIsPremium(true);
-      localStorage.setItem('trading_tracker_premium', 'true');
+      sessionStorage.setItem('trading_tracker_session_active', 'true');
+      sessionStorage.setItem('trading_tracker_session_premium', 'true');
       setShowPaywallModal(false);
       recordNewPurchaseInvoice({
         planName: language === 'he' ? 'מנוי Pro חודשי ($25/חודש)' : 'Pro Monthly Subscription ($25/mo)',
@@ -916,7 +984,7 @@ export default function App() {
       if (!accountName) {
         const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
         setAccountName(defaultName);
-        localStorage.setItem('trading_tracker_account_name', defaultName);
+        sessionStorage.setItem('trading_tracker_session_email', defaultName);
       }
       
       const successMsg = {
