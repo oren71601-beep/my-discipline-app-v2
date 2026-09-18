@@ -74,6 +74,8 @@ export interface UserCloudProfile {
   selectedYear?: number;
   selectedMonth?: number;
   activeView?: string;
+  isPremium?: boolean;
+  subscriptionPlan?: string;
   updatedAt: string;
 }
 
@@ -236,4 +238,73 @@ export async function migrateLocalDataToCloud(userId: string) {
   } catch (err) {
     console.error('Migration error:', err);
   }
+}
+
+// Save user subscription status to Firestore
+export async function setUserSubscriptionInCloud(
+  userId: string, 
+  email: string, 
+  isPremium: boolean, 
+  plan?: string
+) {
+  if (!db) return;
+  try {
+    const docRef = doc(db, 'users', userId);
+    await setDoc(docRef, {
+      email,
+      isPremium,
+      subscriptionPlan: plan || 'Pro Monthly ($25/mo)',
+      updatedAt: new Date().toISOString()
+    }, { merge: true });
+  } catch (err) {
+    console.warn('Could not save user subscription to cloud:', err);
+  }
+}
+
+// Fetch user profile from Firestore
+export async function getUserProfileFromCloud(userId: string): Promise<UserCloudProfile | null> {
+  if (!db) return null;
+  try {
+    const docRef = doc(db, 'users', userId);
+    const snap = await getDoc(docRef);
+    if (snap.exists()) {
+      return snap.data() as UserCloudProfile;
+    }
+  } catch (err) {
+    console.warn('Could not fetch user profile from cloud:', err);
+  }
+  return null;
+}
+
+// Local accounts database fallback (ensures 100% reliability even if Firebase keys are not set)
+export interface LocalAccountRecord {
+  email: string;
+  passwordHash: string;
+  isPremium: boolean;
+  displayName?: string;
+  createdAt: string;
+}
+
+export function getLocalAccounts(): Record<string, LocalAccountRecord> {
+  try {
+    const raw = localStorage.getItem('trading_tracker_local_accounts');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function saveLocalAccount(record: LocalAccountRecord) {
+  try {
+    const accounts = getLocalAccounts();
+    accounts[record.email.toLowerCase()] = record;
+    localStorage.setItem('trading_tracker_local_accounts', JSON.stringify(accounts));
+  } catch (e) {
+    console.error('Failed to save local account:', e);
+  }
+}
+
+export function findLocalAccount(email: string): LocalAccountRecord | null {
+  const accounts = getLocalAccounts();
+  return accounts[email.toLowerCase()] || null;
 }

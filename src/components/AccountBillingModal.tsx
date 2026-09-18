@@ -26,8 +26,12 @@ import {
   Cloud,
   Printer,
   Download,
-  Eye
+  Eye,
+  LogIn,
+  LogOut,
+  UserPlus
 } from 'lucide-react';
+import { User as FirebaseUser } from 'firebase/auth';
 import { LanguageCode } from '../utils/translations';
 import { 
   requestCancelSubscriptionAPI, 
@@ -55,6 +59,10 @@ interface AccountBillingModalProps {
   onUpdateAccountName?: (name: string) => void;
   language: LanguageCode;
   onOpenLegalTerms?: (tab: 'terms' | 'cancellation') => void;
+  currentUser?: FirebaseUser | null;
+  onOpenLogin?: () => void;
+  onOpenRegister?: () => void;
+  onLogout?: () => void;
 }
 
 export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
@@ -67,6 +75,10 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
   onUpdateAccountName,
   language,
   onOpenLegalTerms,
+  currentUser,
+  onOpenLogin,
+  onOpenRegister,
+  onLogout,
 }) => {
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -504,7 +516,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
               </div>
             </div>
 
-            <div className="self-end sm:self-center">
+            <div className="self-end sm:self-center flex items-center gap-2">
               {isPremium ? (
                 <span className="text-[10px] bg-indigo-50 text-indigo-700 font-extrabold px-2.5 py-1 rounded-lg border border-indigo-200 flex items-center gap-1">
                   <Crown className="w-3 h-3 text-amber-500" />
@@ -514,6 +526,52 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                 <span className="text-[10px] bg-slate-100 text-slate-500 font-bold px-2.5 py-1 rounded-lg border border-slate-200">
                   {language === 'he' ? 'ללא מנוי' : 'FREE PLAN'}
                 </span>
+              )}
+
+              {currentUser ? (
+                onLogout && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onClose();
+                      onLogout();
+                    }}
+                    className="text-[10px] text-rose-600 hover:text-rose-700 font-bold bg-rose-50 hover:bg-rose-100 px-2 py-1 rounded-lg border border-rose-200 transition-colors flex items-center gap-1 cursor-pointer"
+                    title={language === 'he' ? 'התנתק מהחשבון' : 'Log Out'}
+                  >
+                    <LogOut className="w-3 h-3" />
+                    <span>{language === 'he' ? 'התנתק' : 'Log Out'}</span>
+                  </button>
+                )
+              ) : (
+                <div className="flex items-center gap-1">
+                  {onOpenLogin && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenLogin();
+                      }}
+                      className="text-[10px] text-indigo-700 hover:text-indigo-800 font-bold bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg border border-indigo-200 transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <LogIn className="w-3 h-3" />
+                      <span>{language === 'he' ? 'היכנס' : 'Log In'}</span>
+                    </button>
+                  )}
+                  {onOpenRegister && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onClose();
+                        onOpenRegister();
+                      }}
+                      className="text-[10px] text-white font-bold bg-indigo-600 hover:bg-indigo-700 px-2 py-1 rounded-lg transition-colors flex items-center gap-1 cursor-pointer"
+                    >
+                      <UserPlus className="w-3 h-3" />
+                      <span>{language === 'he' ? 'הירשם' : 'Sign Up'}</span>
+                    </button>
+                  )}
+                </div>
               )}
             </div>
           </div>

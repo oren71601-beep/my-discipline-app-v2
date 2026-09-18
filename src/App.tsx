@@ -41,7 +41,10 @@ import {
   Monitor,
   Scale,
   RotateCcw,
-  Mail
+  Mail,
+  LogIn,
+  UserPlus,
+  LogOut
 } from 'lucide-react';
 import { User, onAuthStateChanged } from 'firebase/auth';
 import { 
@@ -52,12 +55,14 @@ import {
   saveMonthToCloud, 
   migrateLocalDataToCloud,
   saveUserProfileToCloud,
-  subscribeToUserProfile 
+  subscribeToUserProfile,
+  logoutUser
 } from './firebase';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
 import { AccountBillingModal } from './components/AccountBillingModal';
+import { AuthModal, AuthMode } from './components/AuthModal';
 import { LegalTermsModal, LegalTab } from './components/LegalTermsModal';
 import { CancelSubscriptionResponse, recordNewPurchaseInvoice } from './utils/billingService';
 import { 
@@ -177,6 +182,75 @@ export default function App() {
   const [showCloudSyncModal, setShowCloudSyncModal] = useState<boolean>(false);
   const [cloudSyncStatus, setCloudSyncStatus] = useState<'idle' | 'syncing' | 'synced' | 'error'>('idle');
 
+  // Authentication Modal States (Login, Register & Post-Payment Account Setup)
+  const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
+  const [authModalMode, setAuthModalMode] = useState<AuthMode>('login');
+  const [authPrefillEmail, setAuthPrefillEmail] = useState<string>('');
+
+  const handleOpenLogin = () => {
+    setAuthPrefillEmail(accountName || '');
+    setAuthModalMode('login');
+    setShowAuthModal(true);
+  };
+
+  const handleOpenRegister = () => {
+    setAuthPrefillEmail(accountName || '');
+    setAuthModalMode('register');
+    setShowAuthModal(true);
+  };
+
+  const handleOpenPostPaymentAccountSetup = (emailToSetup: string) => {
+    setAuthPrefillEmail(emailToSetup);
+    setAuthModalMode('post_payment');
+    setShowAuthModal(true);
+  };
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser();
+      setCurrentUser(null);
+      showToast(
+        language === 'he' ? 'התנתקת בהצלחה מהחשבון' : 'Logged out successfully',
+        'info'
+      );
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
+  };
+
+  const handleAuthSuccess = (authEmail: string, authUser: User | null, isPro?: boolean) => {
+    if (authUser) {
+      setCurrentUser(authUser);
+    } else {
+      setCurrentUser({
+        email: authEmail,
+        displayName: authEmail.split('@')[0],
+        uid: 'local_' + btoa(authEmail).replace(/=/g, ''),
+      } as unknown as User);
+    }
+
+    setAccountName(authEmail);
+    localStorage.setItem('trading_tracker_account_name', authEmail);
+
+    if (isPro || authEmail.toLowerCase() === 'oren71601@gmail.com') {
+      setIsPremium(true);
+      localStorage.setItem('trading_tracker_premium', 'true');
+      showToast(
+        language === 'he' 
+          ? `התחברת בהצלחה כמנוי Pro (${authEmail}) 👑` 
+          : `Signed in successfully as Pro (${authEmail}) 👑`,
+        'success'
+      );
+    } else {
+      showToast(
+        language === 'he' 
+          ? `התחברת בהצלחה! (${authEmail})` 
+          : `Signed in successfully! (${authEmail})`,
+        'success'
+      );
+    }
+  };
+
   // Owner / Developer view (Promote to Pro button visible only to Oren / Admin)
   const [isOwnerView, setIsOwnerView] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
@@ -241,11 +315,14 @@ export default function App() {
             : `Welcome to Pro! Subscription activated successfully${extractedEmail ? ` for ${extractedEmail}` : ''} 👑`,
           'success'
         );
+
+        // Open account setup prompt so they can define a password and easily sign in
+        handleOpenPostPaymentAccountSetup(extractedEmail);
       }
     } catch (e) {
       console.error('Error parsing payment URL params:', e);
     }
-  }, [language]);
+  }, [language, handleOpenPostPaymentAccountSetup]);
 
   const handleBrandClick = () => {
     const next = ownerClickCount + 1;
@@ -820,6 +897,8 @@ export default function App() {
     }
     handleReactivateSubscription(trimmed);
     setShowPaywallModal(false);
+    // Open password setup so they create an account and can log in easily in the future
+    handleOpenPostPaymentAccountSetup(trimmed);
   };
 
   // Action: Simulate App Store IAP Purchase
@@ -1466,14 +1545,14 @@ export default function App() {
                 </div>
 
                 {/* Already Paid / Enter Email to Activate Pro Card */}
-                <div className="p-3 sm:p-4 bg-gradient-to-br from-indigo-50/90 to-purple-50/50 rounded-2xl border border-indigo-200 text-start space-y-2.5 shadow-xs">
+                <div className="p-3.5 sm:p-4 bg-gradient-to-br from-indigo-50/90 to-purple-50/50 rounded-2xl border border-indigo-200 text-start space-y-2.5 shadow-xs">
                   <div className="flex items-center justify-between gap-2">
                     <div className="flex items-center gap-2 text-xs font-black text-slate-900">
                       <div className="w-6 h-6 rounded-lg bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
                         <Sparkles className="w-3.5 h-3.5" />
                       </div>
                       <span>
-                        {language === 'he' ? 'שילמת כבר? הפעל את המנוי לפי אימייל' : 'Already paid? Activate Pro by email'}
+                        {language === 'he' ? 'שילמת כבר? הפעל את המנוי וצור סיסמה לחשבון' : 'Already paid? Activate Pro & Set Password'}
                       </span>
                     </div>
                     <span className="text-[10px] font-extrabold uppercase px-2 py-0.5 bg-indigo-100 text-indigo-700 rounded-full border border-indigo-200">
@@ -1483,8 +1562,8 @@ export default function App() {
                   
                   <p className="text-[11px] text-slate-600 leading-relaxed">
                     {language === 'he' 
-                      ? 'הזן את כתובת האימייל שאיתה שילמת ב-iCount/Payoneer כדי לחבר את המנוי לאתר ולהציג את המייל שלך בראש הדף:' 
-                      : 'Enter the email you paid with to connect your subscription and display your email in the top bar:'}
+                      ? 'הזן את כתובת האימייל שאיתה שילמת כדי לחבר את המנוי, להגדיר סיסמה אישית ולהתחבר בקלות בכל עת:' 
+                      : 'Enter the email you paid with to connect your subscription, set a personal password, and log in anytime:'}
                   </p>
                   
                   <div className="flex flex-col sm:flex-row gap-2">
@@ -1509,8 +1588,33 @@ export default function App() {
                       onClick={() => handleActivateWithEmail(activateEmailInput)}
                       className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all shadow-xs shrink-0 cursor-pointer flex items-center justify-center gap-1.5"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>{language === 'he' ? 'הפעל Pro' : 'Activate Pro'}</span>
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>{language === 'he' ? 'הפעל וצור סיסמה' : 'Activate & Set Pass'}</span>
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-between gap-2 pt-1 text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPaywallModal(false);
+                        handleOpenLogin();
+                      }}
+                      className="text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <LogIn className="w-3.5 h-3.5" />
+                      <span>{language === 'he' ? 'יש לך כבר חשבון? התחבר כאן' : 'Already have an account? Log In'}</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowPaywallModal(false);
+                        handleOpenRegister();
+                      }}
+                      className="text-slate-500 hover:text-slate-800 font-medium hover:underline cursor-pointer flex items-center gap-1"
+                    >
+                      <UserCheck className="w-3.5 h-3.5" />
+                      <span>{language === 'he' ? 'הרשמה לחשבון בסיסי' : 'Register Free Account'}</span>
                     </button>
                   </div>
                 </div>
@@ -1633,6 +1737,56 @@ export default function App() {
           {/* Quick Date Selectors & Language Selectors Panel */}
           <div className="flex flex-wrap items-center gap-2.5">
 
+            {/* Auth Buttons (Log In & Sign Up when not logged in, Sign Out when logged in) */}
+            {!currentUser ? (
+              <div className="flex items-center gap-1.5">
+                <button
+                  type="button"
+                  onClick={handleOpenLogin}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-slate-100 hover:text-white border-slate-700 cursor-pointer shadow-xs active:scale-95"
+                  title={language === 'he' ? 'התחברות לחשבון קיים' : 'Sign in to account'}
+                >
+                  <LogIn className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                  <span>
+                    {language === 'he' ? 'היכנס' :
+                     language === 'ar' ? 'تسجيل الدخول' :
+                     language === 'ru' ? 'Войти' :
+                     'Log In'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleOpenRegister}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all bg-indigo-600 hover:bg-indigo-500 text-white cursor-pointer shadow-xs active:scale-95 shadow-indigo-500/20"
+                  title={language === 'he' ? 'הרשמה ויצירת חשבון חדש' : 'Sign Up / Create Account'}
+                >
+                  <UserPlus className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {language === 'he' ? 'הירשם' :
+                     language === 'ar' ? 'إنشاء حساب' :
+                     language === 'ru' ? 'Регистрация' :
+                     'Sign Up'}
+                  </span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="inline-flex items-center gap-1.5 text-xs font-bold px-2.5 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-rose-950/40 text-slate-300 hover:text-rose-400 border-slate-700 hover:border-rose-800/60 cursor-pointer shadow-xs active:scale-95"
+                title={language === 'he' ? 'התנתק מהחשבון' : 'Sign Out'}
+              >
+                <LogOut className="w-3.5 h-3.5 shrink-0" />
+                <span className="hidden sm:inline">
+                  {language === 'he' ? 'התנתק' :
+                   language === 'ar' ? 'تسجيل الخروج' :
+                   language === 'ru' ? 'Выйти' :
+                   'Log Out'}
+                </span>
+              </button>
+            )}
+
             {/* User Account / Upgrade to Pro Button */}
             <button
               onClick={() => {
@@ -1733,51 +1887,6 @@ export default function App() {
                   <option key={lang.code} value={lang.code} className="bg-slate-900 text-white">
                     {lang.flag} {lang.name}
                   </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Year Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-800 rounded-xl px-3 py-1.5 border border-slate-700">
-              <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblYear}</span>
-              <select
-                value={selectedYear}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setSelectedYear(val);
-                  localStorage.setItem('trading_tracker_selected_year', String(val));
-                  localStorage.setItem('trading_tracker_last_closed_year', String(val));
-                  if (currentUser) {
-                    saveUserProfileToCloud(currentUser.uid, { selectedYear: val, selectedMonth });
-                  }
-                }}
-                className="bg-transparent border-none text-sm font-bold text-white focus:outline-none cursor-pointer"
-              >
-                {YEARS.map(y => (
-                  <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>
-                ))}
-              </select>
-            </div>
-
-            {/* Month Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-800 rounded-xl px-3 py-1.5 border border-slate-700">
-              <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-              <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblMonth}</span>
-              <select
-                value={selectedMonth}
-                onChange={(e) => {
-                  const val = parseInt(e.target.value, 10);
-                  setSelectedMonth(val);
-                  localStorage.setItem('trading_tracker_selected_month', String(val));
-                  localStorage.setItem('trading_tracker_last_closed_month', String(val));
-                  if (currentUser) {
-                    saveUserProfileToCloud(currentUser.uid, { selectedYear, selectedMonth: val });
-                  }
-                }}
-                className="bg-transparent border-none text-sm font-bold text-white focus:outline-none cursor-pointer"
-              >
-                {MONTH_NAMES.map(m => (
-                  <option key={m.id} value={m.id} className="bg-slate-900 text-white">{m.name}</option>
                 ))}
               </select>
             </div>
@@ -1908,13 +2017,62 @@ export default function App() {
             {/* SECTION 2: Daily Interactive Workspace (Table or Calendar style) */}
             <section className="space-y-4">
               <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <h2 className="text-lg font-extrabold text-slate-950 flex items-center gap-2 shrink-0">
-                  <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
-                  <span>
-                    {language === 'he' ? 'יומן מעקב חודשי - ' : language === 'ar' ? 'دفتر التتبع الشهري - ' : language === 'ru' ? 'Ежемесячный журнал - ' : 'Monthly Trading Journal - '} 
-                    {MONTH_NAMES.find(m => m.id === selectedMonth)?.name} {selectedYear}
-                  </span>
-                </h2>
+                <div className="flex flex-wrap items-center gap-3">
+                  <h2 className="text-lg font-extrabold text-slate-950 flex items-center gap-2 shrink-0">
+                    <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
+                    <span>
+                      {language === 'he' ? 'יומן מעקב חודשי' : language === 'ar' ? 'دفتر التتبع الشهري' : language === 'ru' ? 'Ежемесячный журнал' : 'Monthly Trading Journal'}
+                    </span>
+                  </h2>
+
+                  {/* Year & Month Selectors on the Monthly Trading Journal line */}
+                  <div className="flex items-center gap-2">
+                    {/* Year Selector */}
+                    <div className="flex items-center gap-1.5 bg-slate-900 text-white rounded-xl px-3 py-1.5 border border-slate-800 shadow-xs hover:border-slate-700 transition-colors">
+                      <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblYear}</span>
+                      <select
+                        value={selectedYear}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setSelectedYear(val);
+                          localStorage.setItem('trading_tracker_selected_year', String(val));
+                          localStorage.setItem('trading_tracker_last_closed_year', String(val));
+                          if (currentUser) {
+                            saveUserProfileToCloud(currentUser.uid, { selectedYear: val, selectedMonth });
+                          }
+                        }}
+                        className="bg-transparent border-none text-xs sm:text-sm font-bold text-white focus:outline-none cursor-pointer"
+                      >
+                        {YEARS.map(y => (
+                          <option key={y} value={y} className="bg-slate-900 text-white">{y}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {/* Month Selector */}
+                    <div className="flex items-center gap-1.5 bg-slate-900 text-white rounded-xl px-3 py-1.5 border border-slate-800 shadow-xs hover:border-slate-700 transition-colors">
+                      <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+                      <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblMonth}</span>
+                      <select
+                        value={selectedMonth}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          setSelectedMonth(val);
+                          localStorage.setItem('trading_tracker_selected_month', String(val));
+                          localStorage.setItem('trading_tracker_last_closed_month', String(val));
+                          if (currentUser) {
+                            saveUserProfileToCloud(currentUser.uid, { selectedYear, selectedMonth: val });
+                          }
+                        }}
+                        className="bg-transparent border-none text-xs sm:text-sm font-bold text-white focus:outline-none cursor-pointer"
+                      >
+                        {MONTH_NAMES.map(m => (
+                          <option key={m.id} value={m.id} className="bg-slate-900 text-white">{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                </div>
 
                 {/* Previous Month Commitment In Red (התחייבות מחודש שעבר באדום) - Only shown if written */}
                 {(Boolean(currentPledge.trim()) || isEditingPledge) && (
@@ -2135,6 +2293,10 @@ export default function App() {
           setLegalTermsTab(tab);
           setShowLegalTermsModal(true);
         }}
+        currentUser={currentUser}
+        onOpenLogin={handleOpenLogin}
+        onOpenRegister={handleOpenRegister}
+        onLogout={handleLogout}
       />
 
       {/* End of Month Mental & Strategic Insights Modal */}
@@ -2170,6 +2332,20 @@ export default function App() {
               : 'Terms & Cancellation Policy accepted ✔️ Subscribe button enabled', 
             'success'
           );
+        }}
+      />
+
+      {/* Authentication Modal (Login, Register, and Post-Payment Account Setup) */}
+      <AuthModal
+        isOpen={showAuthModal}
+        onClose={() => setShowAuthModal(false)}
+        initialMode={authModalMode}
+        prefillEmail={authPrefillEmail}
+        language={language}
+        onAuthSuccess={handleAuthSuccess}
+        onSwitchToPaywall={() => {
+          setShowAuthModal(false);
+          setShowPaywallModal(true);
         }}
       />
 

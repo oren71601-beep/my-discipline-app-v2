@@ -1308,13 +1308,6 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
             <Crown className="w-4 h-4 text-amber-300 group-hover:rotate-12 transition-transform" />
             <span>{currentTexts.btnUpgrade}</span>
           </button>
-
-          <button
-            onClick={onTogglePremium}
-            className="text-xs text-indigo-600 hover:text-indigo-700 font-bold underline cursor-pointer bg-transparent border-none py-1"
-          >
-            {currentTexts.btnBypass}
-          </button>
         </div>
       </div>
 
