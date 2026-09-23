@@ -1601,15 +1601,6 @@ export default function App() {
                         : t.paywallSecuredText}
                     </span>
                   </div>
-                  {/* Developer simulation bypass */}
-                  <button
-                    type="button"
-                    onClick={handleSimulatePurchase}
-                    className="text-[10px] text-slate-400 hover:text-indigo-600 underline cursor-pointer"
-                    title="Simulate instant activation for testing"
-                  >
-                    {t.devBypassBtn}
-                  </button>
                 </div>
 
                 {/* Already Paid / Enter Email to Activate Pro Card */}
