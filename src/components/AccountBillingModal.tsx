@@ -42,7 +42,7 @@ import {
 } from '../utils/billingService';
 import {
   ICOUNT_CHECKOUT_URL,
-  PAYONEER_CHECKOUT_URL,
+  WHOP_CHECKOUT_URL,
   detectGeoLocation,
   getCachedGeoLocation,
   detectIsraelHeuristic,
@@ -112,8 +112,8 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     return {
       isIsrael: isIL,
       countryCode: isIL ? 'IL' : 'US',
-      providerName: isIL ? 'iCount' : 'Payoneer',
-      checkoutUrl: isIL ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+      providerName: isIL ? 'iCount' : 'Whop',
+      checkoutUrl: isIL ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
       source: 'heuristic',
     };
   });
@@ -192,7 +192,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
       feat3: 'ייצוא וסנכרון גיבויים ללא הגבלה',
       feat4: 'גישה חופשית לכל העדכונים העתידיים',
       cancelSectionTitle: 'ביטול מנוי (Cancel Subscription)',
-      cancelSectionDesc: 'ביטול המנוי ישלח בקשה ישירה ל-API של ספק הסליקה (Payoneer / Gateway). המנוי יבוטל מיידית ולא יחויב בחודש הבא.',
+      cancelSectionDesc: 'ביטול המנוי ישלח בקשה ישירה ל-API של ספק הסליקה (Whop / Gateway). המנוי יבוטל מיידית ולא יחויב בחודש הבא.',
       btnCancelSub: 'בטל מנוי (Cancel Subscription)',
       btnReactivate: 'חדש והפעל מנוי ($25/חודש)',
       confirmTitle: 'האם אתה בטוח שברצונך לבטל את המנוי?',
@@ -241,7 +241,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
       feat3: 'Unlimited JSON data export and cross-device sync',
       feat4: 'Free access to all upcoming platform updates',
       cancelSectionTitle: 'Cancel Subscription',
-      cancelSectionDesc: 'Canceling will send a direct cancellation request to the payment provider API (Payoneer / Gateway). The subscription will be cancelled and will not be charged next month.',
+      cancelSectionDesc: 'Canceling will send a direct cancellation request to the payment provider API (Whop / Gateway). The subscription will be cancelled and will not be charged next month.',
       btnCancelSub: 'Cancel Subscription',
       btnReactivate: 'Reactivate Pro Subscription ($25/mo)',
       confirmTitle: 'Are you sure you want to cancel your subscription?',
@@ -964,7 +964,7 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                 <div className="py-2.5 flex items-center justify-between bg-amber-50/60 -mx-2 px-2 rounded-xl">
                   <div>
                     <div className="font-bold text-slate-800 flex flex-wrap items-center gap-1.5">
-                      <span>{language === 'he' ? 'ביטול מנוי מאושר (Payoneer API)' : 'Confirmed Cancellation (Payoneer API)'}</span>
+                      <span>{language === 'he' ? 'ביטול מנוי מאושר (Whop API)' : 'Confirmed Cancellation (Whop API)'}</span>
                       <span className="text-[10px] font-mono text-slate-500 font-semibold bg-white border border-slate-200 px-1.5 py-0.5 rounded">
                         #{cancellationRecord.confirmationCode}
                       </span>

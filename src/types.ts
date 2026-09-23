@@ -6,6 +6,21 @@ export type NoEntryReasonOption = 'focus' | 'rr' | 'discipline' | 'fear' | 'othe
 
 export type DeviationOption = 'none' | 'early_entry' | 'move_stop' | 'raise_risk' | 'early_exit' | null;
 
+export interface SingleTrade {
+  id: string;
+  tradeNumber: number; // 1 to 10
+  symbol?: string; // e.g. "NVDA", "QQQ", "EUR/USD", "BTC"
+  direction?: 'long' | 'short' | null;
+  executed?: ExecutedOption;
+  mentalState: MentalStateOption;
+  deviation: DeviationOption;
+  confidence: number | null; // 1-5
+  rating: number | null; // 1-10
+  resultR: number | null; // R unit size e.g. +2.0, -1.0, 0
+  notes?: string;
+  time?: string;
+}
+
 export interface TradingDay {
   day: number;
   executed: ExecutedOption;
@@ -16,6 +31,7 @@ export interface TradingDay {
   rating: number | null; // 1-10
   resultR: number | null; // R unit size, e.g. +2.5, -1.0
   notes?: string; // Additional short comment
+  trades?: SingleTrade[]; // 1-10 individual trades for this day
 }
 
 export interface MonthlyTradingData {

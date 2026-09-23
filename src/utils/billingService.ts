@@ -35,7 +35,7 @@ export async function requestCancelSubscriptionAPI(params: {
         email,
         subscriptionId: subId,
         reason: params.reason || 'User requested cancellation in account settings',
-        provider: 'Payoneer',
+        provider: 'Whop',
         timestamp: new Date().toISOString(),
       }),
     });
@@ -50,11 +50,11 @@ export async function requestCancelSubscriptionAPI(params: {
 
   // Graceful fallback response ensures app reliability
   await new Promise((resolve) => setTimeout(resolve, 800));
-  const fallbackCode = `PAY-CANC-${Math.floor(100000 + Math.random() * 900000)}`;
+  const fallbackCode = `WHOP-CANC-${Math.floor(100000 + Math.random() * 900000)}`;
   return {
     success: true,
     status: 'cancelled',
-    provider: 'Payoneer Subscription Gateway',
+    provider: 'Whop Subscription Gateway',
     userEmail: email,
     subscriptionId: subId,
     cancelledAt: new Date().toISOString(),
@@ -108,7 +108,7 @@ export function recordNewPurchaseInvoice(params?: {
     planName: params?.planName || 'מנוי Pro חודשי ($25/חודש)',
     status: 'paid',
     timestamp: now.toISOString(),
-    paymentMethod: params?.paymentMethod || 'Credit Card / Payoneer'
+    paymentMethod: params?.paymentMethod || 'Credit Card / Whop'
   };
 
   const existing = getStoredInvoices();

@@ -67,7 +67,7 @@ import { LegalTermsModal, LegalTab } from './components/LegalTermsModal';
 import { CancelSubscriptionResponse, recordNewPurchaseInvoice } from './utils/billingService';
 import { 
   ICOUNT_CHECKOUT_URL,
-  PAYONEER_CHECKOUT_URL, 
+  WHOP_CHECKOUT_URL, 
   detectGeoLocation, 
   getCachedGeoLocation, 
   detectIsraelHeuristic,
@@ -85,7 +85,7 @@ export default function App() {
   const t = TRANSLATIONS[language];
   const isRtl = language === 'he' || language === 'ar';
 
-  // Geo-IP Automatic Location Detection (iCount for Israel / Payoneer for International)
+  // Geo-IP Automatic Location Detection (iCount for Israel / Whop for International)
   const [geoInfo, setGeoInfo] = useState<GeoLocationState>(() => {
     const cached = getCachedGeoLocation();
     if (cached) return cached;
@@ -93,8 +93,8 @@ export default function App() {
     return {
       isIsrael: isIL,
       countryCode: isIL ? 'IL' : 'US',
-      providerName: isIL ? 'iCount' : 'Payoneer',
-      checkoutUrl: isIL ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+      providerName: isIL ? 'iCount' : 'Whop',
+      checkoutUrl: isIL ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
       source: 'heuristic',
     };
   });
@@ -313,7 +313,7 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Automatic detection of payment return (e.g. from iCount or Payoneer with ?paid=true / ?email=...)
+  // Automatic detection of payment return (e.g. from iCount or Stripe with ?paid=true / ?email=...)
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
@@ -1475,8 +1475,8 @@ export default function App() {
                             ? 'מעביר לעמוד התשלום המאובטח של iCount (סליקה בישראל עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
                             : 'Opening iCount secure checkout with 7-day free trial in a new tab 🚀')
                         : (language === 'he'
-                            ? 'מעביר לעמוד התשלום המאובטח של Payoneer (עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
-                            : 'Opening Payoneer secure checkout with 7-day free trial in a new tab 🚀'),
+                            ? 'מעביר לעמוד התשלום המאובטח של Whop (מנוי חודשי עם 7 ימי ניסיון חינם) בטאב חדש 🚀'
+                            : 'Opening Whop secure checkout with 7-day free trial in a new tab 🚀'),
                       'info'
                     );
                   }}
@@ -1569,7 +1569,7 @@ export default function App() {
                     <span>
                       {geoInfo.isIsrael
                         ? (language === 'he' ? 'זיהוי מיקום: ישראל (iCount 🇮🇱)' : 'Detected: Israel (iCount 🇮🇱)')
-                        : (language === 'he' ? 'זיהוי מיקום: בינלאומי (Payoneer 🌐)' : 'Detected: International (Payoneer 🌐)')}
+                        : (language === 'he' ? 'זיהוי מיקום: בינלאומי (Whop 🌐)' : 'Detected: International (Whop 🌐)')}
                     </span>
                   </span>
 
@@ -1581,14 +1581,14 @@ export default function App() {
                       showToast(
                         next.isIsrael 
                           ? (language === 'he' ? 'מיקום הוגדר: ישראל 🇮🇱 (קישור iCount נטען)' : 'Location set: Israel 🇮🇱 (iCount link active)') 
-                          : (language === 'he' ? 'מיקום הוגדר: בינלאומי 🌐 (קישור Payoneer נטען)' : 'Location set: International 🌐 (Payoneer link active)'),
+                          : (language === 'he' ? 'מיקום הוגדר: בינלאומי 🌐 (קישור Whop נטען)' : 'Location set: International 🌐 (Whop link active)'),
                         'info'
                       );
                     }}
                     className="text-[10px] text-indigo-600 hover:text-indigo-800 font-semibold underline cursor-pointer"
                     title="Toggle location detection simulation"
                   >
-                    {geoInfo.isIsrael ? (language === 'he' ? 'החלף לגלובלי (Payoneer)' : 'Switch to Global (Payoneer)') : (language === 'he' ? 'החלף לישראל (iCount)' : 'Switch to Israel (iCount)')}
+                    {geoInfo.isIsrael ? (language === 'he' ? 'החלף לגלובלי (Whop)' : 'Switch to Global (Whop)') : (language === 'he' ? 'החלף לישראל (iCount)' : 'Switch to Israel (iCount)')}
                   </button>
                 </div>
                 

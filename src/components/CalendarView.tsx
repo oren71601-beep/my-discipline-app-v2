@@ -14,9 +14,11 @@ import {
   Smile, 
   BookOpen, 
   Info,
-  Calendar as CalendarIcon
+  Calendar as CalendarIcon,
+  Briefcase
 } from 'lucide-react';
 import { LanguageCode, TRANSLATIONS } from '../utils/translations';
+import { DailyTradesModal } from './DailyTradesModal';
 
 interface CalendarViewProps {
   days: TradingDay[];
@@ -39,6 +41,7 @@ export function CalendarView({
 }: CalendarViewProps) {
   // Modal State
   const [editingDay, setEditingDay] = useState<TradingDay | null>(null);
+  const [isTradesModalOpen, setIsTradesModalOpen] = useState<boolean>(false);
 
   const t = TRANSLATIONS[language];
   const isRtl = language === 'he' || language === 'ar';
@@ -333,9 +336,16 @@ export function CalendarView({
                     {row.day}
                   </span>
                   
-                  {row.notes && (
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title={row.notes} />
-                  )}
+                  <div className="flex items-center gap-1">
+                    {row.trades && row.trades.length > 0 && (
+                      <span className="text-[9px] font-bold bg-indigo-100 text-indigo-800 px-1 py-0.2 rounded" title={`${row.trades.length} עסקאות`}>
+                        💼{row.trades.length}
+                      </span>
+                    )}
+                    {row.notes && (
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-400" title={row.notes} />
+                    )}
+                  </div>
                 </div>
 
                 {statusPill}
@@ -419,6 +429,38 @@ export function CalendarView({
                   </button>
                 </div>
               </div>
+
+              {/* Multi-trade (1-10) breakdown modal trigger */}
+              {editingDay.executed === 'Y' && (
+                <div className="p-3.5 bg-gradient-to-r from-indigo-50/90 to-blue-50/90 border border-indigo-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                      <Briefcase className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <span className="text-xs sm:text-sm font-bold text-indigo-950 block">
+                        {language === 'he' ? 'פירוט עסקאות יומי (1 עד 10 עסקאות)' : 'Daily Trades Breakdown (1-10 trades)'}
+                      </span>
+                      <span className="text-[11px] text-indigo-700">
+                        {editingDay.trades && editingDay.trades.length > 0
+                          ? (language === 'he' 
+                              ? `רשומות ${editingDay.trades.length} עסקאות (סה״כ: ${editingDay.resultR ?? 0}R)` 
+                              : `${editingDay.trades.length} trades logged (Total: ${editingDay.resultR ?? 0}R)`)
+                          : (language === 'he' 
+                              ? 'הזן פרמטרים נפרדים (נכס, R, מצב מנטלי ומשמעת) לכל עסקה' 
+                              : 'Log individual metrics (asset, R, mindset, discipline) for each trade')}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsTradesModalOpen(true)}
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer shrink-0 text-center"
+                  >
+                    {language === 'he' ? 'פתח פירוט עסקאות ➜' : 'Open Trades ➜'}
+                  </button>
+                </div>
+              )}
 
               {/* Question 2: Mental Mood */}
               <div className="space-y-2">
@@ -618,6 +660,23 @@ export function CalendarView({
 
           </div>
         </div>
+      )}
+
+      {/* 1-10 Daily Trades Modal */}
+      {isTradesModalOpen && editingDay && (
+        <DailyTradesModal
+          isOpen={isTradesModalOpen}
+          day={editingDay}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+          language={language}
+          onClose={() => setIsTradesModalOpen(false)}
+          onSaveDayTrades={(dayNum, updatedDay) => {
+            setEditingDay(prev => prev ? { ...prev, ...updatedDay } : null);
+            onUpdateDay(dayNum, updatedDay);
+            setIsTradesModalOpen(false);
+          }}
+        />
       )}
 
     </div>

@@ -2,11 +2,13 @@
  * Geo-IP Location & Subscription Routing Service
  * Automatically detects if the user is visiting from Israel (IL) or International
  * - Israel (IL): Routes to iCount checkout
- * - International: Routes to Payoneer checkout
+ * - International: Routes to Whop checkout
  */
 
 export const ICOUNT_CHECKOUT_URL = 'https://app.icount.co.il/m/a1cc5/c693bf5fp5u6aad0ac3?utm_source=iCount&utm_medium=paypage&utm_campaign=5';
-export const PAYONEER_CHECKOUT_URL = 'https://link.payoneer.com/Token?t=ABB2FE3653554304AC7F081556E8CF02&src=dpl';
+export const WHOP_CHECKOUT_URL = 'https://whop.com/mydisciplinejourney/trading-tracker-pro-monthly';
+// Backward compatibility alias
+export const STRIPE_CHECKOUT_URL = WHOP_CHECKOUT_URL;
 
 const STORAGE_KEY_COUNTRY = 'trading_tracker_user_country';
 const STORAGE_KEY_IS_ISRAEL = 'trading_tracker_is_israel';
@@ -14,7 +16,7 @@ const STORAGE_KEY_IS_ISRAEL = 'trading_tracker_is_israel';
 export interface GeoLocationState {
   isIsrael: boolean;
   countryCode: string;
-  providerName: 'iCount' | 'Payoneer';
+  providerName: 'iCount' | 'Whop';
   checkoutUrl: string;
   source: 'cache' | 'api' | 'heuristic' | 'fallback';
 }
@@ -54,8 +56,8 @@ export function getCachedGeoLocation(): GeoLocationState | null {
       return {
         isIsrael,
         countryCode: cachedCountry,
-        providerName: isIsrael ? 'iCount' : 'Payoneer',
-        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+        providerName: isIsrael ? 'iCount' : 'Whop',
+        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
         source: 'cache',
       };
     }
@@ -96,8 +98,8 @@ export async function detectGeoLocation(): Promise<GeoLocationState> {
       return {
         isIsrael,
         countryCode: code,
-        providerName: isIsrael ? 'iCount' : 'Payoneer',
-        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+        providerName: isIsrael ? 'iCount' : 'Whop',
+        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
         source: 'api',
       };
     }
@@ -125,8 +127,8 @@ export async function detectGeoLocation(): Promise<GeoLocationState> {
       return {
         isIsrael,
         countryCode: code,
-        providerName: isIsrael ? 'iCount' : 'Payoneer',
-        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+        providerName: isIsrael ? 'iCount' : 'Whop',
+        checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
         source: 'api',
       };
     }
@@ -142,8 +144,8 @@ export async function detectGeoLocation(): Promise<GeoLocationState> {
   return {
     isIsrael: heuristicIsrael,
     countryCode: fallbackCode,
-    providerName: heuristicIsrael ? 'iCount' : 'Payoneer',
-    checkoutUrl: heuristicIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+    providerName: heuristicIsrael ? 'iCount' : 'Whop',
+    checkoutUrl: heuristicIsrael ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
     source: 'heuristic',
   };
 }
@@ -169,8 +171,8 @@ export function setSimulatedCountry(countryCode: 'IL' | 'US' | null): GeoLocatio
     return {
       isIsrael: heuristicIsrael,
       countryCode: heuristicIsrael ? 'IL' : 'US',
-      providerName: heuristicIsrael ? 'iCount' : 'Payoneer',
-      checkoutUrl: heuristicIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+      providerName: heuristicIsrael ? 'iCount' : 'Whop',
+      checkoutUrl: heuristicIsrael ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
       source: 'heuristic',
     };
   }
@@ -179,8 +181,8 @@ export function setSimulatedCountry(countryCode: 'IL' | 'US' | null): GeoLocatio
   return {
     isIsrael,
     countryCode,
-    providerName: isIsrael ? 'iCount' : 'Payoneer',
-    checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL,
+    providerName: isIsrael ? 'iCount' : 'Whop',
+    checkoutUrl: isIsrael ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL,
     source: 'cache',
   };
 }
@@ -193,5 +195,5 @@ export function getCurrentSubscriptionUrl(): string {
   if (cached) {
     return cached.checkoutUrl;
   }
-  return detectIsraelHeuristic() ? ICOUNT_CHECKOUT_URL : PAYONEER_CHECKOUT_URL;
+  return detectIsraelHeuristic() ? ICOUNT_CHECKOUT_URL : WHOP_CHECKOUT_URL;
 }

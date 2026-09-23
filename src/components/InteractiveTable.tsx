@@ -6,9 +6,10 @@ import {
   DeviationOption,
 } from '../types';
 import { SlashOptionSelector } from './SlashOptionSelector';
-import { Star, CheckCircle2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Star, CheckCircle2, ChevronDown, ChevronUp, Briefcase } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { LanguageCode, TRANSLATIONS } from '../utils/translations';
+import { DailyTradesModal } from './DailyTradesModal';
 
 interface InteractiveTableProps {
   days: TradingDay[];
@@ -31,6 +32,7 @@ export function InteractiveTable({
 }: InteractiveTableProps) {
   // Collapsed states to permit a highly responsive workspace
   const [collapsedDayNotes, setCollapsedDayNotes] = useState<Record<number, boolean>>({});
+  const [dayForTradesModal, setDayForTradesModal] = useState<TradingDay | null>(null);
 
   const t = TRANSLATIONS[language];
   const isRtl = language === 'he' || language === 'ar';
@@ -231,36 +233,62 @@ export function InteractiveTable({
                   </td>
 
                   {/* Column 2: Trade Executed? */}
-                  <td className="py-3 px-3">
-                    <SlashOptionSelector
-                      options={executedOptions}
-                      selectedValue={row.executed}
-                      onChange={(val) => {
-                        if (val === 'Y') {
-                          onUpdateDay(row.day, {
-                            executed: 'Y',
-                            noEntryReason: null,
-                            deviation: row.deviation || 'none'
-                          });
-                        } else if (val === 'N') {
-                          onUpdateDay(row.day, {
-                            executed: 'N',
-                            noEntryReason: row.noEntryReason || null,
-                            deviation: null,
-                            resultR: 0
-                          });
-                        } else {
-                          onUpdateDay(row.day, {
-                            executed: null,
-                            noEntryReason: null,
-                            deviation: null,
-                            resultR: null
-                          });
-                        }
-                      }}
-                      highlightColor="indigo"
-                      markStyle="circle"
-                    />
+                  <td className="py-3 px-2">
+                    <div className="flex flex-col items-center gap-1.5">
+                      <SlashOptionSelector
+                        options={executedOptions}
+                        selectedValue={row.executed}
+                        onChange={(val) => {
+                          if (val === 'Y') {
+                            onUpdateDay(row.day, {
+                              executed: 'Y',
+                              noEntryReason: null,
+                              deviation: row.deviation || 'none'
+                            });
+                          } else if (val === 'N') {
+                            onUpdateDay(row.day, {
+                              executed: 'N',
+                              noEntryReason: row.noEntryReason || null,
+                              deviation: null,
+                              resultR: 0
+                            });
+                          } else {
+                            onUpdateDay(row.day, {
+                              executed: null,
+                              noEntryReason: null,
+                              deviation: null,
+                              resultR: null
+                            });
+                          }
+                        }}
+                        highlightColor="indigo"
+                        markStyle="circle"
+                      />
+
+                      {/* 1-10 Trades detail trigger */}
+                      {isTradeExecuted && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDayForTradesModal(row);
+                          }}
+                          className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold border transition-all cursor-pointer ${
+                            row.trades && row.trades.length > 0
+                              ? 'bg-indigo-50 border-indigo-200 text-indigo-700 hover:bg-indigo-100 hover:border-indigo-300 shadow-2xs'
+                              : 'bg-white border-slate-200 text-slate-500 hover:text-indigo-600 hover:border-indigo-200 hover:bg-indigo-50/50'
+                          }`}
+                          title={language === 'he' ? 'פירוט 1 עד 10 עסקאות ליום זה' : 'Breakdown of 1-10 trades'}
+                        >
+                          <Briefcase className="w-3 h-3 text-indigo-500 shrink-0" />
+                          <span>
+                            {row.trades && row.trades.length > 0 
+                              ? `${row.trades.length} ${language === 'he' ? 'עסקאות' : 'trades'}` 
+                              : (language === 'he' ? 'פירוט עסקאות' : 'Trades')}
+                          </span>
+                        </button>
+                      )}
+                    </div>
                   </td>
 
                   {/* Column 3: Mental State */}
@@ -344,25 +372,40 @@ export function InteractiveTable({
                   {/* Column 8: Result (R) */}
                   <td className="py-3 px-3 border-r border-slate-100">
                     {isTradeExecuted ? (
-                      <div className="relative inline-flex items-center rounded-md max-w-[100px]">
-                        <input
-                          type="number"
-                          step="0.1"
-                          placeholder="0.0"
-                          value={row.resultR === null ? '' : row.resultR}
-                          onChange={(e) => {
-                            const val = e.target.value === '' ? null : parseFloat(e.target.value);
-                            onUpdateDay(row.day, 'resultR', val);
-                          }}
-                          className={`w-full px-2 py-1 text-sm bg-white border rounded text-center font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[80px] ${
-                            (row.resultR || 0) > 0 
-                              ? 'border-emerald-300 text-emerald-700 bg-emerald-50/10' 
-                              : (row.resultR || 0) < 0 
-                                ? 'border-rose-300 text-rose-700 bg-rose-50/10' 
-                                : 'border-slate-300 text-slate-700'
-                          }`}
-                        />
-                        <span className="text-xs font-medium text-slate-400 absolute right-1 hover:pointer-events-none">R</span>
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="relative inline-flex items-center rounded-md max-w-[100px]">
+                          <input
+                            type="number"
+                            step="0.1"
+                            placeholder="0.0"
+                            value={row.resultR === null ? '' : row.resultR}
+                            onChange={(e) => {
+                              const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                              onUpdateDay(row.day, 'resultR', val);
+                            }}
+                            className={`w-full px-2 py-1 text-sm bg-white border rounded text-center font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[80px] ${
+                              (row.resultR || 0) > 0 
+                                ? 'border-emerald-300 text-emerald-700 bg-emerald-50/10' 
+                                : (row.resultR || 0) < 0 
+                                  ? 'border-rose-300 text-rose-700 bg-rose-50/10' 
+                                  : 'border-slate-300 text-slate-700'
+                            }`}
+                          />
+                          <span className="text-xs font-medium text-slate-400 absolute right-1 hover:pointer-events-none">R</span>
+                        </div>
+                        {row.trades && row.trades.length > 0 && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDayForTradesModal(row);
+                            }}
+                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer flex items-center gap-0.5"
+                            title={language === 'he' ? 'מחושב מתוך פירוט העסקאות' : 'Calculated from trades'}
+                          >
+                            <span>{language === 'he' ? `מחושב (${row.trades.length})` : `Calc (${row.trades.length})`}</span>
+                          </button>
+                        )}
                       </div>
                     ) : isTradeMissed ? (
                       <span className="text-slate-400 text-xs font-mono">0 R</span>
@@ -423,6 +466,22 @@ export function InteractiveTable({
           </div>
         );
       })}
+
+      {/* 1-10 Daily Trades Modal */}
+      {dayForTradesModal && (
+        <DailyTradesModal
+          isOpen={Boolean(dayForTradesModal)}
+          day={dayForTradesModal}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+          language={language}
+          onClose={() => setDayForTradesModal(null)}
+          onSaveDayTrades={(dayNum, updatedDay) => {
+            onUpdateDay(dayNum, updatedDay);
+            setDayForTradesModal(null);
+          }}
+        />
+      )}
     </div>
   );
 }
