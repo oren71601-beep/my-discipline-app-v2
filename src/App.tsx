@@ -10,6 +10,8 @@ import { InteractiveTable } from './components/InteractiveTable';
 import { CalendarView } from './components/CalendarView';
 import { AppWalkthroughVideo } from './components/AppWalkthroughVideo';
 import LandingPage from './components/LandingPage';
+import AdPosterPage from './components/AdPosterPage';
+import MonthlyGoalsModal from './components/MonthlyGoalsModal';
 import { 
   Calendar, 
   TrendingUp, 
@@ -44,7 +46,9 @@ import {
   Mail,
   LogIn,
   UserPlus,
-  LogOut
+  LogOut,
+  Flame,
+  Share2
 } from 'lucide-react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
@@ -105,11 +109,17 @@ export default function App() {
     });
   }, []);
 
-  // Sync HTML document direction
+  // Sync HTML document direction and language
   useEffect(() => {
-    document.documentElement.dir = t.dir;
+    const isLangRtl = language === 'he' || language === 'ar';
+    const activeDir = isLangRtl ? 'rtl' : 'ltr';
+    document.documentElement.dir = activeDir;
+    document.documentElement.lang = language;
+    if (document.body) {
+      document.body.dir = activeDir;
+    }
     localStorage.setItem('trading_tracker_lang', language);
-  }, [language, t.dir]);
+  }, [language]);
 
   // Setup defaults - restore exact last opened month and year from LocalStorage, with fallback to real current month/year
   const [selectedYear, setSelectedYear] = useState<number>(() => {
@@ -183,6 +193,7 @@ export default function App() {
   };
   // Reopening page always returns cleanly to the main workspace (הדף הראשי)
   const [showLanding, setShowLanding] = useState<boolean>(false);
+  const [showAdPoster, setShowAdPoster] = useState<boolean>(false);
   const [showWalkthroughVideo, setShowWalkthroughVideo] = useState<boolean>(false);
   const [showEndOfMonthModal, setShowEndOfMonthModal] = useState<boolean>(false);
 
@@ -444,6 +455,51 @@ export default function App() {
     window.dispatchEvent(new Event('pledge_updated'));
   };
 
+  // Monthly Trading Objectives / Goals
+  const [monthlyGoals, setMonthlyGoals] = useState<string>('');
+  const [showGoalsModal, setShowGoalsModal] = useState<boolean>(false);
+
+  useEffect(() => {
+    const savedGoals = localStorage.getItem(`trading_tracker_goals_${monthId}`) || '';
+    setMonthlyGoals(savedGoals);
+  }, [monthId]);
+
+  useEffect(() => {
+    const handleGoalsStorageUpdate = () => {
+      const savedGoals = localStorage.getItem(`trading_tracker_goals_${monthId}`) || '';
+      setMonthlyGoals(savedGoals);
+    };
+    window.addEventListener('goals_updated', handleGoalsStorageUpdate);
+    window.addEventListener('storage', handleGoalsStorageUpdate);
+    return () => {
+      window.removeEventListener('goals_updated', handleGoalsStorageUpdate);
+      window.removeEventListener('storage', handleGoalsStorageUpdate);
+    };
+  }, [monthId]);
+
+  const handleSaveGoals = (newGoals: string) => {
+    const trimmed = newGoals.trim();
+    setMonthlyGoals(trimmed);
+    const goalsKey = `trading_tracker_goals_${monthId}`;
+    if (trimmed) {
+      localStorage.setItem(goalsKey, trimmed);
+      showToast(
+        language === 'he' ? 'יעדי המסחר לחודש עודכנו בהצלחה! 🎯' : 'Monthly trading goals updated successfully! 🎯',
+        'success'
+      );
+    } else {
+      localStorage.removeItem(goalsKey);
+      showToast(
+        language === 'he' ? 'יעדי החודש נמחקו' : 'Monthly goals cleared',
+        'info'
+      );
+    }
+    if (currentUser) {
+      saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, days, currentPledge, trimmed);
+    }
+    window.dispatchEvent(new Event('goals_updated'));
+  };
+
   // 1. Firebase Auth listener: Session-scoped authentication (disconnects when tab is closed)
   useEffect(() => {
     if (!auth) return;
@@ -508,6 +564,10 @@ export default function App() {
         if (typeof cloudData.pledge === 'string') {
           setCurrentPledge(cloudData.pledge);
           localStorage.setItem(`trading_tracker_pledge_${monthId}`, cloudData.pledge);
+        }
+        if (typeof cloudData.goals === 'string') {
+          setMonthlyGoals(cloudData.goals);
+          localStorage.setItem(`trading_tracker_goals_${monthId}`, cloudData.goals);
         }
       }
       setCloudSyncStatus('synced');
@@ -659,7 +719,7 @@ export default function App() {
     const storageKey = `trading_tracker_data_${monthId}`;
     localStorage.setItem(storageKey, JSON.stringify(updatedDays));
     if (currentUser) {
-      saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, updatedDays, currentPledge);
+      saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, updatedDays, currentPledge, monthlyGoals);
     }
   };
 
@@ -1284,10 +1344,24 @@ export default function App() {
     }
   }[language];
 
+  if (showAdPoster) {
+    return (
+      <AdPosterPage 
+        onBack={() => setShowAdPoster(false)} 
+        language={language} 
+        isRtl={isRtl} 
+      />
+    );
+  }
+
   if (showLanding) {
     return (
       <LandingPage 
         onLaunchApp={() => setShowLanding(false)} 
+        onOpenAdPoster={() => {
+          setShowLanding(false);
+          setShowAdPoster(true);
+        }}
         language={language} 
         isRtl={isRtl} 
         isPremium={isPremium} 
@@ -1297,7 +1371,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-800 pb-12 transition-all duration-300 font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
+    <div className="min-h-screen w-full max-w-full overflow-x-hidden bg-[#f8fafc] text-slate-800 pb-12 transition-all duration-300 font-sans" dir={isRtl ? 'rtl' : 'ltr'}>
       
       {/* Toast Notification Popups */}
       {notification && (
@@ -1749,7 +1823,7 @@ export default function App() {
       )}
 
       {/* Main Top Header Section bar */}
-      <header className="bg-slate-900 text-white shadow-md sticky top-0 z-50 isolate">
+      <header className="bg-slate-900 text-white shadow-md relative z-30 isolate">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
           
           {/* Brand/Heading block */}
@@ -1775,23 +1849,25 @@ export default function App() {
             </div>
           </div>
 
-          {/* Core Dynamic Stats shown directly in the header for "Professional Polish" */}
-          <div className="flex gap-6 border-r border-l border-slate-800 px-6 py-1 mx-4 hidden lg:flex">
-            <div className="text-center">
-              <div className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{appLabels.colTrades}</div>
-              <div className="text-lg font-mono font-bold text-emerald-400">{executedDaysCount}</div>
-            </div>
-            <div className="text-center flex flex-col items-center">
-              <div className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold font-semibold">{appLabels.colDiscipline}</div>
-              <div className="text-lg font-mono font-bold text-amber-400">{disciplineScore.toFixed(1)}</div>
-            </div>
-            <div className="text-center">
-              <div className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold font-medium">{appLabels.colPL}</div>
-              <div className={`text-lg font-mono font-bold ${totalR >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {totalR >= 0 ? `+${totalR.toFixed(1)}` : `${totalR.toFixed(1)}`}R
+          {/* Core Dynamic Stats shown directly in the header for "Professional Polish" - Only shown in post-purchase full workspace */}
+          {isPremium && (
+            <div className="flex gap-6 border-r border-l border-slate-800 px-6 py-1 mx-4 hidden lg:flex animate-fade-in">
+              <div className="text-center">
+                <div className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold">{appLabels.colTrades}</div>
+                <div className="text-lg font-mono font-bold text-emerald-400">{executedDaysCount}</div>
+              </div>
+              <div className="text-center flex flex-col items-center">
+                <div className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold font-semibold">{appLabels.colDiscipline}</div>
+                <div className="text-lg font-mono font-bold text-amber-400">{disciplineScore.toFixed(1)}</div>
+              </div>
+              <div className="text-center">
+                <div className="text-[10px] text-slate-400 uppercase tracking-widest font-semibold font-medium">{appLabels.colPL}</div>
+                <div className={`text-lg font-mono font-bold ${totalR >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                  {totalR >= 0 ? `+${totalR.toFixed(1)}` : `${totalR.toFixed(1)}`}R
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Quick Date Selectors & Language Selectors Panel */}
           <div className="flex flex-wrap items-center gap-2.5">
@@ -1907,6 +1983,16 @@ export default function App() {
               <span>{language === 'he' ? 'ניהול מנוי 💳' : 'Billing & Account 💳'}</span>
             </button>
 
+            {/* Ad Poster Quick Access Button */}
+            <button
+              onClick={() => setShowAdPoster(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border-emerald-500/30 cursor-pointer shadow-xs active:scale-95 shadow-emerald-500/10"
+              title={language === 'he' ? 'דף מודעת פרסום לרשתות (9:16) 🔥' : 'Ad Poster Studio (9:16) 🔥'}
+            >
+              <Flame className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <span>{language === 'he' ? 'דף פרסום 🔥' : 'Ad Studio 🔥'}</span>
+            </button>
+
             {/* Marketing Hub Landing Page Button */}
             <button
               onClick={() => setShowLanding(true)}
@@ -1964,6 +2050,59 @@ export default function App() {
 
           </div>
         </div>
+
+        {/* Prominent Monthly Goals Display in Header Area - ONLY shown after purchase when workspace is unlocked */}
+        {isPremium && (
+          <div className="border-t border-slate-800 bg-slate-950/85 px-4 sm:px-6 py-2.5 backdrop-blur-xs animate-fade-in">
+            <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {monthlyGoals ? (
+                <div 
+                  onClick={() => setShowGoalsModal(true)}
+                  className="flex items-center gap-3 min-w-0 cursor-pointer group py-0.5 flex-1 overflow-hidden"
+                  title={language === 'he' ? 'לחץ לעריכת יעדי המסחר החודשיים' : 'Click to edit monthly trading goals'}
+                >
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center shrink-0 shadow-xs group-hover:scale-105 transition-transform">
+                    <Target className="w-4 h-4 text-amber-400 animate-pulse" />
+                  </div>
+                  <div className="flex items-center gap-2 min-w-0 flex-1 overflow-hidden text-xs">
+                    <span className="font-black text-amber-300 shrink-0 flex items-center gap-1.5 uppercase tracking-wide bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md">
+                      <span>{language === 'he' ? `🎯 יעדי החודש (${MONTH_NAMES.find(m => m.id === selectedMonth)?.name || selectedMonth} ${selectedYear}):` : `🎯 Monthly Goals (${MONTH_NAMES.find(m => m.id === selectedMonth)?.name || selectedMonth} ${selectedYear}):`}</span>
+                    </span>
+                    <span className="font-semibold text-slate-100 italic truncate min-w-0 flex-1 group-hover:text-amber-200 transition-colors">
+                      "{monthlyGoals.replace(/\n/g, ' • ')}"
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div 
+                  onClick={() => setShowGoalsModal(true)}
+                  className="flex items-center gap-2.5 cursor-pointer group py-0.5 flex-1 min-w-0 overflow-hidden"
+                  title={language === 'he' ? 'לחץ להגדרת יעדי מסחר לחודש זה' : 'Click to set monthly trading goals'}
+                >
+                  <span className="w-8 h-8 rounded-xl bg-slate-800/90 text-slate-400 group-hover:text-amber-400 group-hover:bg-amber-500/20 border border-slate-700 group-hover:border-amber-500/40 flex items-center justify-center shrink-0 transition-all">
+                    <Target className="w-4 h-4" />
+                  </span>
+                  <span className="text-xs text-slate-400 group-hover:text-amber-300 font-medium transition-colors truncate min-w-0">
+                    {language === 'he' 
+                      ? `🎯 עדיין לא הוגדרו יעדי מסחר לחודש ${MONTH_NAMES.find(m => m.id === selectedMonth)?.name || selectedMonth} — לחץ כאן להגדרת יעדים` 
+                      : `🎯 No monthly trading goals set for ${MONTH_NAMES.find(m => m.id === selectedMonth)?.name || selectedMonth} — Click here to define goals`}
+                  </span>
+                </div>
+              )}
+
+              <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
+                <button
+                  type="button"
+                  onClick={() => setShowGoalsModal(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-400/15 hover:bg-amber-400/25 text-amber-300 hover:text-amber-200 border border-amber-400/40 rounded-xl text-xs font-black transition-all cursor-pointer shadow-2xs active:scale-95"
+                >
+                  <Target className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{monthlyGoals ? (language === 'he' ? 'ערוך יעדים' : 'Edit Goals') : (language === 'he' ? 'קבע יעדים' : 'Set Goals')}</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </header>
 
       {/* Main Workspace Body Content */}
@@ -2011,6 +2150,16 @@ export default function App() {
               </div>
 
               <div className="flex items-center gap-3">
+                {/* Add Monthly Goals Button */}
+                <button
+                  onClick={() => setShowGoalsModal(true)}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-900 hover:text-amber-950 border border-amber-300 bg-amber-50 hover:bg-amber-100 px-3 py-1.5 rounded-lg transition-all shadow-xs cursor-pointer active:scale-95"
+                  title={language === 'he' ? 'קבע או ערוך את יעדי המסחר לחודש זה' : 'Set or edit monthly trading objectives'}
+                >
+                  <Target className="w-3.5 h-3.5 text-amber-600" />
+                  <span>{monthlyGoals ? (language === 'he' ? '🎯 ערוך יעדי חודש' : '🎯 Edit Monthly Goals') : (language === 'he' ? '🎯 הוסף יעדים לחודש' : '🎯 Add Monthly Goals')}</span>
+                </button>
+
                 {/* End of Month Insights & Coaching Button */}
                 <button
                   onClick={() => setShowEndOfMonthModal(true)}
@@ -2074,9 +2223,10 @@ export default function App() {
             )}
 
             {/* SECTION 2: Daily Interactive Workspace (Table or Calendar style) */}
-            <section className="space-y-4">
-              <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 border-b border-slate-100 pb-3">
-                <div className="flex flex-wrap items-center gap-3">
+            <section className="space-y-3.5">
+              {/* Top Controls Bar: Title, Selectors, Add Goals, and View Switcher */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
                   <h2 className="text-lg font-extrabold text-slate-950 flex items-center gap-2 shrink-0">
                     <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
                     <span>
@@ -2085,9 +2235,9 @@ export default function App() {
                   </h2>
 
                   {/* Year & Month Selectors on the Monthly Trading Journal line */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex flex-wrap items-center gap-2">
                     {/* Year Selector */}
-                    <div className="flex items-center gap-1.5 bg-slate-900 text-white rounded-xl px-3 py-1.5 border border-slate-800 shadow-xs hover:border-slate-700 transition-colors">
+                    <div className="flex items-center gap-1.5 bg-slate-900 text-white rounded-xl px-2.5 sm:px-3 py-1.5 border border-slate-800 shadow-xs hover:border-slate-700 transition-colors">
                       <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblYear}</span>
                       <select
                         value={selectedYear}
@@ -2109,7 +2259,7 @@ export default function App() {
                     </div>
 
                     {/* Month Selector */}
-                    <div className="flex items-center gap-1.5 bg-slate-900 text-white rounded-xl px-3 py-1.5 border border-slate-800 shadow-xs hover:border-slate-700 transition-colors">
+                    <div className="flex items-center gap-1.5 bg-slate-900 text-white rounded-xl px-2.5 sm:px-3 py-1.5 border border-slate-800 shadow-xs hover:border-slate-700 transition-colors">
                       <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
                       <span className="text-xs text-slate-400 font-medium whitespace-nowrap">{appLabels.lblMonth}</span>
                       <select
@@ -2130,82 +2280,26 @@ export default function App() {
                         ))}
                       </select>
                     </div>
+
+                    {/* Add Monthly Goals Button on Journal Bar */}
+                    <button
+                      type="button"
+                      onClick={() => setShowGoalsModal(true)}
+                      className="inline-flex items-center gap-1.5 bg-amber-500/15 hover:bg-amber-500/25 text-amber-900 border border-amber-300 rounded-xl px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all cursor-pointer shadow-2xs active:scale-95 shrink-0"
+                      title={language === 'he' ? 'קבע או ערוך יעדי מסחר לחודש זה' : 'Set or edit monthly trading goals'}
+                    >
+                      <Target className="w-3.5 h-3.5 text-amber-600" />
+                      <span>{monthlyGoals ? (language === 'he' ? 'יעדי החודש 🎯' : 'Monthly Goals 🎯') : (language === 'he' ? '+ הוסף יעדים לחודש' : '+ Add Monthly Goals')}</span>
+                    </button>
                   </div>
                 </div>
 
-                {/* Previous Month Commitment In Red (התחייבות מחודש שעבר באדום) - Only shown if written */}
-                {(Boolean(currentPledge.trim()) || isEditingPledge) && (
-                  <div className="flex items-center justify-center flex-1 max-w-2xl mx-0 xl:mx-4 w-full animate-fade-in">
-                    {isEditingPledge ? (
-                      <form 
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          handleSavePledge(pledgeDraft);
-                        }}
-                        className="w-full flex items-center gap-2 bg-red-50/95 border-2 border-red-500 rounded-xl p-1.5 shadow-xs animate-fade-in"
-                      >
-                        <input
-                          type="text"
-                          value={pledgeDraft}
-                          onChange={(e) => setPledgeDraft(e.target.value)}
-                          placeholder={language === 'he' ? 'ההתחייבות שלך מחודש שעבר...' : 'Your commitment from last month...'}
-                          className="flex-1 bg-white border border-red-200 rounded-lg px-2.5 py-1 text-xs text-red-700 font-extrabold placeholder-red-300 focus:outline-none focus:ring-1 focus:ring-red-500"
-                          autoFocus
-                        />
-                        <button
-                          type="submit"
-                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black transition-colors cursor-pointer shrink-0 flex items-center gap-1 shadow-2xs"
-                        >
-                          <Check className="w-3.5 h-3.5" />
-                          <span>{language === 'he' ? 'שמור' : 'Save'}</span>
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setIsEditingPledge(false)}
-                          className="px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-semibold cursor-pointer shrink-0"
-                        >
-                          {language === 'he' ? 'ביטול' : 'Cancel'}
-                        </button>
-                      </form>
-                    ) : (
-                      <div 
-                        onClick={() => {
-                          setPledgeDraft(currentPledge);
-                          setIsEditingPledge(true);
-                        }}
-                        className="w-full bg-red-50/95 hover:bg-red-100/90 border border-red-300/90 rounded-xl px-3 sm:px-4 py-2 flex items-center justify-between gap-2 shadow-2xs transition-all cursor-pointer group"
-                        title={language === 'he' ? 'לחץ לעריכת ההתחייבות האישית מחודש שעבר' : 'Click to edit commitment from last month'}
-                      >
-                        <div className="flex items-center gap-2 min-w-0">
-                          <span className="w-5 h-5 rounded-md bg-red-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
-                            <Target className="w-3.5 h-3.5" />
-                          </span>
-                          <div className="truncate text-xs">
-                            <span className="font-black text-red-700 me-1.5">
-                              {language === 'he' ? 'התחייבות מחודש שעבר:' : language === 'ar' ? 'التزام الشهر السابق:' : language === 'ru' ? 'Обязательство с прошлого месяца:' : 'Pledge from Last Month:'}
-                            </span>
-                            <span className="font-black text-red-600 tracking-tight">
-                              "{currentPledge}"
-                            </span>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-1.5 text-red-400 group-hover:text-red-700 transition-colors shrink-0 ps-2">
-                          <span className="text-[10px] font-bold hidden sm:inline text-red-600/80 group-hover:text-red-700">
-                            {language === 'he' ? 'ערוך' : 'Edit'}
-                          </span>
-                          <Edit3 className="w-3.5 h-3.5" />
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-                
-                {/* View Selector Tabs */}
-                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50 self-start xl:self-auto shrink-0">
+                {/* View Selector Tabs (Table / Calendar) */}
+                <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200/50 self-start sm:self-auto shrink-0">
                   <button
                     type="button"
                     onClick={() => setActiveView('table')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                       activeView === 'table'
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'text-slate-650 hover:text-slate-900 bg-transparent'
@@ -2216,7 +2310,7 @@ export default function App() {
                   <button
                     type="button"
                     onClick={() => setActiveView('calendar')}
-                    className={`px-4 py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                    className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-lg text-xs font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
                       activeView === 'calendar'
                         ? 'bg-slate-900 text-white shadow-xs'
                         : 'text-slate-650 hover:text-slate-900 bg-transparent'
@@ -2227,6 +2321,113 @@ export default function App() {
                   </button>
                 </div>
               </div>
+
+              {/* Dedicated Row for Monthly Goals & Previous Month Commitment - Perfectly Sized & Responsive */}
+              {(Boolean(monthlyGoals.trim()) || Boolean(currentPledge.trim()) || isEditingPledge) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 w-full animate-fade-in">
+                  {/* Monthly Goals Display Card */}
+                  {Boolean(monthlyGoals.trim()) && (
+                    <div 
+                      onClick={() => setShowGoalsModal(true)}
+                      className={`flex items-center justify-between gap-2.5 bg-amber-50/95 hover:bg-amber-100/90 border border-amber-300 rounded-xl px-3.5 py-2.5 shadow-2xs transition-all cursor-pointer group min-w-0 overflow-hidden ${
+                        !(Boolean(currentPledge.trim()) || isEditingPledge) ? 'md:col-span-2' : ''
+                      }`}
+                      title={language === 'he' ? 'לחץ לעריכת יעדי החודש' : 'Click to edit monthly goals'}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
+                        <span className="w-6 h-6 rounded-lg bg-amber-500 text-slate-950 flex items-center justify-center shrink-0 shadow-2xs font-bold text-xs">
+                          <Target className="w-3.5 h-3.5" />
+                        </span>
+                        <div className="min-w-0 flex-1 overflow-hidden text-xs">
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <span className="font-black text-amber-800 shrink-0">
+                              {language === 'he' ? 'יעדי החודש:' : 'Monthly Goals:'}
+                            </span>
+                            <span className="font-bold text-amber-900 tracking-tight truncate block min-w-0 flex-1">
+                              "{monthlyGoals.replace(/\n/g, ' • ')}"
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1 text-amber-600 group-hover:text-amber-800 transition-colors shrink-0 ps-2">
+                        <span className="text-[10px] font-bold hidden sm:inline">
+                          {language === 'he' ? 'ערוך' : 'Edit'}
+                        </span>
+                        <Edit3 className="w-3.5 h-3.5" />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Previous Month Commitment Card */}
+                  {(Boolean(currentPledge.trim()) || isEditingPledge) && (
+                    <div className={`min-w-0 overflow-hidden ${!Boolean(monthlyGoals.trim()) ? 'md:col-span-2' : ''}`}>
+                      {isEditingPledge ? (
+                        <form 
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleSavePledge(pledgeDraft);
+                          }}
+                          className="w-full flex items-center gap-2 bg-red-50/95 border-2 border-red-500 rounded-xl p-1.5 shadow-xs animate-fade-in"
+                        >
+                          <input
+                            type="text"
+                            value={pledgeDraft}
+                            onChange={(e) => setPledgeDraft(e.target.value)}
+                            placeholder={language === 'he' ? 'ההתחייבות שלך מחודש שעבר...' : 'Your commitment from last month...'}
+                            className="flex-1 min-w-0 bg-white border border-red-200 rounded-lg px-2.5 py-1 text-xs text-red-700 font-extrabold placeholder-red-300 focus:outline-none focus:ring-1 focus:ring-red-500"
+                            autoFocus
+                          />
+                          <button
+                            type="submit"
+                            className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-black transition-colors cursor-pointer shrink-0 flex items-center gap-1 shadow-2xs"
+                          >
+                            <Check className="w-3.5 h-3.5" />
+                            <span>{language === 'he' ? 'שמור' : 'Save'}</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setIsEditingPledge(false)}
+                            className="px-2 py-1 text-slate-500 hover:text-slate-800 text-xs font-semibold cursor-pointer shrink-0"
+                          >
+                            {language === 'he' ? 'ביטול' : 'Cancel'}
+                          </button>
+                        </form>
+                      ) : (
+                        <div 
+                          onClick={() => {
+                            setPledgeDraft(currentPledge);
+                            setIsEditingPledge(true);
+                          }}
+                          className="w-full bg-red-50/95 hover:bg-red-100/90 border border-red-300/90 rounded-xl px-3.5 py-2.5 flex items-center justify-between gap-2.5 shadow-2xs transition-all cursor-pointer group min-w-0 overflow-hidden"
+                          title={language === 'he' ? 'לחץ לעריכת ההתחייבות האישית מחודש שעבר' : 'Click to edit commitment from last month'}
+                        >
+                          <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
+                            <span className="w-6 h-6 rounded-lg bg-red-600 text-white flex items-center justify-center shrink-0 shadow-2xs">
+                              <Target className="w-3.5 h-3.5" />
+                            </span>
+                            <div className="min-w-0 flex-1 overflow-hidden text-xs">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="font-black text-red-700 shrink-0">
+                                  {language === 'he' ? 'התחייבות מחודש שעבר:' : language === 'ar' ? 'التزام الشهر السابق:' : language === 'ru' ? 'Обязательство с прошлого месяца:' : 'Pledge from Last Month:'}
+                                </span>
+                                <span className="font-black text-red-600 tracking-tight truncate block min-w-0 flex-1">
+                                  "{currentPledge}"
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-1 text-red-400 group-hover:text-red-700 transition-colors shrink-0 ps-2">
+                            <span className="text-[10px] font-bold hidden sm:inline text-red-600/80 group-hover:text-red-700">
+                              {language === 'he' ? 'ערוך' : 'Edit'}
+                            </span>
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
 
               {activeView === 'table' ? (
                 <InteractiveTable 
@@ -2365,6 +2566,17 @@ export default function App() {
         days={days}
         selectedYear={selectedYear}
         selectedMonth={selectedMonth}
+        language={language}
+      />
+
+      {/* Monthly Trading Goals Modal */}
+      <MonthlyGoalsModal
+        isOpen={showGoalsModal}
+        onClose={() => setShowGoalsModal(false)}
+        currentGoals={monthlyGoals}
+        onSaveGoals={handleSaveGoals}
+        monthName={MONTH_NAMES.find(m => m.id === selectedMonth)?.name || `${selectedMonth}`}
+        selectedYear={selectedYear}
         language={language}
       />
 

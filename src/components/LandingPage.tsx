@@ -32,9 +32,12 @@ import { motion, AnimatePresence } from 'motion/react';
 import promoPhoneImg from '../assets/images/trading_promo_phone_mockup_1782954819150.jpg';
 // @ts-ignore
 import promoDisciplineImg from '../assets/images/trading_discipline_chart_promo_1782954834008.jpg';
+// @ts-ignore
+import promoAdStoryImg from '../assets/images/discipline_story_ad_1791068170946.jpg';
 
 interface LandingPageProps {
   onLaunchApp: () => void;
+  onOpenAdPoster?: () => void;
   language: 'he' | 'en' | 'ar' | 'ru';
   isRtl: boolean;
   isPremium: boolean;
@@ -43,13 +46,14 @@ interface LandingPageProps {
 
 export default function LandingPage({ 
   onLaunchApp, 
+  onOpenAdPoster,
   language, 
   isRtl, 
   isPremium, 
   onTogglePremium 
 }: LandingPageProps) {
-  // Tabs for marketing tools: 'landing' (the main page), 'videos' (video simulator), 'images' (media center)
-  const [activeTab, setActiveTab] = useState<'landing' | 'videos' | 'images'>('landing');
+  // Tabs for marketing tools: 'landing' (the main page), 'videos' (video simulator), 'images' (media center), 'ad_poster' (new vertical ad)
+  const [activeTab, setActiveTab] = useState<'landing' | 'videos' | 'images' | 'ad_poster'>('landing');
   
   // Video player simulator states
   const [selectedVideoTemplate, setSelectedVideoTemplate] = useState<number>(0);
@@ -349,7 +353,7 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white" dir="ltr">
       
       {/* Landing Header */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md sticky top-0 z-40 px-4 py-3.5 sm:px-6">
+      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md relative z-30 px-4 py-3.5 sm:px-6">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black shadow-md shadow-indigo-500/20 text-lg">
@@ -376,7 +380,7 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
 
       {/* Tabs Menu - High Visibility */}
       <div className="bg-slate-900 border-b border-slate-800 py-3 px-4 shrink-0">
-        <div className="max-w-xl mx-auto grid grid-cols-3 gap-1 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
+        <div className="max-w-2xl mx-auto grid grid-cols-4 gap-1 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
           <button
             onClick={() => setActiveTab('landing')}
             className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -386,7 +390,25 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>{currentTexts.tabLanding}</span>
+            <span className="hidden sm:inline">{currentTexts.tabLanding}</span>
+            <span className="sm:hidden">ראשי</span>
+          </button>
+          <button
+            onClick={() => {
+              if (onOpenAdPoster) {
+                onOpenAdPoster();
+              } else {
+                setActiveTab('ad_poster');
+              }
+            }}
+            className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+              activeTab === 'ad_poster' 
+                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' 
+                : 'text-emerald-400 hover:text-white hover:bg-slate-900'
+            }`}
+          >
+            <Flame className="w-3.5 h-3.5 text-emerald-400" />
+            <span className="font-extrabold">מודעת פרסום 9:16 🔥</span>
           </button>
           <button
             onClick={() => setActiveTab('videos')}
@@ -397,7 +419,8 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
             }`}
           >
             <Video className="w-3.5 h-3.5" />
-            <span>{currentTexts.tabVideos}</span>
+            <span className="hidden sm:inline">{currentTexts.tabVideos}</span>
+            <span className="sm:hidden">סרטונים</span>
           </button>
           <button
             onClick={() => setActiveTab('images')}
@@ -408,7 +431,8 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
             }`}
           >
             <ImageIcon className="w-3.5 h-3.5" />
-            <span>{currentTexts.tabImages}</span>
+            <span className="hidden sm:inline">{currentTexts.tabImages}</span>
+            <span className="sm:hidden">תמונות</span>
           </button>
         </div>
       </div>
@@ -446,9 +470,24 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
                     <span>{currentTexts.btnLaunchDemo}</span>
                     <ArrowLeft className="w-4 h-4 rotate-180" />
                   </button>
+
+                  <button
+                    onClick={() => {
+                      if (onOpenAdPoster) {
+                        onOpenAdPoster();
+                      } else {
+                        setActiveTab('ad_poster');
+                      }
+                    }}
+                    className="w-full sm:w-auto px-5 py-3.5 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-black rounded-2xl border border-emerald-500/40 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10"
+                  >
+                    <Flame className="w-4 h-4 text-emerald-400" />
+                    <span>דף מודעת פרסום 9:16 🔥</span>
+                  </button>
+
                   <button
                     onClick={() => setActiveTab('videos')}
-                    className="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-black rounded-2xl border border-slate-800 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
+                    className="w-full sm:w-auto px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-black rounded-2xl border border-slate-800 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Video className="w-4 h-4 text-indigo-400" />
                     <span>{currentTexts.btnMediaKit}</span>
@@ -863,6 +902,59 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
                       <Download className="w-4 h-4" />
                       <span>{currentTexts.btnDownload}</span>
                     </button>
+                  </div>
+                </div>
+
+                {/* Image Card 3: 9:16 Story Ad Poster */}
+                <div className="bg-slate-900/40 border border-emerald-500/30 rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between md:col-span-2">
+                  <div className="p-4 bg-slate-950 border-b border-slate-900 flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] text-emerald-400 font-extrabold block uppercase tracking-wide">Image Asset #3 (Featured 9:16)</span>
+                      <h4 className="text-xs font-black text-white uppercase tracking-tight">Vertical Story / Reels / TikTok Ad Poster</h4>
+                    </div>
+                    <span className="text-[10px] bg-emerald-500/10 text-emerald-300 font-bold px-2 py-0.5 rounded-md border border-emerald-500/20">Vertical 9:16 Ready</span>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 items-center bg-slate-950/60">
+                    <div className="relative aspect-[9/16] max-h-[380px] mx-auto rounded-2xl overflow-hidden border border-slate-800 shadow-2xl group">
+                      <img 
+                        src={promoAdStoryImg} 
+                        alt="9:16 Story Ad Poster" 
+                        className="w-full h-full object-cover select-none transition-transform duration-500 group-hover:scale-105"
+                        referrerPolicy="no-referrer"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
+                    </div>
+
+                    <div className="space-y-4">
+                      <div className="space-y-1">
+                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">מודעה סוחפת לסוחרים</span>
+                        <h5 className="text-base font-black text-white">פורמט 9:16 אנכי מושלם לסטורי, רילס וטיקטוק</h5>
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          מודעה חדה וממוקדת שנוצרה במיוחד כדי למשוך סוחרים שנלחמים במשמעת, סוגרים עסקאות מוקדם, מזיזים סטופים ומשלמים על איפוסים חוזרים ונשנים.
+                        </p>
+                      </div>
+
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <button
+                          onClick={() => downloadImageFile(promoAdStoryImg, 'TradeReport_Story_Ad_9_16.jpg')}
+                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/15"
+                        >
+                          <Download className="w-4 h-4" />
+                          <span>הורד תמונה אנכית 9:16 📥</span>
+                        </button>
+
+                        {onOpenAdPoster && (
+                          <button
+                            onClick={onOpenAdPoster}
+                            className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                          >
+                            <ExternalLink className="w-4 h-4 text-emerald-400" />
+                            <span>פתח סטודיו מודעות מלא ⚡</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
                   </div>
                 </div>
 

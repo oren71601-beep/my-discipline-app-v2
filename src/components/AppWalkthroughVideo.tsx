@@ -685,8 +685,8 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
                         <div 
                           className="absolute pointer-events-none transition-all duration-500 ease-out z-15"
                           style={{
-                            top: currentTime < 0.8 ? '90px' : currentTime < 1.9 ? '18px' : '16px',
-                            right: currentTime < 0.8 ? '-40px' : currentTime < 1.9 ? '20px' : '25px',
+                            top: currentTime < 0.8 ? '80px' : currentTime < 1.9 ? '18px' : '16px',
+                            right: currentTime < 0.8 ? '8px' : currentTime < 1.9 ? '20px' : '25px',
                             opacity: 1
                           }}
                         >

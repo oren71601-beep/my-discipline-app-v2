@@ -573,7 +573,7 @@ export const DailyTradesModal: React.FC<DailyTradesModalProps> = ({
                     key={dev}
                     type="button"
                     onClick={() => handleUpdateActiveTrade('deviation', dev)}
-                    className={`p-3 rounded-xl border text-right transition-all cursor-pointer ${
+                    className={`p-3 rounded-xl border text-start transition-all cursor-pointer ${
                       isSelected 
                         ? dev === 'none'
                           ? 'bg-emerald-600 text-white border-emerald-600 shadow-md'

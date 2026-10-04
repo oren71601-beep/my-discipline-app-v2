@@ -17,6 +17,7 @@ export const LANGUAGES: LanguageConfig[] = [
 ];
 
 export interface TranslationDictionary {
+  dir: 'rtl' | 'ltr';
   // General UI
   appTitle: string;
   appSubtitle: string;
@@ -126,6 +127,7 @@ export interface TranslationDictionary {
 
 export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
   he: {
+    dir: 'rtl',
     appTitle: 'יומן מסחר מנטלי וביצועים',
     appSubtitle: 'עקוב אחר משמעת עצמית, מצב פסיכולוגי ורווחיות R של עסקאות המסחר שלך',
     tableMode: 'תצוגת טבלה',
@@ -252,6 +254,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     guideRestoreDesc: 'Apple מחייבת שיהיה כפתור "Restore Purchases" בולט במסך הרכישה עבור משתמשים שהחליפו מכשיר.',
   },
   en: {
+    dir: 'ltr',
     appTitle: 'Mental Trading Journal & Performance',
     appSubtitle: 'Track self-discipline, mental psychology, and R-multiple profitability of your trading days',
     tableMode: 'Table View',
@@ -284,21 +287,21 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
       calm: 'Calm',
       stressed: 'Stressed',
       tired: 'Tired',
-      indifferent: 'Indifferent',
-      revenge: 'Revenge Trade',
+      indifferent: 'Numb',
+      revenge: 'Tilt',
     },
     noEntryReason: {
       focus: 'Focus',
-      rr: 'Risk-Reward',
+      rr: 'R:R',
       discipline: 'Discipline',
-      fear: 'Fear of Missing Out',
+      fear: 'FOMO',
       other: 'Other',
     },
     deviation: {
-      none: 'No Deviation',
+      none: 'None',
       early_entry: 'Early Entry',
-      move_stop: 'Moved Stop',
-      raise_risk: 'Increased Risk',
+      move_stop: 'Move Stop',
+      raise_risk: 'Raise Risk',
       early_exit: 'Early Exit',
     },
     deviationDesc: {
@@ -378,6 +381,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     guideRestoreDesc: 'Apple strictly requires a visible "Restore Purchases" button in the paywall for users upgrading devices.',
   },
   ar: {
+    dir: 'rtl',
     appTitle: 'دفتر تداول العقلية والأداء',
     appSubtitle: 'تتبع الانضباط الذاتي، علم النفس المالي، وربحية عوائد صفقاتك',
     tableMode: 'عرض الجدول',
@@ -504,6 +508,7 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     guideRestoreDesc: 'تشترط آبل وجود زر واضح لاستعادة المشتريات لمن قاموا بتغيير هواتفهم أو إعادة تنزيل التطبيق.',
   },
   ru: {
+    dir: 'ltr',
     appTitle: 'Психологический Дневник Трейдинга',
     appSubtitle: 'Отслеживайте дисциплину, психологию и прибыльность ваших торговых дней в R-кратностях',
     tableMode: 'Вид Таблицы',
@@ -533,25 +538,25 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     executedNone: 'Не введено',
 
     mentalState: {
-      calm: 'Спокойствие',
+      calm: 'Спокойно',
       stressed: 'Стресс',
       tired: 'Усталость',
-      indifferent: 'Безразличие',
-      revenge: 'Тильт / Месть',
+      indifferent: 'Апатия',
+      revenge: 'Тильт',
     },
     noEntryReason: {
       focus: 'Фокус',
-      rr: 'Риск/Прибыль (R:R)',
+      rr: 'R:R',
       discipline: 'Дисциплина',
-      fear: 'Страх упущенного (FOMO)',
+      fear: 'FOMO',
       other: 'Другое',
     },
     deviation: {
-      none: 'Без нарушений',
-      early_entry: 'Ранний Вход',
-      move_stop: 'Двигал Стоп',
-      raise_risk: 'Завысил Риск',
-      early_exit: 'Ранний Выход',
+      none: 'Без наруш.',
+      early_entry: 'Ран. вход',
+      move_stop: 'Двиг. стоп',
+      raise_risk: 'Завыс. риск',
+      early_exit: 'Ран. выход',
     },
     deviationDesc: {
       none: 'Полное соблюдение торгового плана',

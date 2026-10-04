@@ -6,8 +6,8 @@ import {
   DeviationOption,
 } from '../types';
 import { SlashOptionSelector } from './SlashOptionSelector';
-import { Star, CheckCircle2, ChevronDown, ChevronUp, Briefcase } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { Star, CheckCircle2, ChevronDown, ChevronUp, Briefcase, TrendingUp } from 'lucide-react';
+import { useState, useEffect, useMemo } from 'react';
 import { LanguageCode, TRANSLATIONS } from '../utils/translations';
 import { DailyTradesModal } from './DailyTradesModal';
 
@@ -95,56 +95,100 @@ export function InteractiveTable({
       noteLabel: 'הערות וסיכום ביצוע ליום מסחר',
       notePlaceholder: 'רשום הערות עסקה...',
       noteCloseBtn: 'סגור אזור הערה',
+      colTrend: 'מגמת R חודשית',
     },
     en: {
       title: 'Interactive Daily Trading Log',
       desc: 'Click on choices to select. The system automatically enables/disables columns depending on execution state to maintain perfect data integrity.',
-      badgeY: 'Trade Executed (Yes) - Rule Deviation, Confidence, Rating, P&L Active',
-      badgeN: 'No Trade (No) - No Entry Reason highlighted',
-      colExecutedEx: 'Trade Executed?',
+      badgeY: 'Executed (Yes) - Active',
+      badgeN: 'No Trade (No) - Reason',
+      colExecutedEx: 'Executed?',
       colMentalEx: 'Mental Mood',
-      colNoEntryEx: 'No Entry Reason (Only if "No")',
-      colDeviationEx: 'Plan Deviation (Only if "Yes")',
+      colNoEntryEx: 'Skip Reason',
+      colDeviationEx: 'Plan Deviation',
       weekdayLabel: '',
       addNoteTitle: 'Edit Notes (Existing)',
       addNoteNone: 'Add Notes for this day',
       noteLabel: 'Execution Notes for Trading Day',
       notePlaceholder: 'Write down trading notes, screenshot link, setup details...',
       noteCloseBtn: 'Close notes area',
+      colTrend: 'R Trend',
     },
     ar: {
       title: 'جدول تسجيل التداول اليومي التفاعلي',
       desc: 'اضغط على الخيارات لتحديدها. يقوم النظام تلقائياً بقفل الأعمدة أو تفعيلها بناءً على تنفيذ الصفقة لضمان دقة البيانات.',
-      badgeY: 'تم تنفيذ صفقة (نعم) - الانحراف، الثقة، التقييم، والربح نشط',
-      badgeN: 'لا توجد صفقة (لا) - تم تظليل سبب عدم الدخول',
-      colExecutedEx: 'هل نُفذت صفقة؟',
+      badgeY: 'صفقة (نعم) - نشط',
+      badgeN: 'لا صفقة (لا) - تخطي',
+      colExecutedEx: 'نُفذت؟',
       colMentalEx: 'المزاج الذهني',
-      colNoEntryEx: 'سبب عدم الدخول (فقط في حال "لا")',
-      colDeviationEx: 'الانحراف عن الخطة (فقط في حال "نعم")',
+      colNoEntryEx: 'سبب عدم الدخول',
+      colDeviationEx: 'الانحراف عن الخطة',
       weekdayLabel: 'يوم',
       addNoteTitle: 'تعديل الملاحظة (موجودة)',
       addNoteNone: 'إضافة ملاحظة لهذا اليوم',
       noteLabel: 'الملاحظات وملخص الأداء ليوم التداول',
       notePlaceholder: 'اكتب ملاحظات الصفقة أو أسباب اختيار الزوج والتوقيت...',
       noteCloseBtn: 'إغلاق منطقة الملاحظات',
+      colTrend: 'مسار R',
     },
     ru: {
       title: 'Интерактивная Таблица Сделок',
       desc: 'Нажимайте на варианты для выбора. Система автоматически блокирует или активирует столбцы в зависимости от факта сделки.',
-      badgeY: 'Сделка была (Да) - Нарушения, Уверенность, Оценка и P&L активны',
-      badgeN: 'Сделки не было (Нет) - Подсвечена причина пропуска',
-      colExecutedEx: 'Сделка выполнена?',
+      badgeY: 'Сделка (Да) - Активно',
+      badgeN: 'Без сделки (Нет)',
+      colExecutedEx: 'Сделка?',
       colMentalEx: 'Ментальное состояние',
-      colNoEntryEx: 'Причина пропуска (только если "Нет")',
-      colDeviationEx: 'Нарушение плана (только если "Да")',
+      colNoEntryEx: 'Причина пропуска',
+      colDeviationEx: 'Нарушение плана',
       weekdayLabel: '',
-      addNoteTitle: 'Редактировать заметку (есть)',
-      addNoteNone: 'Добавить заметку к этому дню',
+      addNoteTitle: 'Редактировать заметку',
+      addNoteNone: 'Добавить заметку',
       noteLabel: 'Заметки и итоги торгового дня',
       notePlaceholder: 'Опишите детали сделки, скриншот, разметку...',
-      noteCloseBtn: 'Закрыть окно заметок',
+      noteCloseBtn: 'Закрыть',
+      colTrend: 'Тренд R',
     }
   }[language];
+
+  // Calculate cumulative R for each day of the month for the sparkline visualization
+  const cumulativeData = useMemo(() => {
+    let runningTotal = 0;
+    const map = new Map<number, { currentR: number | null; cumulativeR: number }>();
+    
+    // Sort days chronologically by day number
+    const sorted = [...days].sort((a, b) => a.day - b.day);
+    for (const d of sorted) {
+      if (d.executed === 'Y' && d.resultR !== null && !isNaN(d.resultR)) {
+        runningTotal += d.resultR;
+      }
+      map.set(d.day, {
+        currentR: d.executed === 'Y' ? d.resultR : null,
+        cumulativeR: Math.round(runningTotal * 100) / 100
+      });
+    }
+    return map;
+  }, [days]);
+
+  // Overall min and max cumulative R across the entire month for consistent relative scaling
+  const { minCumulative, maxCumulative, finalCumulative } = useMemo(() => {
+    let min = 0;
+    let max = 0;
+    let last = 0;
+    const sorted = [...days].sort((a, b) => a.day - b.day);
+    for (const d of sorted) {
+      const item = cumulativeData.get(d.day);
+      if (item) {
+        if (item.cumulativeR < min) min = item.cumulativeR;
+        if (item.cumulativeR > max) max = item.cumulativeR;
+        last = item.cumulativeR;
+      }
+    }
+    return { 
+      minCumulative: min, 
+      maxCumulative: max, 
+      finalCumulative: last 
+    };
+  }, [days, cumulativeData]);
 
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
@@ -169,19 +213,25 @@ export function InteractiveTable({
       </div>
 
       {/* Main Responsive Container */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-center border-collapse min-w-[900px]">
+      <div className="overflow-x-auto max-w-full">
+        <table className="w-full text-center border-collapse min-w-[820px]">
           <thead>
-            <tr className="bg-slate-50 text-slate-600 text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
-              <th className="py-3 px-3 w-14">{t.colDay}</th>
-              <th className="py-3 px-3 w-28">{subLabels.colExecutedEx}</th>
-              <th className="py-3 px-2 border-r border-slate-100 w-52">{subLabels.colMentalEx}</th>
-              <th className="py-3 px-2 border-r border-slate-100 w-52 text-rose-800">{subLabels.colNoEntryEx}</th>
-              <th className="py-3 px-2 border-r border-slate-100 w-64 text-teal-800">{subLabels.colDeviationEx}</th>
-              <th className="py-3 px-2 border-r border-slate-100 w-36">{t.colConfidence}</th>
-              <th className="py-3 px-2 border-r border-slate-100 w-44">{t.colRating}</th>
-              <th className="py-3 px-3 border-r border-slate-100 w-32">{t.colResultR}</th>
-              <th className="py-3 px-3 border-r border-slate-100 w-24">{t.colActions}</th>
+            <tr className="bg-slate-50 text-slate-600 text-[11px] sm:text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
+              <th className="py-2.5 px-2 w-12 shrink-0">{t.colDay}</th>
+              <th className="py-2.5 px-2 w-24 shrink-0">{subLabels.colExecutedEx}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-44">{subLabels.colMentalEx}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-44 text-rose-800">{subLabels.colNoEntryEx}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-48 text-teal-800">{subLabels.colDeviationEx}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-28 shrink-0">{t.colConfidence}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-32 shrink-0">{t.colRating}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-28 shrink-0">{t.colResultR}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-32 shrink-0" title={language === 'he' ? 'גרף מגמה מצטבר של יחידות ה-R מתחילת החודש ועד ליום זה' : 'Cumulative R-units performance sparkline from month start up to this day'}>
+                <div className="flex items-center justify-center gap-1">
+                  <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
+                  <span>{subLabels.colTrend}</span>
+                </div>
+              </th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-20 shrink-0">{t.colActions}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -414,7 +464,146 @@ export function InteractiveTable({
                     )}
                   </td>
 
-                  {/* Column 9: Collapsible Actions & Notes */}
+                  {/* Column 9: Cumulative Sparkline */}
+                  <td className="py-2 px-2 border-r border-slate-100 text-center">
+                    {(() => {
+                      const dayCumul = cumulativeData.get(row.day);
+                      const currentCumulR = dayCumul ? dayCumul.cumulativeR : 0;
+                      
+                      // Build history points from day 1 up to current row.day
+                      const historyPoints: { day: number; r: number }[] = [];
+                      for (const d of days) {
+                        if (d.day <= row.day) {
+                          const info = cumulativeData.get(d.day);
+                          if (info) {
+                            historyPoints.push({ day: d.day, r: info.cumulativeR });
+                          }
+                        }
+                      }
+                      historyPoints.sort((a, b) => a.day - b.day);
+
+                      const hasAnyActivitySoFar = historyPoints.some((p) => p.r !== 0);
+
+                      // Sparkline SVG dimensions
+                      const width = 84;
+                      const height = 24;
+                      const padding = 3;
+                      const innerW = width - padding * 2;
+                      const innerH = height - padding * 2;
+
+                      // Use consistent scale with baseline at zero
+                      const minVal = Math.min(0, minCumulative);
+                      const maxVal = Math.max(0, maxCumulative);
+                      const range = maxVal - minVal > 0.01 ? maxVal - minVal : 1;
+
+                      const zeroY = height - padding - ((0 - minVal) / range) * innerH;
+
+                      let pointsString = '';
+                      let lastX = padding;
+                      let lastY = zeroY;
+
+                      if (historyPoints.length > 0) {
+                        const totalDaysSpan = Math.max(1, days.length - 1);
+                        pointsString = historyPoints.map((pt) => {
+                          const x = padding + ((pt.day - 1) / totalDaysSpan) * innerW;
+                          const y = height - padding - ((pt.r - minVal) / range) * innerH;
+                          lastX = x;
+                          lastY = y;
+                          return `${x.toFixed(1)},${y.toFixed(1)}`;
+                        }).join(' ');
+                      }
+
+                      const isPositive = currentCumulR >= 0;
+                      const strokeColor = !hasAnyActivitySoFar
+                        ? '#cbd5e1'
+                        : isPositive
+                          ? '#10b981' // emerald-500
+                          : '#f43f5e'; // rose-500
+                      const fillColor = !hasAnyActivitySoFar
+                        ? 'transparent'
+                        : isPositive
+                          ? 'rgba(16, 185, 129, 0.12)'
+                          : 'rgba(244, 63, 94, 0.12)';
+
+                      const areaString = historyPoints.length > 1
+                        ? `${pointsString} ${lastX.toFixed(1)},${zeroY.toFixed(1)} ${padding.toFixed(1)},${zeroY.toFixed(1)}`
+                        : '';
+
+                      return (
+                        <div 
+                          className="flex flex-col items-center justify-center gap-0.5 select-none py-0.5 group/sparkline cursor-help"
+                          title={
+                            language === 'he'
+                              ? `יום ${row.day}: תוצאה מצטברת ${currentCumulR > 0 ? '+' : ''}${currentCumulR.toFixed(1)}R`
+                              : `Day ${row.day}: Cumulative ${currentCumulR > 0 ? '+' : ''}${currentCumulR.toFixed(1)}R`
+                          }
+                        >
+                          <svg 
+                            width={width} 
+                            height={height} 
+                            className="overflow-visible block drop-shadow-xs"
+                          >
+                            {/* Zero baseline */}
+                            <line 
+                              x1={padding} 
+                              y1={zeroY} 
+                              x2={width - padding} 
+                              y2={zeroY} 
+                              stroke="#e2e8f0" 
+                              strokeWidth="1" 
+                              strokeDasharray="2,2" 
+                            />
+
+                            {/* Shaded Area under/above curve */}
+                            {areaString && (
+                              <polygon 
+                                points={areaString} 
+                                fill={fillColor} 
+                              />
+                            )}
+
+                            {/* Polyline path */}
+                            {pointsString && (
+                              <polyline
+                                fill="none"
+                                stroke={strokeColor}
+                                strokeWidth="1.75"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                points={pointsString}
+                              />
+                            )}
+
+                            {/* Current Day point dot */}
+                            {hasAnyActivitySoFar && (
+                              <circle 
+                                cx={lastX} 
+                                cy={lastY} 
+                                r="2.5" 
+                                fill={strokeColor} 
+                                stroke="#ffffff" 
+                                strokeWidth="1"
+                                className="transition-all"
+                              />
+                            )}
+                          </svg>
+
+                          {/* Cumulative numerical badge */}
+                          <span className={`text-[10px] font-mono font-bold leading-none ${
+                            !hasAnyActivitySoFar
+                              ? 'text-slate-400'
+                              : isPositive
+                                ? 'text-emerald-600'
+                                : 'text-rose-600'
+                          }`}>
+                            {currentCumulR > 0 ? `+${currentCumulR.toFixed(1)}` : `${currentCumulR.toFixed(1)}`}R
+                          </span>
+                        </div>
+                      );
+                    })()}
+                  </td>
+
+                  {/* Column 10: Collapsible Actions & Notes */}
                   <td className="py-3 px-3 border-r border-slate-100 text-center">
                     <button
                       type="button"

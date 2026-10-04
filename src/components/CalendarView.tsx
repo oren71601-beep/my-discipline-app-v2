@@ -325,7 +325,7 @@ export function CalendarView({
                 id={`calendar-day-${row.day}`}
                 type="button"
                 onClick={() => handleDayClick(row)}
-                className={`aspect-square rounded-xl border p-1.5 sm:p-2.5 transition-all text-right flex flex-col justify-between cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500/30 ${cellStyle}`}
+                className={`aspect-square rounded-xl border p-1.5 sm:p-2.5 transition-all text-start flex flex-col justify-between cursor-pointer focus:outline-none focus:ring-1 focus:ring-indigo-500/30 ${cellStyle}`}
               >
                 <div className="flex items-center justify-between w-full">
                   <span className={`text-[11px] font-bold h-5.5 w-5.5 flex items-center justify-center rounded-lg ${

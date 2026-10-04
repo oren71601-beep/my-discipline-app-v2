@@ -68,6 +68,7 @@ export const db = app
 export interface MonthCloudData {
   days: TradingDay[];
   pledge?: string;
+  goals?: string;
   monthId: string;
   year: number;
   month: number;
@@ -152,7 +153,8 @@ export async function saveMonthToCloud(
   year: number, 
   month: number, 
   days: TradingDay[], 
-  pledge?: string
+  pledge?: string,
+  goals?: string
 ) {
   if (!db) return;
   try {
@@ -160,6 +162,7 @@ export async function saveMonthToCloud(
     const data: MonthCloudData = {
       days,
       pledge: pledge || '',
+      goals: goals || '',
       monthId,
       year,
       month,

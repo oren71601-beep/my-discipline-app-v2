@@ -48,16 +48,15 @@ export function SlashOptionSelector<T extends string | number>({
 
   return (
     <div 
-      className={`inline-flex items-center flex-wrap justify-center gap-x-1.5 gap-y-1 text-sm select-none ${
+      className={`inline-flex items-center flex-wrap justify-center gap-x-1 gap-y-0.5 text-xs select-none max-w-full leading-snug ${
         disabled ? 'opacity-40 pointer-events-none' : ''
       }`}
-      dir="rtl"
     >
       {options.map((opt, idx) => {
         const isActive = selectedValue === opt.value;
         return (
           <React.Fragment key={String(opt.value)}>
-            {idx > 0 && <span className="text-slate-300 font-light mx-0.5">/</span>}
+            {idx > 0 && <span className="text-slate-300 font-light mx-0.5 select-none">/</span>}
             <button
               type="button"
               onClick={() => {
@@ -66,7 +65,7 @@ export function SlashOptionSelector<T extends string | number>({
                   onChange(isActive ? (null as unknown as T) : opt.value);
                 }
               }}
-              className={`relative px-2 py-0.5 transition-all duration-200 cursor-pointer ease-out whitespace-nowrap focus:outline-none ${getHighlightClass(
+              className={`relative px-1.5 py-0.5 text-[11px] sm:text-xs transition-all duration-200 cursor-pointer ease-out whitespace-nowrap focus:outline-none ${getHighlightClass(
                 isActive
               )}`}
             >
