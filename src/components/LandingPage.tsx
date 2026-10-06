@@ -23,9 +23,18 @@ import {
   ArrowRight,
   MessageSquare,
   Flame,
-  MousePointerClick
+  MousePointerClick,
+  User,
+  Mail,
+  Heart,
+  BookOpen,
+  ShieldCheck,
+  HelpCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { NewsletterSignup } from './NewsletterSignup';
+import { SocialLinks } from './SocialLinks';
+import { SUPPORT_EMAIL } from '../firebase';
 
 // Import the generated images
 // @ts-ignore
@@ -38,15 +47,17 @@ import promoAdStoryImg from '../assets/images/discipline_story_ad_1791068170946.
 interface LandingPageProps {
   onLaunchApp: () => void;
   onOpenAdPoster?: () => void;
+  onOpenAboutMe?: () => void;
   language: 'he' | 'en' | 'ar' | 'ru';
   isRtl: boolean;
   isPremium: boolean;
-  onTogglePremium: () => void;
+  onTogglePremium?: () => void;
 }
 
 export default function LandingPage({ 
   onLaunchApp, 
   onOpenAdPoster,
+  onOpenAboutMe,
   language, 
   isRtl, 
   isPremium, 
@@ -366,6 +377,27 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
           </div>
 
           <div className="flex items-center gap-2">
+            {onOpenAboutMe && (
+              <button
+                type="button"
+                onClick={onOpenAboutMe}
+                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs transition-all border border-slate-800 flex items-center gap-1.5 cursor-pointer shadow-xs"
+                title={language === 'he' ? 'מי אני – המסע שלי למשמעת 🧘‍♂️' : 'About Me – My Discipline Journey 🧘‍♂️'}
+              >
+                <User className="w-3.5 h-3.5 text-amber-400" />
+                <span>{language === 'he' ? 'מי אני 🧘‍♂️' : 'About Me'}</span>
+              </button>
+            )}
+
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-800 transition-all"
+              title={`תמיכה במייל: ${SUPPORT_EMAIL}`}
+            >
+              <Mail className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{language === 'he' ? 'תמיכה' : 'Support'}</span>
+            </a>
+
             {/* Quick launch app */}
             <button
               onClick={onLaunchApp}
@@ -590,6 +622,99 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* About Me & Authenticity Card */}
+            <div className="bg-gradient-to-br from-slate-900/90 via-slate-900 to-indigo-950/40 rounded-[2rem] border border-indigo-500/20 p-6 sm:p-10 space-y-6 relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
+                <div className="flex items-center gap-3.5">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-600/30 shrink-0">
+                    🧘‍♂️
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-lg sm:text-xl font-black text-white">
+                        {language === 'he' ? 'מי אני – המסע שלי למשמעת' : 'About Me – My Discipline Journey'}
+                      </h3>
+                      <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full font-bold">
+                        FOUNDER STORY
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-400 mt-0.5 font-medium">
+                      {language === 'he' ? 'הסיפור והפילוסופיה האמיתית מאחורי יומן המסחר' : 'The authentic mindset and philosophy behind the journal'}
+                    </p>
+                  </div>
+                </div>
+
+                {onOpenAboutMe && (
+                  <button
+                    type="button"
+                    onClick={onOpenAboutMe}
+                    className="px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                  >
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>{language === 'he' ? 'קרא את הסיפור המלא 📖' : 'Read Full Story 📖'}</span>
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+                  <div className="font-bold text-rose-400 flex items-center gap-1.5">
+                    <span>💔</span>
+                    <span>{language === 'he' ? 'השנים הקשות והטעויות' : 'The Painful Beginning'}</span>
+                  </div>
+                  <p className="text-slate-400 leading-relaxed">
+                    {language === 'he'
+                      ? 'כשנכנסתי לשוק ההון, חשבתי שהסוד הוא עוד אינדיקטור או עוד אסטרטגיה. האמת הכואבת היתה שכל ההפסדים הגדולים נבעו מכניסות מוקדמות, הזזת סטופים ועסקאות נקמה מתוך סטרס.'
+                      : 'Early on, I thought success required another indicator. The harsh truth was that every catastrophic loss stemmed from impatience, moved stops, and revenge trades.'}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+                  <div className="font-bold text-amber-400 flex items-center gap-1.5">
+                    <span>⚡</span>
+                    <span>{language === 'he' ? 'המעבר למשמעת ויחידות R' : 'The Discipline Shift'}</span>
+                  </div>
+                  <p className="text-slate-400 leading-relaxed">
+                    {language === 'he'
+                      ? 'המהפך קרה רק כשעברתי לחשוב ביחידות סיכון קבועות (R) והתחלתי לתעד כל רגש ומצב מנטלי לפני כל פעולה. יומן מסחר הוא לא מותרות – הוא תעודת הביטוח של הסוחר.'
+                      : 'The transformation happened when I started accounting in fixed risk units (R) and logging emotional state before every single click. A discipline journal is non-negotiable.'}
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
+                  <div className="font-bold text-emerald-400 flex items-center gap-1.5">
+                    <span>🛡️</span>
+                    <span>{language === 'he' ? 'תמיכה אישית ואחריות' : 'Personal Support & Trust'}</span>
+                  </div>
+                  <p className="text-slate-400 leading-relaxed">
+                    {language === 'he'
+                      ? 'המערכת נבנתה באהבה ומסירות לסוחרים עצמאיים. יש לך שאלות או צורך בהכוונה? אני זמין במייל התמיכה הרשמי: '
+                      : 'Crafted with authenticity for dedicated traders. Got questions or feedback? Reach out directly via official brand email: '}
+                    <a href={`mailto:${SUPPORT_EMAIL}`} className="text-indigo-300 font-mono font-bold hover:underline">
+                      {SUPPORT_EMAIL}
+                    </a>
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Newsletter Signup Card */}
+            <div className="space-y-4">
+              <NewsletterSignup 
+                language={language} 
+                className="shadow-2xl" 
+              />
+            </div>
+
+            {/* Social Links & Community Grid */}
+            <div className="space-y-4">
+              <SocialLinks 
+                language={language} 
+                variant="grid" 
+                className="p-6 bg-slate-900/40 rounded-3xl border border-slate-900" 
+              />
             </div>
 
           </div>

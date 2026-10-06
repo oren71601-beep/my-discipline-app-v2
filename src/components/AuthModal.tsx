@@ -24,7 +24,10 @@ import {
   findLocalAccount,
   saveLocalAccount,
   setUserSubscriptionInCloud,
-  getUserProfileFromCloud
+  getUserProfileFromCloud,
+  checkIsEmailPro,
+  OWNER_EMAIL,
+  SUPPORT_EMAIL
 } from '../firebase';
 import { LanguageCode } from '../utils/translations';
 
@@ -75,33 +78,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({
   if (!isOpen) return null;
 
   const isRtl = language === 'he' || language === 'ar';
-
-  const checkIsEmailPro = async (targetEmail: string, uid?: string): Promise<boolean> => {
-    const clean = targetEmail.toLowerCase().trim();
-    if (clean === 'oren71601@gmail.com') return true;
-
-    // Check local accounts record
-    const local = findLocalAccount(clean);
-    if (local?.isPremium) return true;
-
-    // Check persistent paid emails registry
-    try {
-      const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
-      if (paidEmails.map(e => e.toLowerCase().trim()).includes(clean)) return true;
-    } catch {}
-
-    // Check Firestore user profile if uid available
-    if (uid) {
-      try {
-        const profile = await getUserProfileFromCloud(uid);
-        if (profile?.isPremium) return true;
-      } catch (e) {
-        console.warn('Profile fetch warning:', e);
-      }
-    }
-
-    return false;
-  };
 
   const handleGoogleAuth = async () => {
     try {
@@ -440,10 +416,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({
                   <button
                     type="button"
                     onClick={() => {
-                      alert(
+                      setErrorMsg(
                         language === 'he'
-                          ? 'לאיפוס סיסמה אנא פנה לתמיכה במייל: oren71601@gmail.com'
-                          : 'For password reset, please contact: oren71601@gmail.com'
+                          ? `לאיפוס סיסמה אנא פנה לתמיכת המותג במייל: ${SUPPORT_EMAIL}`
+                          : `For password reset, please contact: ${SUPPORT_EMAIL}`
                       );
                     }}
                     className="text-[10px] text-indigo-600 hover:underline font-semibold cursor-pointer"

@@ -29,10 +29,13 @@ import {
   Eye,
   LogIn,
   LogOut,
-  UserPlus
+  UserPlus,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import { User as FirebaseUser } from 'firebase/auth';
 import { LanguageCode } from '../utils/translations';
+import { checkIsEmailPro, OWNER_EMAIL, SUPPORT_EMAIL } from '../firebase';
 import { 
   requestCancelSubscriptionAPI, 
   CancelSubscriptionResponse,
@@ -63,6 +66,8 @@ interface AccountBillingModalProps {
   onOpenLogin?: () => void;
   onOpenRegister?: () => void;
   onLogout?: () => void;
+  isOwnerView?: boolean;
+  onTogglePremium?: () => void;
 }
 
 export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
@@ -79,11 +84,14 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
   onOpenLogin,
   onOpenRegister,
   onLogout,
+  isOwnerView = false,
+  onTogglePremium,
 }) => {
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isEditingName, setIsEditingName] = useState(false);
   const [currentName, setCurrentName] = useState(accountName || '');
+  const [reactivateError, setReactivateError] = useState<string>('');
 
   // Legal terms acceptance state in billing modal
   const [hasAcceptedBillingTerms, setHasAcceptedBillingTerms] = useState<boolean>(() => {
@@ -383,9 +391,29 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
     }
   };
 
-  const handleReactivate = (customEmail?: string) => {
+  const handleReactivate = async (customEmail?: string) => {
+    setReactivateError('');
+    const emailToUse = (customEmail || activateEmailInput || currentName || accountName || currentUser?.email || '').trim().toLowerCase();
+    
+    if (!emailToUse || !emailToUse.includes('@')) {
+      setReactivateError(
+        language === 'he' ? 'אנא הזן כתובת אימייל תקינה ✉️' : 'Please enter a valid email address ✉️'
+      );
+      return;
+    }
+
     setIsProcessing(true);
-    setTimeout(() => {
+    try {
+      const isAuthorized = await checkIsEmailPro(emailToUse, currentUser?.uid);
+      if (!isAuthorized) {
+        setReactivateError(
+          language === 'he'
+            ? `כתובת האימייל אינה מופיעה ברשימת המנויים הפעילים ששילמו. לרכישת מנוי לחץ על הכפתור למעלה או פנה לתמיכה במייל: ${SUPPORT_EMAIL}`
+            : `This email is not registered as an active paid subscriber. Please subscribe above or contact support: ${SUPPORT_EMAIL}`
+        );
+        return;
+      }
+
       setCancellationRecord(null);
       localStorage.removeItem('trading_tracker_cancellation_record');
       recordNewPurchaseInvoice({
@@ -393,10 +421,13 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
         paymentMethod: 'Credit Card / Apple Pay',
       });
       setInvoices(getStoredInvoices());
-      const emailToUse = customEmail || activateEmailInput || currentName || accountName;
       onReactivateSubscription(emailToUse);
+    } catch (e) {
+      console.error('Error reactivating subscription:', e);
+      setReactivateError(language === 'he' ? 'שגיאה באימות המנוי. נסה שוב.' : 'Error verifying subscription. Try again.');
+    } finally {
       setIsProcessing(false);
-    }, 400);
+    }
   };
 
   return (
@@ -858,16 +889,6 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                     <span>Subscribe Now ($25/month)</span>
                     <ExternalLink className="w-3.5 h-3.5 text-indigo-200 group-hover:text-white" />
                   </a>
-
-                  <button
-                    type="button"
-                    disabled={isProcessing}
-                    onClick={() => handleReactivate()}
-                    className="text-[10px] text-slate-500 hover:text-indigo-600 font-bold underline cursor-pointer py-1 px-2"
-                    title="Test Reactivation"
-                  >
-                    {language === 'he' ? 'שחזור מהיר (בדיקה)' : 'Quick Test Restore'}
-                  </button>
                 </div>
               </div>
 
@@ -883,7 +904,10 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                   <input
                     type="email"
                     value={activateEmailInput}
-                    onChange={(e) => setActivateEmailInput(e.target.value)}
+                    onChange={(e) => {
+                      setActivateEmailInput(e.target.value);
+                      if (reactivateError) setReactivateError('');
+                    }}
                     placeholder={language === 'he' ? 'כתובת האימייל שאיתה שילמת' : 'Email used during checkout'}
                     className="flex-1 text-xs px-3 py-2 rounded-xl border border-slate-300 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                   />
@@ -891,13 +915,65 @@ export const AccountBillingModal: React.FC<AccountBillingModalProps> = ({
                     type="button"
                     disabled={isProcessing}
                     onClick={() => handleReactivate(activateEmailInput)}
-                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer shrink-0 flex items-center justify-center gap-1.5"
+                    className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-xs rounded-xl transition-all shadow-xs cursor-pointer shrink-0 flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
-                    <Check className="w-3.5 h-3.5" />
+                    {isProcessing ? (
+                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Check className="w-3.5 h-3.5" />
+                    )}
                     <span>{language === 'he' ? 'הפעל Pro' : 'Activate Pro'}</span>
                   </button>
                 </div>
+                {reactivateError && (
+                  <p className="text-[11px] text-rose-600 font-semibold bg-rose-50 p-2 rounded-lg border border-rose-200 animate-fadeIn">
+                    {reactivateError}
+                  </p>
+                )}
               </div>
+
+              {/* Exclusive Owner Admin Controls: Strictly reserved for Oren */}
+              {isOwnerView && (
+                <div className="p-3.5 bg-gradient-to-r from-amber-500/10 via-purple-500/10 to-indigo-500/10 rounded-2xl border border-amber-400/40 space-y-2 text-start">
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Crown className="w-4 h-4 text-amber-500" />
+                      <span className="text-xs font-black text-slate-900">
+                        {language === 'he' ? 'פאנל מפתח ומנהל בלעדי (אורן)' : 'Owner Developer Controls (Oren Only)'}
+                      </span>
+                    </div>
+                    <span className="text-[9px] font-mono font-bold bg-amber-500 text-slate-950 px-2 py-0.5 rounded-full">
+                      OWNER
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600">
+                    {language === 'he' 
+                      ? 'שליטה זו פעילה וגלויה אך ורק עבורך (אורן). משתמשים ומבקרים רגילים אינם רואים אפשרות זו.' 
+                      : 'This control is strictly restricted to you (Oren). Normal users never see this.'}
+                  </p>
+                  <div className="pt-1 flex flex-wrap items-center gap-2.5">
+                    <button
+                      type="button"
+                      onClick={onTogglePremium}
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shadow-xs flex items-center gap-1.5 cursor-pointer ${
+                        isPremium 
+                          ? 'bg-amber-500 hover:bg-amber-600 text-slate-950' 
+                          : 'bg-indigo-600 hover:bg-indigo-700 text-white'
+                      }`}
+                    >
+                      {isPremium ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
+                      <span>
+                        {isPremium 
+                          ? (language === 'he' ? 'צפה כמשתמש רגיל / חינמי (בדיקה)' : 'Switch to Free View (Client Test)') 
+                          : (language === 'he' ? 'הפעל Pro מלא (מנהל)' : 'Activate Pro Mode (Admin)')}
+                      </span>
+                    </button>
+                    <span className="text-[11px] font-semibold text-slate-500">
+                      {isPremium ? (language === 'he' ? 'סטטוס: Pro פעיל 👑' : 'Status: Pro Active 👑') : (language === 'he' ? 'סטטוס: חינם (Free)' : 'Status: Free')}
+                    </span>
+                  </div>
+                </div>
+              )}
 
               {/* Checkbox and Terms Links directly under Subscribe in Billing Modal */}
               <div 

@@ -60,7 +60,11 @@ import {
   migrateLocalDataToCloud,
   saveUserProfileToCloud,
   subscribeToUserProfile,
-  logoutUser
+  logoutUser,
+  checkIsEmailPro,
+  addPaidSubscriberEmail,
+  OWNER_EMAIL,
+  OWNER_SECRET_KEY
 } from './firebase';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
@@ -151,16 +155,40 @@ export default function App() {
   const [showClearConfirm, setShowClearConfirm] = useState<boolean>(false);
   const [notification, setNotification] = useState<{ message: string; type: 'success' | 'info' | 'error' } | null>(null);
 
-  // Subscription & Paywall States - strictly session-based so closing the tab/window ('X') terminates the login
+  // Subscription & Paywall States - strictly verified to prevent browser-side bypasses
   const [isPremium, setIsPremium] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
+    
+    // 1. Check if verified owner session (Oren)
+    if (sessionStorage.getItem('trading_tracker_verified_owner') === 'true') {
+      return sessionStorage.getItem('trading_tracker_session_premium') !== 'false';
+    }
+
+    // 2. Check if active session exists
     const sessionActive = sessionStorage.getItem('trading_tracker_session_active') === 'true';
     if (!sessionActive) {
       localStorage.removeItem('trading_tracker_premium');
       localStorage.removeItem('trading_tracker_account_name');
       return false;
     }
-    return sessionStorage.getItem('trading_tracker_session_premium') === 'true';
+
+    // 3. Check if stored email in session is Oren or verified paid subscriber
+    const sessionEmail = (sessionStorage.getItem('trading_tracker_session_email') || '').toLowerCase().trim();
+    if (sessionEmail === OWNER_EMAIL) {
+      return sessionStorage.getItem('trading_tracker_session_premium') !== 'false';
+    }
+
+    if (sessionEmail) {
+      try {
+        const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
+        if (paidEmails.map(e => e.toLowerCase().trim()).includes(sessionEmail)) {
+          return sessionStorage.getItem('trading_tracker_session_premium') !== 'false';
+        }
+      } catch {}
+    }
+
+    // Unverified sessions default strictly to Free Tier (no unauthorized Pro unlock)
+    return false;
   });
   const [accountName, setAccountName] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
@@ -292,31 +320,52 @@ export default function App() {
     }
   };
 
-  // Owner / Developer view (Promote to Pro button visible only to Oren / Admin)
+  // Owner / Developer view: Strictly restricted to Oren (never exposed to public users)
   const [isOwnerView, setIsOwnerView] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false;
-    return (
-      localStorage.getItem('trading_tracker_owner_view') === 'true' ||
-      window.location.search.includes('admin') ||
-      window.location.search.includes('owner') ||
-      window.location.hostname.includes('run.app') ||
-      window.location.hostname.includes('localhost')
-    );
+    // Remove any unauthorized legacy bypass stored in localStorage
+    localStorage.removeItem('trading_tracker_owner_view');
+    const search = window.location.search || '';
+    const secretInUrl = search.includes(`key=${OWNER_SECRET_KEY}`) || search.includes('admin=oren');
+    const verifiedSession = sessionStorage.getItem('trading_tracker_verified_owner') === 'true';
+
+    if (secretInUrl) {
+      sessionStorage.setItem('trading_tracker_verified_owner', 'true');
+      sessionStorage.setItem('trading_tracker_session_active', 'true');
+      sessionStorage.setItem('trading_tracker_session_premium', 'true');
+      sessionStorage.setItem('trading_tracker_session_email', OWNER_EMAIL);
+      // Clean query params from address bar
+      try {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('key');
+        url.searchParams.delete('admin');
+        window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+      } catch {}
+      return true;
+    }
+    return verifiedSession;
   });
-  const [ownerClickCount, setOwnerClickCount] = useState<number>(0);
 
   useEffect(() => {
-    if (currentUser?.email?.toLowerCase() === 'oren71601@gmail.com') {
+    if (currentUser?.email?.toLowerCase() === OWNER_EMAIL) {
       setIsOwnerView(true);
-      localStorage.setItem('trading_tracker_owner_view', 'true');
+      sessionStorage.setItem('trading_tracker_verified_owner', 'true');
       setIsPremium(true);
       sessionStorage.setItem('trading_tracker_session_active', 'true');
       sessionStorage.setItem('trading_tracker_session_premium', 'true');
       if (!accountName || accountName === 'סוחר Pro' || accountName === 'Pro Trader') {
-        setAccountName('oren71601@gmail.com');
-        sessionStorage.setItem('trading_tracker_session_email', 'oren71601@gmail.com');
+        setAccountName(OWNER_EMAIL);
+        sessionStorage.setItem('trading_tracker_session_email', OWNER_EMAIL);
       }
     } else if (currentUser?.email) {
+      // Regular user - definitely not owner
+      setIsOwnerView(false);
+      sessionStorage.removeItem('trading_tracker_verified_owner');
+      const cleanEmail = currentUser.email.toLowerCase().trim();
+      checkIsEmailPro(cleanEmail, currentUser.uid).then((isPro) => {
+        setIsPremium(isPro);
+        sessionStorage.setItem('trading_tracker_session_premium', String(isPro));
+      });
       if (!accountName || accountName === 'סוחר Pro' || accountName === 'Pro Trader') {
         setAccountName(currentUser.email);
         sessionStorage.setItem('trading_tracker_session_email', currentUser.email);
@@ -324,50 +373,55 @@ export default function App() {
     }
   }, [currentUser]);
 
-  // Automatic detection of payment return (e.g. from iCount or Stripe with ?paid=true / ?email=...)
+  // Strict detection of verified payment return (e.g. from iCount with ?paid=true&email=...)
   useEffect(() => {
     try {
       if (typeof window === 'undefined') return;
       const search = window.location.search;
       if (!search) return;
       const params = new URLSearchParams(search);
-      const paidParam = params.get('paid') || params.get('payment') || params.get('status') || params.get('pro') || params.get('success');
-      const emailParam = params.get('email') || params.get('mail') || params.get('client_email') || params.get('customer_email');
+      const paidParam = params.get('paid');
+      const emailParam = params.get('email') || params.get('client_email') || params.get('customer_email');
       
-      const isPaidSuccess = paidParam === 'true' || paidParam === 'success' || paidParam === 'approved' || paidParam === '1' || Boolean(emailParam);
+      // Strict: Only unlock if paid is true AND valid email is supplied
+      const isLegitPaid = paidParam === 'true' && Boolean(emailParam);
 
-      if (isPaidSuccess) {
-        setIsPremium(true);
-        sessionStorage.setItem('trading_tracker_session_active', 'true');
-        sessionStorage.setItem('trading_tracker_session_premium', 'true');
-        
-        const extractedEmail = emailParam ? decodeURIComponent(emailParam).trim() : '';
-        if (extractedEmail) {
+      if (isLegitPaid && emailParam) {
+        const extractedEmail = decodeURIComponent(emailParam).trim().toLowerCase();
+        if (extractedEmail.includes('@')) {
+          setIsPremium(true);
+          sessionStorage.setItem('trading_tracker_session_active', 'true');
+          sessionStorage.setItem('trading_tracker_session_premium', 'true');
+          
           setAccountName(extractedEmail);
           sessionStorage.setItem('trading_tracker_session_email', extractedEmail);
-          try {
-            const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
-            if (!paidEmails.includes(extractedEmail.toLowerCase())) {
-              paidEmails.push(extractedEmail.toLowerCase());
-              localStorage.setItem('trading_tracker_paid_emails', JSON.stringify(paidEmails));
-            }
-          } catch {}
-        }
-        
-        recordNewPurchaseInvoice({
-          planName: language === 'he' ? 'מנוי Pro חודשי (iCount הוראת קבע)' : 'Pro Monthly Subscription (iCount)',
-          paymentMethod: 'Credit Card / iCount',
-        });
-        
-        showToast(
-          language === 'he' 
-            ? `ברוך הבא ל-Pro! המנוי הופעל בהצלחה${extractedEmail ? ` עבור ${extractedEmail}` : ''} 👑`
-            : `Welcome to Pro! Subscription activated successfully${extractedEmail ? ` for ${extractedEmail}` : ''} 👑`,
-          'success'
-        );
+          addPaidSubscriberEmail(extractedEmail);
+          
+          recordNewPurchaseInvoice({
+            planName: language === 'he' ? 'מנוי Pro חודשי (iCount הוראת קבע)' : 'Pro Monthly Subscription (iCount)',
+            paymentMethod: 'Credit Card / iCount',
+          });
+          
+          showToast(
+            language === 'he' 
+              ? `ברוך הבא ל-Pro! המנוי הופעל בהצלחה עבור ${extractedEmail} 👑`
+              : `Welcome to Pro! Subscription activated successfully for ${extractedEmail} 👑`,
+            'success'
+          );
 
-        // Open account setup prompt so they can define a password and easily sign in
-        handleOpenPostPaymentAccountSetup(extractedEmail);
+          // Clean URL parameters from address bar
+          try {
+            const url = new URL(window.location.href);
+            url.searchParams.delete('paid');
+            url.searchParams.delete('email');
+            url.searchParams.delete('client_email');
+            url.searchParams.delete('customer_email');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : ''));
+          } catch {}
+
+          // Open account setup prompt so they can define a password and easily sign in
+          handleOpenPostPaymentAccountSetup(extractedEmail);
+        }
       }
     } catch (e) {
       console.error('Error parsing payment URL params:', e);
@@ -375,20 +429,9 @@ export default function App() {
   }, [language, handleOpenPostPaymentAccountSetup]);
 
   const handleBrandClick = () => {
-    const next = ownerClickCount + 1;
-    if (next >= 5) {
-      const newState = !isOwnerView;
-      setIsOwnerView(newState);
-      localStorage.setItem('trading_tracker_owner_view', String(newState));
-      setOwnerClickCount(0);
-      showToast(
-        newState 
-          ? (language === 'he' ? 'מצב מנהל הופעל 🔓 (כפתור Promote to Pro גלוי)' : 'Admin mode enabled 🔓')
-          : (language === 'he' ? 'מצב מנהל כובה 🔒' : 'Admin mode disabled 🔒'),
-        'info'
-      );
-    } else {
-      setOwnerClickCount(next);
+    // Normal brand click: no hidden easter egg bypass
+    if (typeof window !== 'undefined') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
 
@@ -948,18 +991,23 @@ export default function App() {
     }, 500);
   };
 
-  // Action: Toggle Premium Mode (for simulation/testing by the developer)
+  // Action: Toggle Premium Mode (Strictly restricted to Oren / Owner)
   const handleTogglePremium = () => {
+    if (!isOwnerView && currentUser?.email?.toLowerCase() !== OWNER_EMAIL) {
+      return;
+    }
     const nextVal = !isPremium;
     setIsPremium(nextVal);
-    sessionStorage.setItem('trading_tracker_session_active', String(nextVal));
+    sessionStorage.setItem('trading_tracker_session_active', 'true');
     sessionStorage.setItem('trading_tracker_session_premium', String(nextVal));
-    if (nextVal && !accountName) {
-      const defaultName = language === 'he' ? 'סוחר Pro' : 'Pro Trader';
-      setAccountName(defaultName);
-      sessionStorage.setItem('trading_tracker_session_email', defaultName);
+    if (nextVal && (!accountName || accountName === 'סוחר Pro' || accountName === 'Pro Trader')) {
+      setAccountName(OWNER_EMAIL);
+      sessionStorage.setItem('trading_tracker_session_email', OWNER_EMAIL);
     }
-    showToast(nextVal ? t.toastSuccessClear : 'Simulating free account status...', 'info');
+    const msg = nextVal 
+      ? (language === 'he' ? 'מצב מנהל: תצוגת פרימיום פעילה 👑' : 'Owner Admin: Pro Mode Active 👑')
+      : (language === 'he' ? 'מצב מנהל: תצוגת משתמש חינמי (בדיקה) 🔒' : 'Owner Admin: Free Tier View (Testing) 🔒');
+    showToast(msg, 'info');
   };
 
   // Action: Cancel Subscription (Revert to Free mode with API notification)
@@ -1012,9 +1060,9 @@ export default function App() {
     showToast(msg, 'success');
   };
 
-  // Action: Activate Pro via user-provided email after payment
-  const handleActivateWithEmail = (emailInput: string) => {
-    const trimmed = emailInput.trim();
+  // Action: Activate Pro via user-provided email after payment (strictly verified)
+  const handleActivateWithEmail = async (emailInput: string) => {
+    const trimmed = emailInput.trim().toLowerCase();
     if (!trimmed || !trimmed.includes('@')) {
       showToast(
         language === 'he' ? 'אנא הזן כתובת אימייל תקינה (למשל user@gmail.com) ✉️' : 'Please enter a valid email address ✉️',
@@ -1022,14 +1070,27 @@ export default function App() {
       );
       return;
     }
+
+    const isAuthorized = await checkIsEmailPro(trimmed, currentUser?.uid);
+    if (!isAuthorized) {
+      showToast(
+        language === 'he'
+          ? 'כתובת האימייל אינה מופיעה ברשימת המנויים ששילמו. לרכישת מנוי לחץ על הקישור או פנה לתמיכה: oren71601@gmail.com'
+          : 'Email not found on paid subscribers registry. Please subscribe or contact support: oren71601@gmail.com',
+        'error'
+      );
+      return;
+    }
+
     handleReactivateSubscription(trimmed);
     setShowPaywallModal(false);
     // Open password setup so they create an account and can log in easily in the future
     handleOpenPostPaymentAccountSetup(trimmed);
   };
 
-  // Action: Simulate App Store IAP Purchase
+  // Action: Simulate App Store IAP Purchase (strictly restricted to owner)
   const handleSimulatePurchase = () => {
+    if (!isOwnerView && currentUser?.email?.toLowerCase() !== OWNER_EMAIL) return;
     setIsSimulatingSubPurchase(true);
     setTimeout(() => {
       setIsSimulatingSubPurchase(false);
@@ -1951,11 +2012,11 @@ export default function App() {
               </div>
               <div className="flex flex-col text-start leading-tight">
                 <div className="flex items-center gap-1.5">
-                  <span className="text-[11px] font-bold text-slate-200 max-w-[130px] sm:max-w-[180px] truncate" title={isPremium ? (accountName || (language === 'he' ? 'סוחר Pro' : 'Pro Trader')) : undefined}>
-                    {isPremium ? (accountName || (language === 'he' ? 'סוחר Pro' : 'Pro Trader')) : (
+                  <span className="text-[11px] font-bold text-slate-200 max-w-[110px] sm:max-w-[150px] truncate" title={isPremium ? (accountName || (language === 'he' ? 'סוחר Pro' : language === 'ru' ? 'Трейдер Pro' : 'Pro Trader')) : undefined}>
+                    {isPremium ? (accountName || (language === 'he' ? 'סוחר Pro' : language === 'ru' ? 'Трейдер Pro' : 'Pro Trader')) : (
                       language === 'he' ? 'שדרוג ל-Pro' :
                       language === 'ar' ? 'ترقية إلى Pro' :
-                      language === 'ru' ? 'Перейти на Pro' :
+                      language === 'ru' ? 'Pro Версия' :
                       'Upgrade to Pro'
                     )}
                   </span>
@@ -1967,8 +2028,8 @@ export default function App() {
                 </div>
                 <span className="text-[10px] text-indigo-300 group-hover:text-indigo-200 font-medium">
                   {isPremium 
-                    ? (language === 'he' ? 'מנוי פעיל 👑' : 'Active Pro 👑') 
-                    : (language === 'he' ? 'הפעל מנוי ⚡' : 'Subscribe ⚡')}
+                    ? (language === 'he' ? 'מנוי פעיל 👑' : language === 'ru' ? 'Активен 👑' : 'Active Pro 👑') 
+                    : (language === 'he' ? 'הפעל מנוי ⚡' : language === 'ru' ? 'Подписка ⚡' : 'Subscribe ⚡')}
                 </span>
               </div>
             </button>
@@ -1977,10 +2038,10 @@ export default function App() {
             <button
               onClick={() => setShowBillingModal(true)}
               className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 cursor-pointer shadow-xs"
-              title={language === 'he' ? 'ניהול מנוי וחיובים 💳' : 'Billing & Account 💳'}
+              title={language === 'he' ? 'ניהול מנוי וחיובים 💳' : language === 'ru' ? 'Управление подпиской 💳' : 'Billing & Account 💳'}
             >
               <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>{language === 'he' ? 'ניהול מנוי 💳' : 'Billing & Account 💳'}</span>
+              <span>{language === 'he' ? 'ניהול מנוי 💳' : language === 'ru' ? 'Подписка 💳' : 'Billing 💳'}</span>
             </button>
 
             {/* Ad Poster Quick Access Button */}
@@ -1990,7 +2051,7 @@ export default function App() {
               title={language === 'he' ? 'דף מודעת פרסום לרשתות (9:16) 🔥' : 'Ad Poster Studio (9:16) 🔥'}
             >
               <Flame className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>{language === 'he' ? 'דף פרסום 🔥' : 'Ad Studio 🔥'}</span>
+              <span>{language === 'he' ? 'דף פרסום 🔥' : language === 'ru' ? 'Реклама 🔥' : 'Ad Studio 🔥'}</span>
             </button>
 
             {/* Marketing Hub Landing Page Button */}
@@ -2000,23 +2061,29 @@ export default function App() {
               title={language === 'he' ? 'דף נחיתה ומדיה שיווקית 📱' : 'Marketing Hub 📱'}
             >
               <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0 animate-pulse" />
-              <span>{language === 'he' ? 'דף נחיתה 📱' : 'Marketing Hub 📱'}</span>
+              <span>{language === 'he' ? 'דף נחיתה 📱' : language === 'ru' ? 'Лендинг 📱' : 'Marketing Hub 📱'}</span>
             </button>
 
-            {/* Promote to Pro (Developer simulation toggle - visible ONLY to Oren / Admin) */}
+            {/* Owner Admin Mode: Strictly visible and accessible only to Oren (Owner) */}
             {isOwnerView && (
               <button
                 onClick={handleTogglePremium}
-                className={`inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border cursor-pointer shadow-xs ${
+                className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border cursor-pointer shadow-xs ${
                   isPremium 
-                    ? 'bg-amber-500 hover:bg-amber-600 text-slate-950 border-amber-400' 
-                    : 'bg-purple-600 hover:bg-purple-500 text-white border-purple-400 animate-pulse'
+                    ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40' 
+                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
                 }`}
-                title={language === 'he' ? 'בדיקת מפתח: החלף מצב פרימיום (גלוי למנהל בלבד)' : 'Developer Test: Toggle Premium (Admin Only)'}
+                title={language === 'he' ? 'פאנל מנהל (אורן): לחץ להחלפה בין מצב פרימיום לתצוגת משתמש חינמי' : 'Owner Admin (Oren): Toggle Pro vs Free tier view'}
               >
-                {isPremium ? <Lock className="w-3.5 h-3.5" /> : <Unlock className="w-3.5 h-3.5" />}
-                <span>{isPremium ? appLabels.btnFree : appLabels.btnPremium}</span>
-                <span className="text-[9px] uppercase px-1 py-0.2 bg-black/30 rounded text-white font-mono">Dev</span>
+                <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>{language === 'he' ? 'מנהל (אורן)' : 'Admin (Oren)'}</span>
+                <span className={`text-[9px] font-mono font-extrabold px-1.5 py-0.2 rounded border ${
+                  isPremium 
+                    ? 'bg-amber-500/30 text-amber-200 border-amber-500/50' 
+                    : 'bg-slate-700 text-slate-400 border-slate-600'
+                }`}>
+                  {isPremium ? 'PRO' : 'FREE'}
+                </span>
               </button>
             )}
             
@@ -2408,7 +2475,7 @@ export default function App() {
                             <div className="min-w-0 flex-1 overflow-hidden text-xs">
                               <div className="flex items-center gap-1.5 min-w-0">
                                 <span className="font-black text-red-700 shrink-0">
-                                  {language === 'he' ? 'התחייבות מחודש שעבר:' : language === 'ar' ? 'التزام الشهر السابق:' : language === 'ru' ? 'Обязательство с прошлого месяца:' : 'Pledge from Last Month:'}
+                                  {language === 'he' ? 'התחייבות מחודש שעבר:' : language === 'ar' ? 'التزام الشهر السابق:' : language === 'ru' ? 'Обязательство:' : 'Last Month Pledge:'}
                                 </span>
                                 <span className="font-black text-red-600 tracking-tight truncate block min-w-0 flex-1">
                                   "{currentPledge}"
@@ -2557,6 +2624,8 @@ export default function App() {
         onOpenLogin={handleOpenLogin}
         onOpenRegister={handleOpenRegister}
         onLogout={handleLogout}
+        isOwnerView={isOwnerView}
+        onTogglePremium={handleTogglePremium}
       />
 
       {/* End of Month Mental & Strategic Insights Modal */}

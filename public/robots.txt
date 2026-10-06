@@ -1,0 +1,20 @@
+# Robots.txt for Smart Trading Journal
+# https://ais-pre-juwfkqu6ohgt5phxtc6xsh-443540178095.europe-west3.run.app/
+
+User-agent: *
+Allow: /
+
+# Googlebot specific directives
+User-agent: Googlebot
+Allow: /
+
+# Googlebot-Image
+User-agent: Googlebot-Image
+Allow: /
+
+# Bingbot
+User-agent: Bingbot
+Allow: /
+
+# Sitemap location
+Sitemap: https://ais-pre-juwfkqu6ohgt5phxtc6xsh-443540178095.europe-west3.run.app/sitemap.xml

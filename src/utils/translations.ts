@@ -82,7 +82,6 @@ export interface TranslationDictionary {
   paywallLockedTitle: string;
   paywallLockedDesc: string;
   paywallUnlockBtn: string;
-  devBypassBtn: string;
   
   paywallFeaturesTitle: string;
   paywallFeature1Title: string;
@@ -212,7 +211,6 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallLockedTitle: 'האנליטיקה המתקדמת נעולה 🔒',
     paywallLockedDesc: 'מעקב פילוח אחוזים, גרפי תנודתיות, חלוקת סטיות משמעת וציון פסיכולוגי מנטלי זמינים רק לחברי פרימיום.',
     paywallUnlockBtn: '⚡ שחרר פרימיום ב-$25 לחודש',
-    devBypassBtn: '(מפתחים: עקוף חסימה וסמלץ מנוי פעיל)',
     
     paywallFeaturesTitle: 'מה כלול בגרסת הפרימיום:',
     paywallFeature1Title: 'אנליטיקה וגרפים מתקדמים 📊',
@@ -339,7 +337,6 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallLockedTitle: 'Advanced Analytics is Locked 🔒',
     paywallLockedDesc: 'Performance percentage breakdowns, psychological metrics, rule discipline charts, and R-distribution are premium features.',
     paywallUnlockBtn: '⚡ Unlock Premium for $25/mo',
-    devBypassBtn: '(Developers: Bypass lock & simulate active subscription)',
 
     paywallFeaturesTitle: 'What is included in Premium:',
     paywallFeature1Title: 'Advanced Analytics & Metrics 📊',
@@ -466,7 +463,6 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallLockedTitle: 'التحليلات المتقدمة مقفلة 🔒',
     paywallLockedDesc: 'إحصائيات الأرباح المتقدمة، نسب الانضباط، توزيع المخاطرة R، والتقييم النفسي متاحة فقط لمشتركي باقة بريميوم.',
     paywallUnlockBtn: '⚡ افتح باقة بريميوم بـ 25$ شهرياً',
-    devBypassBtn: '(للمطورين: تخطي القفل ومحاكاة تفعيل الاشتراك)',
 
     paywallFeaturesTitle: 'ما تتضمنه الباقة المتميزة:',
     paywallFeature1Title: 'تحليلات ورسوم بيانية متقدمة 📊',
@@ -593,7 +589,6 @@ export const TRANSLATIONS: Record<LanguageCode, TranslationDictionary> = {
     paywallLockedTitle: 'Продвинутая Аналитика Заблокирована 🔒',
     paywallLockedDesc: 'Распределение прибыльности, психологическая статистика корреляции, учет дисциплины и ментальный календарь доступны только по премиум-подписке.',
     paywallUnlockBtn: '⚡ Разблокировать Премиум за $25/мес',
-    devBypassBtn: '(Разработчикам: Обойти блокировку и симулировать подписку)',
 
     paywallFeaturesTitle: 'Что входит в Премиум подписку:',
     paywallFeature1Title: 'Продвинутая Аналитика и Графики 📊',

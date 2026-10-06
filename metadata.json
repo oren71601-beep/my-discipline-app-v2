@@ -1,6 +1,6 @@
 {
   "name": "Smart Trading Journal",
-  "description": "An analytical trading journal for logging trades, mental states, discipline scores, and risk unit performance metrics.",
+  "description": "יומן מסחר חכם ואינטראקטיבי לניהול עסקאות, מעקב אחר משמעת עצמית, פסיכולוגיית מסחר, פילוח סטיות R ואנליטיקת ביצועים בזמן אמת לסוחרים בשוק ההון.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

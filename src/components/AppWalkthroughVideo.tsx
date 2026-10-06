@@ -23,13 +23,11 @@ import { LanguageCode } from '../utils/translations';
 interface AppWalkthroughVideoProps {
   language: LanguageCode;
   onOpenPaywall: () => void;
-  onTogglePremium: () => void;
 }
 
 export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
   language,
   onOpenPaywall,
-  onTogglePremium,
 }) => {
   const [isPlaying, setIsPlaying] = useState<boolean>(false);
   const [currentTime, setCurrentTime] = useState<number>(0);
@@ -116,7 +114,6 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
       ctaTitle: 'היומן המלא מוכן עבורך עכשיו',
       ctaSubtitle: 'לחץ על Subscribe עכשיו כדי לפתוח את לוח המעקב החודשי, הזנת העסקאות ולוח הניתוחים המנטלי.',
       btnUpgrade: 'הצטרף עכשיו ל-Pro • Subscribe 👑',
-      btnBypass: 'בדוק הדמיית פרימיום (לבדיקה בלבד)',
       fullscreenTip: 'מסך מלא',
       exitFullscreenTip: 'יציאה ממסך מלא',
       features: [
@@ -168,7 +165,6 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
       ctaTitle: 'Your Full Journal is Ready',
       ctaSubtitle: 'Click Subscribe now to unlock your monthly table, trade logging, and intelligent review.',
       btnUpgrade: 'Join Pro Now • Subscribe 👑',
-      btnBypass: 'Test Premium Simulation',
       fullscreenTip: 'Fullscreen',
       exitFullscreenTip: 'Exit Fullscreen',
       features: [
@@ -220,7 +216,6 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
       ctaTitle: 'دفترك الكامل جاهז للعمل الآن',
       ctaSubtitle: 'اشترك الآن في Pro لفتح جدول المتابعة الشهري، تسجيل الصفقات ولوحة التحليلات.',
       btnUpgrade: 'اشترك الآن في Pro • Subscribe 👑',
-      btnBypass: 'تجربة محاكاة المشتركين',
       fullscreenTip: 'ملء الشاشة',
       exitFullscreenTip: 'خروج من ملء الشاشة',
       features: [
@@ -272,7 +267,6 @@ export const AppWalkthroughVideo: React.FC<AppWalkthroughVideoProps> = ({
       ctaTitle: 'Ваш дневник готов к работе',
       ctaSubtitle: 'Оформите подписку Pro сейчас, чтобы разблокировать журнал, календарь и отчеты.',
       btnUpgrade: 'Оформить Pro сейчас • Subscribe 👑',
-      btnBypass: 'Проверить режим Premium',
       fullscreenTip: 'Во весь экран',
       exitFullscreenTip: 'Выйти из полноэкранного режима',
       features: [

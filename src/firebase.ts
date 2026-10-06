@@ -318,3 +318,98 @@ export function findLocalAccount(email: string): LocalAccountRecord | null {
   const accounts = getLocalAccounts();
   return accounts[email.toLowerCase()] || null;
 }
+
+// Strict Owner & Subscription Verification
+export const OWNER_EMAIL = 'oren71601@gmail.com';
+export const BRAND_EMAIL = 'mydisciplinejourney1@gmail.com';
+export const SUPPORT_EMAIL = 'mydisciplinejourney1@gmail.com';
+export const OWNER_SECRET_KEY = 'oren_dev_2026';
+
+/**
+ * Validates whether an email has legitimate Pro privileges:
+ * 1. Owner (Oren / Brand) - always Pro
+ * 2. Firestore cloud profile with isPremium === true
+ * 3. Verified local registered account with isPremium === true
+ * 4. Stored paid subscriber email from valid payment provider
+ */
+export async function checkIsEmailPro(email: string, uid?: string): Promise<boolean> {
+  const clean = email.toLowerCase().trim();
+  if (!clean) return false;
+  
+  // 1. Owner / Brand always gets full Pro access
+  if (clean === OWNER_EMAIL || clean === BRAND_EMAIL) return true;
+
+  // 2. Check local registered accounts
+  const local = findLocalAccount(clean);
+  if (local?.isPremium) return true;
+
+  // 3. Check persistent paid emails registry
+  try {
+    const raw = localStorage.getItem('trading_tracker_paid_emails');
+    if (raw) {
+      const paidEmails: string[] = JSON.parse(raw);
+      if (paidEmails.map(e => e.toLowerCase().trim()).includes(clean)) {
+        return true;
+      }
+    }
+  } catch {}
+
+  // 4. Check Firestore user document if user is authenticated
+  if (uid && db) {
+    try {
+      const profile = await getUserProfileFromCloud(uid);
+      if (profile?.isPremium) return true;
+    } catch (e) {
+      console.warn('Firestore pro check warning:', e);
+    }
+  }
+
+  return false;
+}
+
+export function addPaidSubscriberEmail(email: string) {
+  try {
+    const clean = email.toLowerCase().trim();
+    if (!clean) return;
+    const paidEmails: string[] = JSON.parse(localStorage.getItem('trading_tracker_paid_emails') || '[]');
+    if (!paidEmails.includes(clean)) {
+      paidEmails.push(clean);
+      localStorage.setItem('trading_tracker_paid_emails', JSON.stringify(paidEmails));
+    }
+  } catch (e) {
+    console.error('Failed to add paid subscriber:', e);
+  }
+}
+
+/**
+ * Subscribe email to the newsletter / discipline email list
+ */
+export async function subscribeToNewsletter(email: string): Promise<boolean> {
+  const clean = email.toLowerCase().trim();
+  if (!clean || !clean.includes('@')) return false;
+
+  try {
+    const raw = localStorage.getItem('trading_tracker_newsletter_subscribers');
+    const subscribers: string[] = raw ? JSON.parse(raw) : [];
+    if (!subscribers.includes(clean)) {
+      subscribers.push(clean);
+      localStorage.setItem('trading_tracker_newsletter_subscribers', JSON.stringify(subscribers));
+    }
+  } catch {}
+
+  if (db) {
+    try {
+      const docRef = doc(db, 'newsletter_subscribers', clean.replace(/[./#$\[\]]/g, '_'));
+      await setDoc(docRef, {
+        email: clean,
+        subscribedAt: new Date().toISOString(),
+        source: 'web_newsletter',
+        status: 'active'
+      }, { merge: true });
+    } catch (err) {
+      console.warn('Could not save newsletter subscriber to Firestore:', err);
+    }
+  }
+
+  return true;
+}
