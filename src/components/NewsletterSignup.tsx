@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Mail, CheckCircle2, Send, Sparkles, ShieldCheck, RefreshCw } from 'lucide-react';
 import { subscribeToNewsletter } from '../firebase';
 import { LanguageCode } from '../utils/translations';
+import { recordAnalyticsEvent } from '../utils/analyticsService';
 
 interface NewsletterSignupProps {
   language: LanguageCode;
@@ -40,6 +41,7 @@ export const NewsletterSignup: React.FC<NewsletterSignupProps> = ({
     setLoading(true);
     try {
       await subscribeToNewsletter(clean);
+      recordAnalyticsEvent('newsletter_signup', 'Newsletter subscription', clean);
       setIsSubscribed(true);
       localStorage.setItem('trading_tracker_newsletter_subscribed', 'true');
       localStorage.setItem('trading_tracker_newsletter_subscriber_email', clean);

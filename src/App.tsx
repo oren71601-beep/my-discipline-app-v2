@@ -48,7 +48,9 @@ import {
   UserPlus,
   LogOut,
   Flame,
-  Share2
+  Share2,
+  User as UserIcon,
+  Activity
 } from 'lucide-react';
 import { User, onAuthStateChanged, signOut } from 'firebase/auth';
 import { 
@@ -64,8 +66,11 @@ import {
   checkIsEmailPro,
   addPaidSubscriberEmail,
   OWNER_EMAIL,
-  OWNER_SECRET_KEY
+  OWNER_SECRET_KEY,
+  SUPPORT_EMAIL
 } from './firebase';
+import { AboutMeModal } from './components/AboutMeModal';
+import { OwnerAnalyticsModal } from './components/OwnerAnalyticsModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
@@ -73,6 +78,7 @@ import { AccountBillingModal } from './components/AccountBillingModal';
 import { AuthModal, AuthMode } from './components/AuthModal';
 import { LegalTermsModal, LegalTab } from './components/LegalTermsModal';
 import { CancelSubscriptionResponse, recordNewPurchaseInvoice } from './utils/billingService';
+import { trackAutomaticVisit, recordAnalyticsEvent } from './utils/analyticsService';
 import { 
   ICOUNT_CHECKOUT_URL,
   WHOP_CHECKOUT_URL, 
@@ -111,6 +117,7 @@ export default function App() {
     detectGeoLocation().then((loc) => {
       setGeoInfo(loc);
     });
+    trackAutomaticVisit(showLanding ? 'landing' : 'app');
   }, []);
 
   // Sync HTML document direction and language
@@ -224,6 +231,8 @@ export default function App() {
   const [showAdPoster, setShowAdPoster] = useState<boolean>(false);
   const [showWalkthroughVideo, setShowWalkthroughVideo] = useState<boolean>(false);
   const [showEndOfMonthModal, setShowEndOfMonthModal] = useState<boolean>(false);
+  const [showAboutMeModal, setShowAboutMeModal] = useState<boolean>(false);
+  const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
 
   // Cloud Sync & Multi-device persistence (Firebase Firestore & Auth)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -1075,13 +1084,14 @@ export default function App() {
     if (!isAuthorized) {
       showToast(
         language === 'he'
-          ? 'כתובת האימייל אינה מופיעה ברשימת המנויים ששילמו. לרכישת מנוי לחץ על הקישור או פנה לתמיכה: oren71601@gmail.com'
-          : 'Email not found on paid subscribers registry. Please subscribe or contact support: oren71601@gmail.com',
+          ? `כתובת האימייל אינה מופיעה ברשימת המנויים ששילמו. לרכישת מנוי לחץ על הקישור או פנה לתמיכה: ${SUPPORT_EMAIL}`
+          : `Email not found on paid subscribers registry. Please subscribe or contact support: ${SUPPORT_EMAIL}`,
         'error'
       );
       return;
     }
 
+    recordAnalyticsEvent('payment_success', 'Activated Pro subscription via verified email', trimmed);
     handleReactivateSubscription(trimmed);
     setShowPaywallModal(false);
     // Open password setup so they create an account and can log in easily in the future
@@ -1417,17 +1427,35 @@ export default function App() {
 
   if (showLanding) {
     return (
-      <LandingPage 
-        onLaunchApp={() => setShowLanding(false)} 
-        onOpenAdPoster={() => {
-          setShowLanding(false);
-          setShowAdPoster(true);
-        }}
-        language={language} 
-        isRtl={isRtl} 
-        isPremium={isPremium} 
-        onTogglePremium={handleTogglePremium} 
-      />
+      <>
+        <LandingPage 
+          onLaunchApp={() => setShowLanding(false)} 
+          onOpenAdPoster={() => {
+            setShowLanding(false);
+            setShowAdPoster(true);
+          }}
+          onOpenAboutMe={() => setShowAboutMeModal(true)}
+          onOpenAnalytics={() => setShowAnalyticsModal(true)}
+          isOwnerView={isOwnerView}
+          language={language} 
+          isRtl={isRtl} 
+          isPremium={isPremium} 
+          onTogglePremium={handleTogglePremium} 
+        />
+        <AboutMeModal
+          isOpen={showAboutMeModal}
+          onClose={() => setShowAboutMeModal(false)}
+          language={language}
+          onOpenNewsletter={() => setShowAboutMeModal(false)}
+        />
+        {isOwnerView && (
+          <OwnerAnalyticsModal
+            isOpen={showAnalyticsModal}
+            onClose={() => setShowAnalyticsModal(false)}
+            language={language}
+          />
+        )}
+      </>
     );
   }
 
@@ -1604,6 +1632,10 @@ export default function App() {
                       );
                       return;
                     }
+                    recordAnalyticsEvent(
+                      'checkout_intent', 
+                      geoInfo.isIsrael ? 'User clicked iCount checkout (IL)' : 'User clicked Whop checkout (Global)'
+                    );
                     showToast(
                       geoInfo.isIsrael
                         ? (language === 'he'
@@ -2064,7 +2096,28 @@ export default function App() {
               <span>{language === 'he' ? 'דף נחיתה 📱' : language === 'ru' ? 'Лендинг 📱' : 'Marketing Hub 📱'}</span>
             </button>
 
+            {/* About Me Story Button */}
+            <button
+              onClick={() => setShowAboutMeModal(true)}
+              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white border-slate-700 cursor-pointer shadow-xs"
+              title={language === 'he' ? 'מי אני – המסע שלי למשמעת 🧘‍♂️' : 'About Me – My Discipline Journey 🧘‍♂️'}
+            >
+              <UserIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+              <span>{language === 'he' ? 'מי אני 🧘‍♂️' : language === 'ru' ? 'Обо мне 🧘‍♂️' : 'About Me 🧘‍♂️'}</span>
+            </button>
+
             {/* Owner Admin Mode: Strictly visible and accessible only to Oren (Owner) */}
+            {isOwnerView && (
+              <button
+                onClick={() => setShowAnalyticsModal(true)}
+                className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 hover:from-indigo-900 hover:to-indigo-800 text-indigo-300 hover:text-white border-indigo-500/40 cursor-pointer shadow-md shadow-indigo-600/20 active:scale-95"
+                title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (כמה נכנסים, נרשמים ומשלמים) 📊' : 'Live Metrics & Conversion Analytics (Owner Only) 📊'}
+              >
+                <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
+              </button>
+            )}
+
             {isOwnerView && (
               <button
                 onClick={handleTogglePremium}
@@ -2597,6 +2650,17 @@ export default function App() {
 
           <button
             type="button"
+            onClick={() => setShowAboutMeModal(true)}
+            className="text-xs text-amber-600 hover:text-amber-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
+          >
+            <UserIcon className="w-3.5 h-3.5" />
+            <span>{language === 'he' ? 'מי אני – המסע שלי 🧘‍♂️' : 'About Me 🧘‍♂️'}</span>
+          </button>
+
+          <span className="text-slate-300">•</span>
+
+          <button
+            type="button"
             onClick={() => setShowBillingModal(true)}
             className="text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
           >
@@ -2688,6 +2752,23 @@ export default function App() {
           setShowPaywallModal(true);
         }}
       />
+
+      {/* About Me Story Modal */}
+      <AboutMeModal
+        isOpen={showAboutMeModal}
+        onClose={() => setShowAboutMeModal(false)}
+        language={language}
+        onOpenNewsletter={() => setShowLanding(true)}
+      />
+
+      {/* Owner Live Analytics & Measurement Dashboard - Strictly for Oren */}
+      {isOwnerView && (
+        <OwnerAnalyticsModal
+          isOpen={showAnalyticsModal}
+          onClose={() => setShowAnalyticsModal(false)}
+          language={language}
+        />
+      )}
 
     </div>
   );

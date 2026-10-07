@@ -29,7 +29,8 @@ import {
   Heart,
   BookOpen,
   ShieldCheck,
-  HelpCircle
+  HelpCircle,
+  Activity
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NewsletterSignup } from './NewsletterSignup';
@@ -48,20 +49,24 @@ interface LandingPageProps {
   onLaunchApp: () => void;
   onOpenAdPoster?: () => void;
   onOpenAboutMe?: () => void;
+  onOpenAnalytics?: () => void;
   language: 'he' | 'en' | 'ar' | 'ru';
   isRtl: boolean;
   isPremium: boolean;
   onTogglePremium?: () => void;
+  isOwnerView?: boolean;
 }
 
 export default function LandingPage({ 
   onLaunchApp, 
   onOpenAdPoster,
   onOpenAboutMe,
+  onOpenAnalytics,
   language, 
   isRtl, 
   isPremium, 
-  onTogglePremium 
+  onTogglePremium,
+  isOwnerView 
 }: LandingPageProps) {
   // Tabs for marketing tools: 'landing' (the main page), 'videos' (video simulator), 'images' (media center), 'ad_poster' (new vertical ad)
   const [activeTab, setActiveTab] = useState<'landing' | 'videos' | 'images' | 'ad_poster'>('landing');
@@ -377,6 +382,18 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
           </div>
 
           <div className="flex items-center gap-2">
+            {isOwnerView && onOpenAnalytics && (
+              <button
+                type="button"
+                onClick={onOpenAnalytics}
+                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 hover:from-indigo-900 hover:to-indigo-800 text-indigo-300 hover:text-white font-extrabold text-xs transition-all border border-indigo-500/40 flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
+                title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (גלוי רק לך) 📊' : 'Live Metrics Dashboard (Owner Only) 📊'}
+              >
+                <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+                <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
+              </button>
+            )}
+
             {onOpenAboutMe && (
               <button
                 type="button"
@@ -1182,11 +1199,39 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
 
       </main>
 
-      {/* Footer copyright */}
-      <footer className="border-t border-slate-900 bg-slate-950/40 py-6 px-4 text-center mt-12">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500 text-[10px] font-medium" dir="ltr">
-          <span>{currentTexts.creatorLabel}</span>
-          <span>Smart Trading Journal marketing panel. All rights reserved.</span>
+      {/* Footer copyright & trust links */}
+      <footer className="border-t border-slate-900 bg-slate-950/80 py-8 px-4 text-center mt-12">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400 text-xs font-medium" dir={isRtl ? 'rtl' : 'ltr'}>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <span className="font-bold text-slate-300">© 2026 Smart Trading Journal</span>
+            <span className="hidden sm:inline text-slate-700">•</span>
+            <span>{currentTexts.creatorLabel}</span>
+          </div>
+
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            {onOpenAboutMe && (
+              <button
+                type="button"
+                onClick={onOpenAboutMe}
+                className="hover:text-white transition-colors cursor-pointer flex items-center gap-1 font-bold text-amber-400"
+              >
+                <User className="w-3.5 h-3.5" />
+                <span>{language === 'he' ? 'מי אני – המסע שלי 🧘‍♂️' : 'About Me 🧘‍♂️'}</span>
+              </button>
+            )}
+
+            <a
+              href={`mailto:${SUPPORT_EMAIL}`}
+              className="hover:text-white transition-colors flex items-center gap-1 font-mono text-indigo-400 font-semibold"
+            >
+              <Mail className="w-3.5 h-3.5" />
+              <span>{SUPPORT_EMAIL}</span>
+            </a>
+          </div>
+
+          <div>
+            <SocialLinks language={language} variant="compact" />
+          </div>
         </div>
       </footer>
 
