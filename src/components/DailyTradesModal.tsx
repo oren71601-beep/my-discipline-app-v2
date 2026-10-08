@@ -139,10 +139,18 @@ export const DailyTradesModal: React.FC<DailyTradesModalProps> = ({
 
   // Calculations for summary bar
   const totalR = useMemo(() => {
-    const valid = trades.filter(t => t.resultR !== null && t.resultR !== undefined);
+    const valid = trades.filter(t => t.resultR !== null && t.resultR !== undefined && !isNaN(t.resultR));
     if (valid.length === 0) return null;
     const sum = valid.reduce((acc, t) => acc + (t.resultR || 0), 0);
     return Math.round(sum * 100) / 100;
+  }, [trades]);
+
+  // Average (weighted) R on days with more than 1 trade
+  const averageR = useMemo(() => {
+    const valid = trades.filter(t => t.resultR !== null && t.resultR !== undefined && !isNaN(t.resultR));
+    if (valid.length === 0) return null;
+    const sum = valid.reduce((acc, t) => acc + (t.resultR || 0), 0);
+    return Math.round((sum / valid.length) * 100) / 100;
   }, [trades]);
 
   const winCount = trades.filter(t => (t.resultR || 0) > 0).length;
@@ -233,8 +241,17 @@ export const DailyTradesModal: React.FC<DailyTradesModalProps> = ({
 
   // Save handler: compute daily row roll-up and sync
   const handleSaveAndSync = () => {
-    // 1. Calculate aggregated Day Result R
-    const finalTotalR = totalR;
+    // 1. Calculate aggregated Day Result R:
+    // When there is more than 1 trade on this day, use the weighted average (שיקלול / ממוצע) of R
+    const validTradesWithR = trades.filter(t => t.resultR !== null && t.resultR !== undefined && !isNaN(t.resultR));
+    let finalDayResultR: number | null = null;
+    if (validTradesWithR.length > 1) {
+      finalDayResultR = averageR;
+    } else if (validTradesWithR.length === 1) {
+      finalDayResultR = validTradesWithR[0].resultR;
+    } else {
+      finalDayResultR = day.resultR;
+    }
 
     // 2. Determine day mental state (if any trade had revenge or stressed, highlight it, otherwise calm)
     const hasRevenge = trades.some(t => t.mentalState === 'revenge');
@@ -268,7 +285,7 @@ export const DailyTradesModal: React.FC<DailyTradesModalProps> = ({
 
     onSaveDayTrades(day.day, {
       executed: trades.length > 0 ? 'Y' : 'N',
-      resultR: finalTotalR,
+      resultR: finalDayResultR,
       mentalState: aggregatedMental,
       deviation: aggregatedDeviation,
       confidence: avgConfidence,
@@ -323,18 +340,31 @@ export const DailyTradesModal: React.FC<DailyTradesModalProps> = ({
         {/* Daily Summary Bar */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 p-3 sm:px-6 sm:py-3 bg-slate-50 border-b border-slate-200 text-xs sm:text-sm">
           <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">
-            <span className="text-slate-500">{language === 'he' ? 'סה״כ תוצאה:' : 'Total Result:'}</span>
-            <span className={`font-bold font-mono text-sm sm:text-base ${
-              totalR === null 
-                ? 'text-slate-500' 
-                : totalR > 0 
-                  ? 'text-emerald-600' 
-                  : totalR < 0 
-                    ? 'text-rose-600' 
-                    : 'text-slate-700'
-            }`}>
-              {totalR === null ? '0.0 R' : `${totalR > 0 ? `+${totalR}` : totalR} R`}
+            <span className="text-slate-500">
+              {trades.length > 1 
+                ? (language === 'he' ? 'ממוצע R (משוקלל):' : 'Weighted Avg R:') 
+                : (language === 'he' ? 'תוצאת R:' : 'Result R:')}
             </span>
+            <div className="flex flex-col items-end">
+              <span className={`font-bold font-mono text-sm sm:text-base ${
+                (trades.length > 1 ? averageR : totalR) === null 
+                  ? 'text-slate-500' 
+                  : (trades.length > 1 ? (averageR || 0) : (totalR || 0)) > 0 
+                    ? 'text-emerald-600' 
+                    : (trades.length > 1 ? (averageR || 0) : (totalR || 0)) < 0 
+                      ? 'text-rose-600' 
+                      : 'text-slate-700'
+              }`}>
+                {trades.length > 1
+                  ? (averageR === null ? '0.0 R' : `${averageR > 0 ? `+${averageR}` : averageR} R`)
+                  : (totalR === null ? '0.0 R' : `${totalR > 0 ? `+${totalR}` : totalR} R`)}
+              </span>
+              {trades.length > 1 && totalR !== null && (
+                <span className="text-[10px] text-slate-400 font-mono">
+                  {language === 'he' ? `סה״כ: ${totalR > 0 ? `+${totalR}` : totalR}R` : `Total: ${totalR > 0 ? `+${totalR}` : totalR}R`}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="bg-white p-2.5 rounded-xl border border-slate-200 shadow-xs flex items-center justify-between">

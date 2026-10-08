@@ -6,10 +6,11 @@ import {
   DeviationOption,
 } from '../types';
 import { SlashOptionSelector } from './SlashOptionSelector';
-import { Star, CheckCircle2, ChevronDown, ChevronUp, Briefcase, TrendingUp } from 'lucide-react';
-import { useState, useEffect, useMemo } from 'react';
+import { Star, CheckCircle2, Briefcase, Plus } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { LanguageCode, TRANSLATIONS } from '../utils/translations';
 import { DailyTradesModal } from './DailyTradesModal';
+import { DayNoteModal } from './DayNoteModal';
 
 interface InteractiveTableProps {
   days: TradingDay[];
@@ -33,6 +34,7 @@ export function InteractiveTable({
   // Collapsed states to permit a highly responsive workspace
   const [collapsedDayNotes, setCollapsedDayNotes] = useState<Record<number, boolean>>({});
   const [dayForTradesModal, setDayForTradesModal] = useState<TradingDay | null>(null);
+  const [dayForNoteModal, setDayForNoteModal] = useState<TradingDay | null>(null);
 
   const t = TRANSLATIONS[language];
   const isRtl = language === 'he' || language === 'ar';
@@ -150,46 +152,6 @@ export function InteractiveTable({
     }
   }[language];
 
-  // Calculate cumulative R for each day of the month for the sparkline visualization
-  const cumulativeData = useMemo(() => {
-    let runningTotal = 0;
-    const map = new Map<number, { currentR: number | null; cumulativeR: number }>();
-    
-    // Sort days chronologically by day number
-    const sorted = [...days].sort((a, b) => a.day - b.day);
-    for (const d of sorted) {
-      if (d.executed === 'Y' && d.resultR !== null && !isNaN(d.resultR)) {
-        runningTotal += d.resultR;
-      }
-      map.set(d.day, {
-        currentR: d.executed === 'Y' ? d.resultR : null,
-        cumulativeR: Math.round(runningTotal * 100) / 100
-      });
-    }
-    return map;
-  }, [days]);
-
-  // Overall min and max cumulative R across the entire month for consistent relative scaling
-  const { minCumulative, maxCumulative, finalCumulative } = useMemo(() => {
-    let min = 0;
-    let max = 0;
-    let last = 0;
-    const sorted = [...days].sort((a, b) => a.day - b.day);
-    for (const d of sorted) {
-      const item = cumulativeData.get(d.day);
-      if (item) {
-        if (item.cumulativeR < min) min = item.cumulativeR;
-        if (item.cumulativeR > max) max = item.cumulativeR;
-        last = item.cumulativeR;
-      }
-    }
-    return { 
-      minCumulative: min, 
-      maxCumulative: max, 
-      finalCumulative: last 
-    };
-  }, [days, cumulativeData]);
-
   return (
     <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
       {/* Table Title and Instructions */}
@@ -214,24 +176,17 @@ export function InteractiveTable({
 
       {/* Main Responsive Container */}
       <div className="overflow-x-auto max-w-full">
-        <table className="w-full text-center border-collapse min-w-[820px]">
+        <table className="w-full text-center border-collapse min-w-[700px]">
           <thead>
             <tr className="bg-slate-50 text-slate-600 text-[11px] sm:text-xs font-semibold uppercase tracking-wider border-b border-slate-100">
-              <th className="py-2.5 px-2 w-12 shrink-0">{t.colDay}</th>
+              <th className="py-2.5 px-2 w-14 shrink-0">{t.colDay}</th>
               <th className="py-2.5 px-2 w-24 shrink-0">{subLabels.colExecutedEx}</th>
               <th className="py-2.5 px-2 border-r border-slate-100 w-44">{subLabels.colMentalEx}</th>
               <th className="py-2.5 px-2 border-r border-slate-100 w-44 text-rose-800">{subLabels.colNoEntryEx}</th>
               <th className="py-2.5 px-2 border-r border-slate-100 w-48 text-teal-800">{subLabels.colDeviationEx}</th>
               <th className="py-2.5 px-2 border-r border-slate-100 w-28 shrink-0">{t.colConfidence}</th>
               <th className="py-2.5 px-2 border-r border-slate-100 w-32 shrink-0">{t.colRating}</th>
-              <th className="py-2.5 px-2 border-r border-slate-100 w-28 shrink-0">{t.colResultR}</th>
-              <th className="py-2.5 px-2 border-r border-slate-100 w-32 shrink-0" title={language === 'he' ? 'גרף מגמה מצטבר של יחידות ה-R מתחילת החודש ועד ליום זה' : 'Cumulative R-units performance sparkline from month start up to this day'}>
-                <div className="flex items-center justify-center gap-1">
-                  <TrendingUp className="w-3.5 h-3.5 text-indigo-500" />
-                  <span>{subLabels.colTrend}</span>
-                </div>
-              </th>
-              <th className="py-2.5 px-2 border-r border-slate-100 w-20 shrink-0">{t.colActions}</th>
+              <th className="py-2.5 px-2 border-r border-slate-100 w-36 shrink-0">{t.colResultR}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -255,12 +210,12 @@ export function InteractiveTable({
               if (isLastSelected) rowBg += ' ring-2 ring-indigo-500/80 ring-inset bg-indigo-50/20';
 
               return (
-                <tr 
-                  key={row.day} 
-                  id={`day-row-${row.day}`}
-                  onClick={() => onSelectDay?.(row.day)}
-                  className={`transition-all duration-150 ${rowBg}`}
-                >
+                <React.Fragment key={row.day}>
+                  <tr 
+                    id={`day-row-${row.day}`}
+                    onClick={() => onSelectDay?.(row.day)}
+                    className={`transition-all duration-150 ${rowBg}`}
+                  >
                   
                   {/* Column 1: Day */}
                   <td className="py-3 px-3 font-bold text-slate-800 text-sm">
@@ -279,6 +234,33 @@ export function InteractiveTable({
                       }`}>
                         {subLabels.weekdayLabel ? `${subLabels.weekdayLabel} ${weekdayShort}` : weekdayShort}
                       </span>
+                      {row.notes ? (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDayForNoteModal(row);
+                          }}
+                          className="mt-1 inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200 hover:scale-105 transition-all cursor-pointer shadow-2xs"
+                          title={language === 'he' ? `לחץ לפתיחת ההערה: ${row.notes}` : `Click to view/edit note: ${row.notes}`}
+                        >
+                          <span>📝</span>
+                          <span className="truncate max-w-[42px]">{row.notes}</span>
+                        </button>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDayForNoteModal(row);
+                          }}
+                          className="mt-1 inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[9px] font-semibold text-slate-500 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-200 transition-all cursor-pointer"
+                          title={language === 'he' ? 'הוסף הערה ליום זה' : 'Add note for this day'}
+                        >
+                          <Plus className="w-2.5 h-2.5" />
+                          <span>{language === 'he' ? 'הערה' : 'Note'}</span>
+                        </button>
+                      )}
                     </div>
                   </td>
 
@@ -419,242 +401,135 @@ export function InteractiveTable({
                     )}
                   </td>
 
-                  {/* Column 8: Result (R) */}
+                  {/* Column 8: Result (R) - with weighted average calculation for days with > 1 trade */}
                   <td className="py-3 px-3 border-r border-slate-100">
-                    {isTradeExecuted ? (
-                      <div className="flex flex-col items-center gap-1">
-                        <div className="relative inline-flex items-center rounded-md max-w-[100px]">
-                          <input
-                            type="number"
-                            step="0.1"
-                            placeholder="0.0"
-                            value={row.resultR === null ? '' : row.resultR}
-                            onChange={(e) => {
-                              const val = e.target.value === '' ? null : parseFloat(e.target.value);
-                              onUpdateDay(row.day, 'resultR', val);
-                            }}
-                            className={`w-full px-2 py-1 text-sm bg-white border rounded text-center font-semibold focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[80px] ${
-                              (row.resultR || 0) > 0 
-                                ? 'border-emerald-300 text-emerald-700 bg-emerald-50/10' 
-                                : (row.resultR || 0) < 0 
-                                  ? 'border-rose-300 text-rose-700 bg-rose-50/10' 
-                                  : 'border-slate-300 text-slate-700'
-                            }`}
-                          />
-                          <span className="text-xs font-medium text-slate-400 absolute right-1 hover:pointer-events-none">R</span>
+                    {isTradeExecuted ? (() => {
+                      const validTrades = (row.trades || []).filter(
+                        (t) => t.resultR !== null && t.resultR !== undefined && !isNaN(t.resultR)
+                      );
+                      const hasMultipleTrades = validTrades.length > 1;
+
+                      // Weighting / average calculation of R only on days with more than 1 trade
+                      let effectiveR = row.resultR;
+                      let totalSumR = 0;
+                      if (hasMultipleTrades) {
+                        const sum = validTrades.reduce((acc, t) => acc + (t.resultR || 0), 0);
+                        totalSumR = Math.round(sum * 100) / 100;
+                        effectiveR = Math.round((sum / validTrades.length) * 100) / 100;
+                      } else if (validTrades.length === 1) {
+                        effectiveR = validTrades[0].resultR;
+                      }
+
+                      return (
+                        <div className="flex flex-col items-center gap-1">
+                          <div className="relative inline-flex items-center rounded-md max-w-[110px]">
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.0"
+                              value={effectiveR === null ? '' : effectiveR}
+                              onChange={(e) => {
+                                const val = e.target.value === '' ? null : parseFloat(e.target.value);
+                                onUpdateDay(row.day, 'resultR', val);
+                              }}
+                              className={`w-full px-2 py-1 text-sm bg-white border rounded text-center font-bold focus:outline-none focus:ring-1 focus:ring-indigo-500 max-w-[90px] ${
+                                (effectiveR || 0) > 0 
+                                  ? 'border-emerald-300 text-emerald-700 bg-emerald-50/20' 
+                                  : (effectiveR || 0) < 0 
+                                    ? 'border-rose-300 text-rose-700 bg-rose-50/20' 
+                                    : 'border-slate-300 text-slate-700'
+                              }`}
+                            />
+                            <span className="text-xs font-semibold text-slate-400 absolute right-1.5 pointer-events-none">R</span>
+                          </div>
+
+                          {/* Multiple trades indicator: displays average and opens breakdown */}
+                          {hasMultipleTrades ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDayForTradesModal(row);
+                              }}
+                              className="text-[10px] font-bold text-indigo-700 bg-indigo-50/90 hover:bg-indigo-100 border border-indigo-200 px-2 py-0.5 rounded-md cursor-pointer transition-colors flex items-center gap-1 shadow-2xs"
+                              title={
+                                language === 'he'
+                                  ? `שקלול ממוצע של ${validTrades.length} עסקאות ביום זה (סה״כ מצטבר: ${totalSumR > 0 ? `+${totalSumR}` : totalSumR}R)`
+                                  : `Weighted average of ${validTrades.length} trades today (Total: ${totalSumR > 0 ? `+${totalSumR}` : totalSumR}R)`
+                              }
+                            >
+                              <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" />
+                              <span>
+                                {language === 'he'
+                                  ? `ממוצע (${validTrades.length})`
+                                  : `Avg (${validTrades.length})`}
+                              </span>
+                            </button>
+                          ) : row.trades && row.trades.length === 1 ? (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setDayForTradesModal(row);
+                              }}
+                              className="text-[10px] font-semibold text-slate-500 hover:text-indigo-600 hover:underline cursor-pointer"
+                              title={language === 'he' ? 'פירוט עסקה יחידה' : 'Single trade breakdown'}
+                            >
+                              <span>{language === 'he' ? 'עסקה 1' : '1 Trade'}</span>
+                            </button>
+                          ) : null}
                         </div>
-                        {row.trades && row.trades.length > 0 && (
-                          <button
-                            type="button"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setDayForTradesModal(row);
-                            }}
-                            className="text-[10px] font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer flex items-center gap-0.5"
-                            title={language === 'he' ? 'מחושב מתוך פירוט העסקאות' : 'Calculated from trades'}
-                          >
-                            <span>{language === 'he' ? `מחושב (${row.trades.length})` : `Calc (${row.trades.length})`}</span>
-                          </button>
-                        )}
-                      </div>
-                    ) : isTradeMissed ? (
+                      );
+                    })() : isTradeMissed ? (
                       <span className="text-slate-400 text-xs font-mono">0 R</span>
                     ) : (
                       <span className="text-slate-300 text-xs">-</span>
                     )}
                   </td>
-
-                  {/* Column 9: Cumulative Sparkline */}
-                  <td className="py-2 px-2 border-r border-slate-100 text-center">
-                    {(() => {
-                      const dayCumul = cumulativeData.get(row.day);
-                      const currentCumulR = dayCumul ? dayCumul.cumulativeR : 0;
-                      
-                      // Build history points from day 1 up to current row.day
-                      const historyPoints: { day: number; r: number }[] = [];
-                      for (const d of days) {
-                        if (d.day <= row.day) {
-                          const info = cumulativeData.get(d.day);
-                          if (info) {
-                            historyPoints.push({ day: d.day, r: info.cumulativeR });
-                          }
-                        }
-                      }
-                      historyPoints.sort((a, b) => a.day - b.day);
-
-                      const hasAnyActivitySoFar = historyPoints.some((p) => p.r !== 0);
-
-                      // Sparkline SVG dimensions
-                      const width = 84;
-                      const height = 24;
-                      const padding = 3;
-                      const innerW = width - padding * 2;
-                      const innerH = height - padding * 2;
-
-                      // Use consistent scale with baseline at zero
-                      const minVal = Math.min(0, minCumulative);
-                      const maxVal = Math.max(0, maxCumulative);
-                      const range = maxVal - minVal > 0.01 ? maxVal - minVal : 1;
-
-                      const zeroY = height - padding - ((0 - minVal) / range) * innerH;
-
-                      let pointsString = '';
-                      let lastX = padding;
-                      let lastY = zeroY;
-
-                      if (historyPoints.length > 0) {
-                        const totalDaysSpan = Math.max(1, days.length - 1);
-                        pointsString = historyPoints.map((pt) => {
-                          const x = padding + ((pt.day - 1) / totalDaysSpan) * innerW;
-                          const y = height - padding - ((pt.r - minVal) / range) * innerH;
-                          lastX = x;
-                          lastY = y;
-                          return `${x.toFixed(1)},${y.toFixed(1)}`;
-                        }).join(' ');
-                      }
-
-                      const isPositive = currentCumulR >= 0;
-                      const strokeColor = !hasAnyActivitySoFar
-                        ? '#cbd5e1'
-                        : isPositive
-                          ? '#10b981' // emerald-500
-                          : '#f43f5e'; // rose-500
-                      const fillColor = !hasAnyActivitySoFar
-                        ? 'transparent'
-                        : isPositive
-                          ? 'rgba(16, 185, 129, 0.12)'
-                          : 'rgba(244, 63, 94, 0.12)';
-
-                      const areaString = historyPoints.length > 1
-                        ? `${pointsString} ${lastX.toFixed(1)},${zeroY.toFixed(1)} ${padding.toFixed(1)},${zeroY.toFixed(1)}`
-                        : '';
-
-                      return (
-                        <div 
-                          className="flex flex-col items-center justify-center gap-0.5 select-none py-0.5 group/sparkline cursor-help"
-                          title={
-                            language === 'he'
-                              ? `יום ${row.day}: תוצאה מצטברת ${currentCumulR > 0 ? '+' : ''}${currentCumulR.toFixed(1)}R`
-                              : `Day ${row.day}: Cumulative ${currentCumulR > 0 ? '+' : ''}${currentCumulR.toFixed(1)}R`
-                          }
-                        >
-                          <svg 
-                            width={width} 
-                            height={height} 
-                            className="overflow-visible block drop-shadow-xs"
-                          >
-                            {/* Zero baseline */}
-                            <line 
-                              x1={padding} 
-                              y1={zeroY} 
-                              x2={width - padding} 
-                              y2={zeroY} 
-                              stroke="#e2e8f0" 
-                              strokeWidth="1" 
-                              strokeDasharray="2,2" 
-                            />
-
-                            {/* Shaded Area under/above curve */}
-                            {areaString && (
-                              <polygon 
-                                points={areaString} 
-                                fill={fillColor} 
-                              />
-                            )}
-
-                            {/* Polyline path */}
-                            {pointsString && (
-                              <polyline
-                                fill="none"
-                                stroke={strokeColor}
-                                strokeWidth="1.75"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                points={pointsString}
-                              />
-                            )}
-
-                            {/* Current Day point dot */}
-                            {hasAnyActivitySoFar && (
-                              <circle 
-                                cx={lastX} 
-                                cy={lastY} 
-                                r="2.5" 
-                                fill={strokeColor} 
-                                stroke="#ffffff" 
-                                strokeWidth="1"
-                                className="transition-all"
-                              />
-                            )}
-                          </svg>
-
-                          {/* Cumulative numerical badge */}
-                          <span className={`text-[10px] font-mono font-bold leading-none ${
-                            !hasAnyActivitySoFar
-                              ? 'text-slate-400'
-                              : isPositive
-                                ? 'text-emerald-600'
-                                : 'text-rose-600'
-                          }`}>
-                            {currentCumulR > 0 ? `+${currentCumulR.toFixed(1)}` : `${currentCumulR.toFixed(1)}`}R
-                          </span>
-                        </div>
-                      );
-                    })()}
-                  </td>
-
-                  {/* Column 10: Collapsible Actions & Notes */}
-                  <td className="py-3 px-3 border-r border-slate-100 text-center">
-                    <button
-                      type="button"
-                      onClick={() => toggleNotes(row.day)}
-                      className={`inline-flex items-center justify-center p-1.5 rounded-lg border transition-all cursor-pointer ${
-                        row.notes 
-                          ? 'bg-amber-50 border-amber-200 text-amber-700' 
-                          : 'bg-slate-50 border-slate-200 text-slate-400 hover:text-slate-700'
-                      }`}
-                      title={row.notes ? subLabels.addNoteTitle : subLabels.addNoteNone}
-                    >
-                      {collapsedDayNotes[row.day] ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </button>
-                  </td>
-
                 </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
 
-      {/* Expandable inline editor for row notes */}
-      {days.map((row) => {
-        if (!collapsedDayNotes[row.day]) return null;
-        return (
-          <div 
-            key={`note-editor-${row.day}`}
-            className="bg-amber-50/40 p-4 border-t border-slate-100 flex flex-col sm:flex-row items-start sm:items-center gap-3"
-          >
-            <div className="flex items-center gap-1.5 text-xs text-amber-800 font-medium">
-              <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
-              <span>{subLabels.noteLabel} #{row.day}:</span>
-            </div>
-            <input
-              type="text"
-              placeholder={subLabels.notePlaceholder}
-              value={row.notes || ''}
-              onChange={(e) => onUpdateDay(row.day, 'notes', e.target.value)}
-              className="flex-1 w-full px-3 py-1.5 text-sm bg-white border border-amber-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-amber-500 placeholder:text-slate-400 text-slate-700"
-            />
-            <button
-              type="button"
-              onClick={() => toggleNotes(row.day)}
-              className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1.5 rounded-md self-end cursor-pointer"
-            >
-              {subLabels.noteCloseBtn}
-            </button>
-          </div>
-        );
-      })}
+                {/* Inline expandable notes row directly under this day */}
+                {collapsedDayNotes[row.day] && (
+                  <tr className="bg-amber-50/70 border-b border-amber-200/60 animate-in fade-in duration-150">
+                    <td colSpan={8} className="p-3 text-right">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+                        <div className="flex items-center gap-1.5 text-xs text-amber-800 font-bold shrink-0">
+                          <CheckCircle2 className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>{subLabels.noteLabel} #{row.day}:</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder={subLabels.notePlaceholder}
+                          value={row.notes || ''}
+                          onChange={(e) => onUpdateDay(row.day, 'notes', e.target.value)}
+                          className="flex-1 w-full px-3 py-1.5 text-sm bg-white border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-500 placeholder:text-slate-400 text-slate-700"
+                        />
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => setDayForNoteModal(row)}
+                            className="text-xs bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-2.5 py-1 rounded-md cursor-pointer font-medium"
+                          >
+                            {language === 'he' ? 'עריכה מלאה 📝' : 'Full edit 📝'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleNotes(row.day)}
+                            className="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-2.5 py-1 rounded-md cursor-pointer"
+                          >
+                            {subLabels.noteCloseBtn}
+                          </button>
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                )}
+              </React.Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
 
       {/* 1-10 Daily Trades Modal */}
       {dayForTradesModal && (
@@ -668,6 +543,22 @@ export function InteractiveTable({
           onSaveDayTrades={(dayNum, updatedDay) => {
             onUpdateDay(dayNum, updatedDay);
             setDayForTradesModal(null);
+          }}
+        />
+      )}
+
+      {/* Dedicated Day Note Modal */}
+      {dayForNoteModal && (
+        <DayNoteModal
+          isOpen={Boolean(dayForNoteModal)}
+          day={dayForNoteModal}
+          selectedYear={selectedYear}
+          selectedMonth={selectedMonth}
+          language={language}
+          onClose={() => setDayForNoteModal(null)}
+          onSaveNote={(dayNum, noteText) => {
+            onUpdateDay(dayNum, 'notes', noteText);
+            setDayForNoteModal(null);
           }}
         />
       )}

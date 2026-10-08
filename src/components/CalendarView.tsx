@@ -444,8 +444,12 @@ export function CalendarView({
                       <span className="text-[11px] text-indigo-700">
                         {editingDay.trades && editingDay.trades.length > 0
                           ? (language === 'he' 
-                              ? `רשומות ${editingDay.trades.length} עסקאות (סה״כ: ${editingDay.resultR ?? 0}R)` 
-                              : `${editingDay.trades.length} trades logged (Total: ${editingDay.resultR ?? 0}R)`)
+                              ? (editingDay.trades.length > 1 
+                                  ? `רשומות ${editingDay.trades.length} עסקאות (ממוצע משוקלל: ${editingDay.resultR ?? 0}R)` 
+                                  : `רשומה עסקה 1 (${editingDay.resultR ?? 0}R)`)
+                              : (editingDay.trades.length > 1 
+                                  ? `${editingDay.trades.length} trades logged (Avg: ${editingDay.resultR ?? 0}R)` 
+                                  : `1 trade logged (${editingDay.resultR ?? 0}R)`))
                           : (language === 'he' 
                               ? 'הזן פרמטרים נפרדים (נכס, R, מצב מנטלי ומשמעת) לכל עסקה' 
                               : 'Log individual metrics (asset, R, mindset, discipline) for each trade')}
