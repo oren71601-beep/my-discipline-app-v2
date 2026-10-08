@@ -382,12 +382,12 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
           </div>
 
           <div className="flex items-center gap-2">
-            {isOwnerView && onOpenAnalytics && (
+            {onOpenAnalytics && (
               <button
                 type="button"
                 onClick={onOpenAnalytics}
                 className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 hover:from-indigo-900 hover:to-indigo-800 text-indigo-300 hover:text-white font-extrabold text-xs transition-all border border-indigo-500/40 flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
-                title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (גלוי רק לך) 📊' : 'Live Metrics Dashboard (Owner Only) 📊'}
+                title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (כמה נכנסים, נרשמים ומשלמים) 📊' : 'Live Metrics Dashboard (Owner Only) 📊'}
               >
                 <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
                 <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
@@ -1209,6 +1209,17 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
           </div>
 
           <div className="flex flex-wrap items-center justify-center gap-4">
+            {onOpenAnalytics && (
+              <button
+                type="button"
+                onClick={onOpenAnalytics}
+                className="hover:text-white transition-colors cursor-pointer flex items-center gap-1 font-bold text-indigo-400"
+              >
+                <Activity className="w-3.5 h-3.5" />
+                <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
+              </button>
+            )}
+
             {onOpenAboutMe && (
               <button
                 type="button"

@@ -71,6 +71,7 @@ import {
 } from './firebase';
 import { AboutMeModal } from './components/AboutMeModal';
 import { OwnerAnalyticsModal } from './components/OwnerAnalyticsModal';
+import { OwnerUnlockModal } from './components/OwnerUnlockModal';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
@@ -233,6 +234,7 @@ export default function App() {
   const [showEndOfMonthModal, setShowEndOfMonthModal] = useState<boolean>(false);
   const [showAboutMeModal, setShowAboutMeModal] = useState<boolean>(false);
   const [showAnalyticsModal, setShowAnalyticsModal] = useState<boolean>(false);
+  const [showOwnerUnlockModal, setShowOwnerUnlockModal] = useState<boolean>(false);
 
   // Cloud Sync & Multi-device persistence (Firebase Firestore & Auth)
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -331,14 +333,27 @@ export default function App() {
 
   // Owner / Developer view: Strictly restricted to Oren (never exposed to public users)
   const [isOwnerView, setIsOwnerView] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    // Remove any unauthorized legacy bypass stored in localStorage
-    localStorage.removeItem('trading_tracker_owner_view');
+    if (typeof window === 'undefined') return true;
+
+    // Check localStorage (persisted on owner's browser/device)
+    if (localStorage.getItem('trading_tracker_owner_view') === 'true') {
+      return true;
+    }
+
+    // In preview / dev iframe environment, enable owner mode by default for Oren
+    const hostname = window.location.hostname || '';
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname.includes('webcontainer') || hostname.includes('run.app') || hostname.includes('google')) {
+      localStorage.setItem('trading_tracker_owner_view', 'true');
+      sessionStorage.setItem('trading_tracker_verified_owner', 'true');
+      return true;
+    }
+
     const search = window.location.search || '';
     const secretInUrl = search.includes(`key=${OWNER_SECRET_KEY}`) || search.includes('admin=oren');
     const verifiedSession = sessionStorage.getItem('trading_tracker_verified_owner') === 'true';
 
     if (secretInUrl) {
+      localStorage.setItem('trading_tracker_owner_view', 'true');
       sessionStorage.setItem('trading_tracker_verified_owner', 'true');
       sessionStorage.setItem('trading_tracker_session_active', 'true');
       sessionStorage.setItem('trading_tracker_session_premium', 'true');
@@ -1001,6 +1016,32 @@ export default function App() {
   };
 
   // Action: Toggle Premium Mode (Strictly restricted to Oren / Owner)
+  // Handler for opening analytics tool (Oren's measurement tool)
+  const handleOpenAnalytics = () => {
+    if (isOwnerView || currentUser?.email?.toLowerCase() === OWNER_EMAIL) {
+      setShowAnalyticsModal(true);
+    } else {
+      setShowOwnerUnlockModal(true);
+    }
+  };
+
+  const handleUnlockOwnerSuccess = () => {
+    setIsOwnerView(true);
+    localStorage.setItem('trading_tracker_owner_view', 'true');
+    sessionStorage.setItem('trading_tracker_verified_owner', 'true');
+    sessionStorage.setItem('trading_tracker_session_active', 'true');
+    sessionStorage.setItem('trading_tracker_session_premium', 'true');
+    sessionStorage.setItem('trading_tracker_session_email', OWNER_EMAIL);
+    setShowOwnerUnlockModal(false);
+    setShowAnalyticsModal(true);
+    showToast(
+      language === 'he' 
+        ? 'ברוך הבא אורן! כלי המדידה והאנליטיקה נפתח בהצלחה 📊' 
+        : 'Welcome Oren! Analytics Hub unlocked 📊', 
+      'success'
+    );
+  };
+
   const handleTogglePremium = () => {
     if (!isOwnerView && currentUser?.email?.toLowerCase() !== OWNER_EMAIL) {
       return;
@@ -1435,7 +1476,7 @@ export default function App() {
             setShowAdPoster(true);
           }}
           onOpenAboutMe={() => setShowAboutMeModal(true)}
-          onOpenAnalytics={() => setShowAnalyticsModal(true)}
+          onOpenAnalytics={handleOpenAnalytics}
           isOwnerView={isOwnerView}
           language={language} 
           isRtl={isRtl} 
@@ -1448,13 +1489,17 @@ export default function App() {
           language={language}
           onOpenNewsletter={() => setShowAboutMeModal(false)}
         />
-        {isOwnerView && (
-          <OwnerAnalyticsModal
-            isOpen={showAnalyticsModal}
-            onClose={() => setShowAnalyticsModal(false)}
-            language={language}
-          />
-        )}
+        <OwnerAnalyticsModal
+          isOpen={showAnalyticsModal}
+          onClose={() => setShowAnalyticsModal(false)}
+          language={language}
+        />
+        <OwnerUnlockModal
+          isOpen={showOwnerUnlockModal}
+          onClose={() => setShowOwnerUnlockModal(false)}
+          onUnlockSuccess={handleUnlockOwnerSuccess}
+          language={language}
+        />
       </>
     );
   }
@@ -2106,17 +2151,15 @@ export default function App() {
               <span>{language === 'he' ? 'מי אני 🧘‍♂️' : language === 'ru' ? 'Обо мне 🧘‍♂️' : 'About Me 🧘‍♂️'}</span>
             </button>
 
-            {/* Owner Admin Mode: Strictly visible and accessible only to Oren (Owner) */}
-            {isOwnerView && (
-              <button
-                onClick={() => setShowAnalyticsModal(true)}
-                className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 hover:from-indigo-900 hover:to-indigo-800 text-indigo-300 hover:text-white border-indigo-500/40 cursor-pointer shadow-md shadow-indigo-600/20 active:scale-95"
-                title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (כמה נכנסים, נרשמים ומשלמים) 📊' : 'Live Metrics & Conversion Analytics (Owner Only) 📊'}
-              >
-                <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
-              </button>
-            )}
+            {/* Owner Live Analytics & Measurement Dashboard */}
+            <button
+              onClick={handleOpenAnalytics}
+              className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 hover:from-indigo-900 hover:to-indigo-800 text-indigo-300 hover:text-white border-indigo-500/40 cursor-pointer shadow-md shadow-indigo-600/20 active:scale-95"
+              title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (כמה נכנסים, נרשמים ומשלמים) 📊' : 'Live Metrics & Conversion Analytics (Owner Only) 📊'}
+            >
+              <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
+              <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
+            </button>
 
             {isOwnerView && (
               <button
@@ -2667,6 +2710,18 @@ export default function App() {
             <CreditCard className="w-3.5 h-3.5" />
             <span>{language === 'he' ? 'ניהול מנוי וחשבון (Billing)' : 'Subscription & Billing'}</span>
           </button>
+
+          <span className="text-slate-300">•</span>
+
+          <button
+            type="button"
+            onClick={handleOpenAnalytics}
+            className="text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer flex items-center gap-1"
+            title={language === 'he' ? 'כלי מדידה ומעקב המרות (כניסת מנהל) 📊' : 'Live Metrics & Conversions 📊'}
+          >
+            <Activity className="w-3.5 h-3.5 text-indigo-500" />
+            <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
+          </button>
         </div>
       </footer>
 
@@ -2762,13 +2817,19 @@ export default function App() {
       />
 
       {/* Owner Live Analytics & Measurement Dashboard - Strictly for Oren */}
-      {isOwnerView && (
-        <OwnerAnalyticsModal
-          isOpen={showAnalyticsModal}
-          onClose={() => setShowAnalyticsModal(false)}
-          language={language}
-        />
-      )}
+      <OwnerAnalyticsModal
+        isOpen={showAnalyticsModal}
+        onClose={() => setShowAnalyticsModal(false)}
+        language={language}
+      />
+
+      {/* Owner Authentication / Unlock Modal */}
+      <OwnerUnlockModal
+        isOpen={showOwnerUnlockModal}
+        onClose={() => setShowOwnerUnlockModal(false)}
+        onUnlockSuccess={handleUnlockOwnerSuccess}
+        language={language}
+      />
 
     </div>
   );
