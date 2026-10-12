@@ -72,6 +72,7 @@ import {
 import { AboutMeModal } from './components/AboutMeModal';
 import { OwnerAnalyticsModal } from './components/OwnerAnalyticsModal';
 import { OwnerUnlockModal } from './components/OwnerUnlockModal';
+import { HeaderNavMenu } from './components/HeaderNavMenu';
 import { CloudSyncModal } from './components/CloudSyncModal';
 import { EndOfMonthInsightsModal } from './components/EndOfMonthInsightsModal';
 import { LanguageCode, TRANSLATIONS, LANGUAGES } from './utils/translations';
@@ -1456,7 +1457,7 @@ export default function App() {
     }
   }[language];
 
-  if (showAdPoster) {
+  if (showAdPoster && isOwnerView) {
     return (
       <AdPosterPage 
         onBack={() => setShowAdPoster(false)} 
@@ -1472,8 +1473,10 @@ export default function App() {
         <LandingPage 
           onLaunchApp={() => setShowLanding(false)} 
           onOpenAdPoster={() => {
-            setShowLanding(false);
-            setShowAdPoster(true);
+            if (isOwnerView) {
+              setShowLanding(false);
+              setShowAdPoster(true);
+            }
           }}
           onOpenAboutMe={() => setShowAboutMeModal(true)}
           onOpenAnalytics={handleOpenAnalytics}
@@ -2111,105 +2114,24 @@ export default function App() {
               </div>
             </button>
 
-            {/* Billing & Account Button */}
-            <button
-              onClick={() => setShowBillingModal(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-emerald-400 hover:text-emerald-300 border-slate-700 cursor-pointer shadow-xs"
-              title={language === 'he' ? 'ניהול מנוי וחיובים 💳' : language === 'ru' ? 'Управление подпиской 💳' : 'Billing & Account 💳'}
-            >
-              <CreditCard className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>{language === 'he' ? 'ניהול מנוי 💳' : language === 'ru' ? 'Подписка 💳' : 'Billing 💳'}</span>
-            </button>
-
-            {/* Ad Poster Quick Access Button */}
-            <button
-              onClick={() => setShowAdPoster(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 border-emerald-500/30 cursor-pointer shadow-xs active:scale-95 shadow-emerald-500/10"
-              title={language === 'he' ? 'דף מודעת פרסום לרשתות (9:16) 🔥' : 'Ad Poster Studio (9:16) 🔥'}
-            >
-              <Flame className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span>{language === 'he' ? 'דף פרסום 🔥' : language === 'ru' ? 'Реклама 🔥' : 'Ad Studio 🔥'}</span>
-            </button>
-
-            {/* Marketing Hub Landing Page Button */}
-            <button
-              onClick={() => setShowLanding(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-indigo-300 hover:text-white border-slate-700 cursor-pointer shadow-xs"
-              title={language === 'he' ? 'דף נחיתה ומדיה שיווקית 📱' : 'Marketing Hub 📱'}
-            >
-              <Globe className="w-3.5 h-3.5 text-indigo-400 shrink-0 animate-pulse" />
-              <span>{language === 'he' ? 'דף נחיתה 📱' : language === 'ru' ? 'Лендинг 📱' : 'Marketing Hub 📱'}</span>
-            </button>
-
-            {/* About Me Story Button */}
-            <button
-              onClick={() => setShowAboutMeModal(true)}
-              className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border bg-slate-800 hover:bg-slate-700 text-amber-300 hover:text-white border-slate-700 cursor-pointer shadow-xs"
-              title={language === 'he' ? 'מי אני – המסע שלי למשמעת 🧘‍♂️' : 'About Me – My Discipline Journey 🧘‍♂️'}
-            >
-              <UserIcon className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span>{language === 'he' ? 'מי אני 🧘‍♂️' : language === 'ru' ? 'Обо мне 🧘‍♂️' : 'About Me 🧘‍♂️'}</span>
-            </button>
-
-            {/* Owner Live Analytics & Measurement Dashboard */}
-            <button
-              onClick={handleOpenAnalytics}
-              className="inline-flex items-center gap-1.5 text-xs font-black px-3 py-2 rounded-xl transition-all border bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 hover:from-indigo-900 hover:to-indigo-800 text-indigo-300 hover:text-white border-indigo-500/40 cursor-pointer shadow-md shadow-indigo-600/20 active:scale-95"
-              title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (כמה נכנסים, נרשמים ומשלמים) 📊' : 'Live Metrics & Conversion Analytics (Owner Only) 📊'}
-            >
-              <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-              <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
-            </button>
-
-            {isOwnerView && (
-              <button
-                onClick={handleTogglePremium}
-                className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl transition-all border cursor-pointer shadow-xs ${
-                  isPremium 
-                    ? 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border-amber-500/40' 
-                    : 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700'
-                }`}
-                title={language === 'he' ? 'פאנל מנהל (אורן): לחץ להחלפה בין מצב פרימיום לתצוגת משתמש חינמי' : 'Owner Admin (Oren): Toggle Pro vs Free tier view'}
-              >
-                <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                <span>{language === 'he' ? 'מנהל (אורן)' : 'Admin (Oren)'}</span>
-                <span className={`text-[9px] font-mono font-extrabold px-1.5 py-0.2 rounded border ${
-                  isPremium 
-                    ? 'bg-amber-500/30 text-amber-200 border-amber-500/50' 
-                    : 'bg-slate-700 text-slate-400 border-slate-600'
-                }`}>
-                  {isPremium ? 'PRO' : 'FREE'}
-                </span>
-              </button>
-            )}
-            
-            {/* Language Selector */}
-            <div className="flex items-center gap-1.5 bg-slate-800 rounded-xl px-2.5 py-1.5 border border-slate-700">
-              <Globe className="w-4 h-4 text-slate-400 shrink-0" />
-              <select
-                value={language}
-                onChange={(e) => setLanguage(e.target.value as LanguageCode)}
-                className="bg-transparent border-none text-xs font-bold text-white focus:outline-none cursor-pointer"
-              >
-                {LANGUAGES.map(lang => (
-                  <option key={lang.code} value={lang.code} className="bg-slate-900 text-white">
-                    {lang.flag} {lang.name}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Prepopulate Sample Data Button - only for premium users */}
-            {isPremium && (
-              <button
-                onClick={handlePopulateSampleData}
-                className="inline-flex items-center gap-1.5 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold text-xs px-3.5 py-1.5 rounded-xl transition-all shadow-sm cursor-pointer"
-                title="Populate dynamic monthly simulation demo dataset"
-              >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>{appLabels.btnSimulate}</span>
-              </button>
-            )}
+            {/* Organized Dropdown Menu for All Extra Tools & Settings */}
+            <HeaderNavMenu
+              language={language}
+              onOpenBilling={() => setShowBillingModal(true)}
+              onOpenAdStudio={() => setShowAdPoster(true)}
+              onOpenMarketingHub={() => setShowLanding(true)}
+              onOpenAboutMe={() => setShowAboutMeModal(true)}
+              onOpenAnalytics={handleOpenAnalytics}
+              isOwnerView={isOwnerView}
+              isPremium={isPremium}
+              onTogglePremium={handleTogglePremium}
+              onPopulateSampleData={handlePopulateSampleData}
+              onChangeLanguage={(newLang) => setLanguage(newLang)}
+              currentUser={currentUser}
+              onLogout={handleLogout}
+              accountName={accountName}
+              btnSimulateLabel={appLabels.btnSimulate}
+            />
 
           </div>
         </div>

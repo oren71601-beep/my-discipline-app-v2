@@ -442,23 +442,25 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
             <span className="hidden sm:inline">{currentTexts.tabLanding}</span>
             <span className="sm:hidden">ראשי</span>
           </button>
-          <button
-            onClick={() => {
-              if (onOpenAdPoster) {
-                onOpenAdPoster();
-              } else {
-                setActiveTab('ad_poster');
-              }
-            }}
-            className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'ad_poster' 
-                ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' 
-                : 'text-emerald-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <Flame className="w-3.5 h-3.5 text-emerald-400" />
-            <span className="font-extrabold">מודעת פרסום 9:16 🔥</span>
-          </button>
+          {isOwnerView && (
+            <button
+              onClick={() => {
+                if (onOpenAdPoster) {
+                  onOpenAdPoster();
+                } else {
+                  setActiveTab('ad_poster');
+                }
+              }}
+              className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
+                activeTab === 'ad_poster' 
+                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' 
+                  : 'text-emerald-400 hover:text-white hover:bg-slate-900'
+              }`}
+            >
+              <Flame className="w-3.5 h-3.5 text-emerald-400" />
+              <span className="font-extrabold">מודעת פרסום 9:16 🔥</span>
+            </button>
+          )}
           <button
             onClick={() => setActiveTab('videos')}
             className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
@@ -520,19 +522,21 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
                     <ArrowLeft className="w-4 h-4 rotate-180" />
                   </button>
 
-                  <button
-                    onClick={() => {
-                      if (onOpenAdPoster) {
-                        onOpenAdPoster();
-                      } else {
-                        setActiveTab('ad_poster');
-                      }
-                    }}
-                    className="w-full sm:w-auto px-5 py-3.5 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-black rounded-2xl border border-emerald-500/40 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10"
-                  >
-                    <Flame className="w-4 h-4 text-emerald-400" />
-                    <span>דף מודעת פרסום 9:16 🔥</span>
-                  </button>
+                  {isOwnerView && (
+                    <button
+                      onClick={() => {
+                        if (onOpenAdPoster) {
+                          onOpenAdPoster();
+                        } else {
+                          setActiveTab('ad_poster');
+                        }
+                      }}
+                      className="w-full sm:w-auto px-5 py-3.5 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-black rounded-2xl border border-emerald-500/40 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10"
+                    >
+                      <Flame className="w-4 h-4 text-emerald-400" />
+                      <span>דף מודעת פרסום 9:16 🔥</span>
+                    </button>
+                  )}
 
                   <button
                     onClick={() => setActiveTab('videos')}
@@ -1086,7 +1090,7 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
                           <span>הורד תמונה אנכית 9:16 📥</span>
                         </button>
 
-                        {onOpenAdPoster && (
+                        {isOwnerView && onOpenAdPoster && (
                           <button
                             onClick={onOpenAdPoster}
                             className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
