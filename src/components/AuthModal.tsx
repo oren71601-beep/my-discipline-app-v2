@@ -138,12 +138,31 @@ export const AuthModal: React.FC<AuthModalProps> = ({
             authUser = await loginWithEmail(cleanEmail, cleanPass);
             isPro = await checkIsEmailPro(cleanEmail, authUser.uid);
           } catch (fbErr: any) {
-            // Check local fallback
-            const localAcc = findLocalAccount(cleanEmail);
-            if (localAcc && localAcc.passwordHash === cleanPass) {
-              isPro = localAcc.isPremium || (await checkIsEmailPro(cleanEmail));
+            // If user does not exist in Firebase yet (e.g. was previously offline or local only), auto-register
+            if (fbErr.code === 'auth/user-not-found' || fbErr.code === 'auth/invalid-credential') {
+              try {
+                authUser = await registerWithEmail(cleanEmail, cleanPass);
+                isPro = await checkIsEmailPro(cleanEmail, authUser.uid);
+                if (isPro && authUser) {
+                  await setUserSubscriptionInCloud(authUser.uid, cleanEmail, true);
+                }
+              } catch {
+                // Check local fallback if registration didn't succeed
+                const localAcc = findLocalAccount(cleanEmail);
+                if (localAcc && localAcc.passwordHash === cleanPass) {
+                  isPro = localAcc.isPremium || (await checkIsEmailPro(cleanEmail));
+                } else {
+                  throw fbErr;
+                }
+              }
             } else {
-              throw fbErr;
+              // Check local fallback
+              const localAcc = findLocalAccount(cleanEmail);
+              if (localAcc && localAcc.passwordHash === cleanPass) {
+                isPro = localAcc.isPremium || (await checkIsEmailPro(cleanEmail));
+              } else {
+                throw fbErr;
+              }
             }
           }
         } else {

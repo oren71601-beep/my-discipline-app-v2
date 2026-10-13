@@ -288,13 +288,17 @@ export default function App() {
   const handleAuthSuccess = (authEmail: string, authUser: User | null, isPro?: boolean) => {
     const userIsPro = Boolean(isPro || authEmail.toLowerCase() === 'oren71601@gmail.com');
 
-    // Store in sessionStorage so closing the tab ('X') disconnects session automatically
+    // Store in localStorage & sessionStorage for persistent cross-browser & tab access
+    localStorage.setItem('trading_tracker_user_email', authEmail);
+    localStorage.setItem('trading_tracker_session_active', 'true');
+    localStorage.setItem('trading_tracker_session_premium', userIsPro ? 'true' : 'false');
     sessionStorage.setItem('trading_tracker_session_active', 'true');
     sessionStorage.setItem('trading_tracker_session_email', authEmail);
     sessionStorage.setItem('trading_tracker_session_premium', userIsPro ? 'true' : 'false');
 
     if (authUser) {
       setCurrentUser(authUser);
+      migrateLocalDataToCloud(authUser.uid).catch(console.error);
     } else {
       setCurrentUser({
         email: authEmail,
@@ -568,25 +572,21 @@ export default function App() {
     window.dispatchEvent(new Event('goals_updated'));
   };
 
-  // 1. Firebase Auth listener: Session-scoped authentication (disconnects when tab is closed)
+  // 1. Firebase Auth listener: Persistent authentication across tabs & browsers
   useEffect(() => {
     if (!auth) return;
 
-    // If user closed the tab and returned freshly, ensure user starts logged out
-    const isSessionActive = sessionStorage.getItem('trading_tracker_session_active') === 'true';
-    if (!isSessionActive) {
-      if (auth.currentUser) {
-        signOut(auth).catch(() => {});
-      }
-      setCurrentUser(null);
-      setIsPremium(false);
-      setAccountName('');
-    }
-
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      const activeNow = sessionStorage.getItem('trading_tracker_session_active') === 'true';
-      if (user && activeNow) {
+      if (user) {
         setCurrentUser(user);
+        const userEmail = user.email || '';
+        if (userEmail) {
+          setAccountName(userEmail);
+          const isPro = await checkIsEmailPro(userEmail, user.uid);
+          setIsPremium(isPro);
+          localStorage.setItem('trading_tracker_user_email', userEmail);
+          localStorage.setItem('trading_tracker_session_active', 'true');
+        }
         setCloudSyncStatus('syncing');
         try {
           await migrateLocalDataToCloud(user.uid);
@@ -596,20 +596,23 @@ export default function App() {
           setCloudSyncStatus('error');
         }
       } else {
-        setCurrentUser(null);
-        setCloudSyncStatus('idle');
-        if (user && !activeNow) {
-          signOut(auth).catch(() => {});
+        const rememberedEmail = localStorage.getItem('trading_tracker_user_email');
+        if (rememberedEmail) {
+          const isPro = await checkIsEmailPro(rememberedEmail);
+          setIsPremium(isPro);
+          setAccountName(rememberedEmail);
+        } else {
+          setCurrentUser(null);
+          setCloudSyncStatus('idle');
         }
       }
     });
     return () => unsubscribe();
   }, []);
 
-  // Automatic Cloud Sync for Pro Subscribers (only runs within active logged-in session)
+  // Automatic Cloud Sync for Pro Subscribers if needed
   useEffect(() => {
-    const isSessionActive = sessionStorage.getItem('trading_tracker_session_active') === 'true';
-    if (isSessionActive && isPremium && isFirebaseConfigured && auth && !currentUser) {
+    if (isPremium && isFirebaseConfigured && auth && !currentUser) {
       autoSignInUser().then((user) => {
         if (user) {
           setCurrentUser(user);
@@ -627,16 +630,50 @@ export default function App() {
     setCloudSyncStatus('syncing');
     const unsubscribe = subscribeToMonthData(currentUser.uid, monthId, (cloudData) => {
       if (cloudData && Array.isArray(cloudData.days) && cloudData.days.length > 0) {
-        setDays(cloudData.days);
-        localStorage.setItem(`trading_tracker_data_${monthId}`, JSON.stringify(cloudData.days));
-        if (typeof cloudData.pledge === 'string') {
-          setCurrentPledge(cloudData.pledge);
-          localStorage.setItem(`trading_tracker_pledge_${monthId}`, cloudData.pledge);
+        const cloudHasActions = cloudData.days.some(
+          (d) => d.executed !== null || (d.notes && d.notes.trim().length > 0) || d.resultR !== null || (d.trades && d.trades.length > 0)
+        );
+
+        // Check local data
+        let localHasActions = false;
+        let localDays: TradingDay[] = [];
+        try {
+          const raw = localStorage.getItem(`trading_tracker_data_${monthId}`);
+          if (raw) {
+            localDays = JSON.parse(raw);
+            localHasActions = Array.isArray(localDays) && localDays.some(
+              (d) => d.executed !== null || (d.notes && d.notes.trim().length > 0) || d.resultR !== null || (d.trades && d.trades.length > 0)
+            );
+          }
+        } catch {}
+
+        // If cloud has actions OR local is empty: accept cloud data
+        if (cloudHasActions || !localHasActions) {
+          setDays(cloudData.days);
+          localStorage.setItem(`trading_tracker_data_${monthId}`, JSON.stringify(cloudData.days));
+          if (typeof cloudData.pledge === 'string') {
+            setCurrentPledge(cloudData.pledge);
+            localStorage.setItem(`trading_tracker_pledge_${monthId}`, cloudData.pledge);
+          }
+          if (typeof cloudData.goals === 'string') {
+            setMonthlyGoals(cloudData.goals);
+            localStorage.setItem(`trading_tracker_goals_${monthId}`, cloudData.goals);
+          }
+        } else if (localHasActions && !cloudHasActions) {
+          // Local has actual actions and cloud was empty: push local to cloud!
+          saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, localDays, currentPledge, monthlyGoals);
         }
-        if (typeof cloudData.goals === 'string') {
-          setMonthlyGoals(cloudData.goals);
-          localStorage.setItem(`trading_tracker_goals_${monthId}`, cloudData.goals);
-        }
+      } else {
+        // Cloud is empty for this month: check if local has data and push to cloud!
+        try {
+          const raw = localStorage.getItem(`trading_tracker_data_${monthId}`);
+          if (raw) {
+            const localDays = JSON.parse(raw);
+            if (Array.isArray(localDays) && localDays.length > 0) {
+              saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, localDays, currentPledge, monthlyGoals);
+            }
+          }
+        } catch {}
       }
       setCloudSyncStatus('synced');
     });
@@ -786,8 +823,9 @@ export default function App() {
   const saveToStorage = (updatedDays: TradingDay[]) => {
     const storageKey = `trading_tracker_data_${monthId}`;
     localStorage.setItem(storageKey, JSON.stringify(updatedDays));
-    if (currentUser) {
-      saveMonthToCloud(currentUser.uid, monthId, selectedYear, selectedMonth, updatedDays, currentPledge, monthlyGoals);
+    const activeUid = currentUser?.uid || auth?.currentUser?.uid;
+    if (activeUid) {
+      saveMonthToCloud(activeUid, monthId, selectedYear, selectedMonth, updatedDays, currentPledge, monthlyGoals);
     }
   };
 

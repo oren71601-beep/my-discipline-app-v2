@@ -13,7 +13,8 @@ import {
   LogOut,
   ExternalLink,
   ShieldCheck,
-  Check
+  Check,
+  Cloud
 } from 'lucide-react';
 import { LanguageCode, LANGUAGES } from '../utils/translations';
 import { User } from 'firebase/auth';
@@ -98,6 +99,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       aboutMeSub: 'הסיפור של אורן והמשמעת',
       billing: 'ניהול מנוי וחיובים (Billing)',
       billingSub: 'חשבוניות, כרטיס אשראי וביטול',
+      cloudSync: 'סנכרון ענן (Cloud Sync)',
+      cloudSyncSub: 'סנכרון נתונים בזמן אמת בין מכשירים',
       analytics: 'כלי מדידה ואנליטיקה',
       analyticsSub: 'כמה נכנסים, נרשמים ומשלמים',
       adminToggle: 'מצב מנהל (אורן)',
@@ -120,6 +123,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       aboutMeSub: 'Discipline journey story',
       billing: 'Subscription & Billing',
       billingSub: 'Invoices, cards & plan management',
+      cloudSync: 'Cloud Sync',
+      cloudSyncSub: 'Real-time sync between devices',
       analytics: 'Live Analytics & Metrics',
       analyticsSub: 'Traffic, signups & paying leads',
       adminToggle: 'Owner Admin (Oren)',
@@ -142,6 +147,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       aboutMeSub: 'قصة أورين والانضباط',
       billing: 'إدارة الاشتراك والفواتير',
       billingSub: 'الفواتير وإعدادات الدفع',
+      cloudSync: 'المزامنة السحابية',
+      cloudSyncSub: 'مزامنة البيانات بين الأجهزة',
       analytics: 'أدوات القياس والتحليلات',
       analyticsSub: 'الزيارات والتسجيلات والمشتركون',
       adminToggle: 'وضع المشرف (أورين)',
@@ -164,6 +171,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       aboutMeSub: 'История дисциплины Орена',
       billing: 'Управление подпиской (Billing)',
       billingSub: 'Счета, карта и тариф',
+      cloudSync: 'Облачная синхронизация',
+      cloudSyncSub: 'Синхронизация между устройствами',
       analytics: 'Аналитика и метрики',
       analyticsSub: 'Посетители, лиды и оплаты',
       adminToggle: 'Панель владельца (Орен)',

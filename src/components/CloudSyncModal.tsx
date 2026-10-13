@@ -14,7 +14,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { User } from 'firebase/auth';
-import { loginWithGoogle, loginWithEmail, registerWithEmail, logoutUser, isFirebaseConfigured } from '../firebase';
+import { loginWithGoogle, loginWithEmail, registerWithEmail, logoutUser, isFirebaseConfigured, migrateLocalDataToCloud } from '../firebase';
 import { LanguageCode } from '../utils/translations';
 
 interface CloudSyncModalProps {
@@ -210,6 +210,35 @@ export const CloudSyncModal: React.FC<CloudSyncModalProps> = ({
                   <li>{language === 'he' ? 'כל העסקאות, ההערות וההתחייבויות יופיעו אוטומטית!' : 'All trades, notes and goals sync automatically!'}</li>
                 </ol>
               </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  if (!currentUser) return;
+                  try {
+                    setLoading(true);
+                    await migrateLocalDataToCloud(currentUser.uid);
+                    onSuccessToast(
+                      language === 'he' 
+                        ? 'כל הנתונים המקומיים סונכרנו בהצלחה לענן! ☁️✓' 
+                        : 'All local data synced to cloud! ☁️✓'
+                    );
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setLoading(false);
+                  }
+                }}
+                disabled={loading}
+                className="w-full py-2.5 px-4 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer shadow-xs shadow-indigo-500/20 active:scale-95"
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                <span>
+                  {loading 
+                    ? (language === 'he' ? 'מסנכרן כעת...' : 'Syncing...') 
+                    : (language === 'he' ? 'סנכרן נתונים עכשיו לענן 🔄' : 'Sync All Data Now 🔄')}
+                </span>
+              </button>
 
               <button
                 type="button"

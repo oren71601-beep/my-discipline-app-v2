@@ -1,12 +1,43 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
+    // Helper function to check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Helper function to check if user is owner
+    function isOwner() {
+      return isAuthenticated() && (
+        request.auth.token.email == 'oren71601@gmail.com' ||
+        request.auth.token.email == 'mydisciplinejourney1@gmail.com'
+      );
+    }
+
+    // User private data & trading months
     match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if isAuthenticated() && request.auth.uid == userId;
 
       match /months/{monthId} {
-        allow read, write: if request.auth != null && request.auth.uid == userId;
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
       }
+    }
+
+    // Newsletter subscribers
+    match /newsletter_subscribers/{subscriberId} {
+      allow create, update: if true;
+      allow read: if isOwner();
+    }
+
+    // Site analytics summary (read/write for dashboard & tracking)
+    match /site_analytics/{docId} {
+      allow read, write: if true;
+    }
+
+    // Analytics live events
+    match /analytics_events/{eventId} {
+      allow create: if true;
+      allow read: if isOwner();
     }
   }
 }

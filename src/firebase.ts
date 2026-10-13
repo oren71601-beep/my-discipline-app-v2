@@ -9,7 +9,7 @@ import {
   signOut, 
   onAuthStateChanged,
   setPersistence,
-  browserSessionPersistence,
+  browserLocalPersistence,
   User 
 } from 'firebase/auth';
 import { 
@@ -22,11 +22,10 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { TradingDay } from './types';
+import firebaseAppletConfig from '../firebase-applet-config.json';
 
-// Safely load config: from Vite environment variables (production / GitHub)
-// or fallback to gitignored local firebase-applet-config.json if present
-const rawConfigMap = import.meta.glob('/firebase-applet-config.json', { eager: true }) as Record<string, any>;
-const rawConfig = rawConfigMap['/firebase-applet-config.json']?.default || rawConfigMap['/firebase-applet-config.json'] || {};
+// Safely load config from direct json or Vite environment variables
+const rawConfig = (firebaseAppletConfig || {}) as Record<string, any>;
 
 export const firebaseConfig = {
   apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || rawConfig.apiKey || '',
@@ -45,11 +44,11 @@ const app = getApps().length === 0
   ? (isFirebaseConfigured ? initializeApp(firebaseConfig) : null) 
   : getApp();
 
-// Initialize Auth
+// Initialize Auth with persistent local storage so user stays signed in across tabs & reloads
 export const auth = app ? getAuth(app) : null;
 if (auth) {
-  setPersistence(auth, browserSessionPersistence).catch((err) => {
-    console.warn('Could not set browser session persistence:', err);
+  setPersistence(auth, browserLocalPersistence).catch((err) => {
+    console.warn('Could not set browser local persistence:', err);
   });
 }
 export const googleProvider = new GoogleAuthProvider();
@@ -229,18 +228,44 @@ export async function migrateLocalDataToCloud(userId: string) {
         if (rawDays && !isNaN(year) && !isNaN(month)) {
           const days = JSON.parse(rawDays) as TradingDay[];
           const pledge = localStorage.getItem(`trading_tracker_pledge_${monthId}`) || '';
+          const goals = localStorage.getItem(`trading_tracker_goals_${monthId}`) || '';
           
           const docRef = doc(db, 'users', userId, 'months', monthId);
           const existing = await getDoc(docRef);
+          
+          const localHasActions = Array.isArray(days) && days.some(
+            (d) => d.executed !== null || (d.notes && d.notes.trim().length > 0) || d.resultR !== null || (d.trades && d.trades.length > 0)
+          );
+
           if (!existing.exists()) {
             await setDoc(docRef, {
               days,
               pledge,
+              goals,
               monthId,
               year,
               month,
               updatedAt: new Date().toISOString()
             });
+          } else {
+            const cloudDoc = existing.data() as MonthCloudData;
+            const cloudDays = cloudDoc.days || [];
+            const cloudHasActions = cloudDays.some(
+              (d) => d.executed !== null || (d.notes && d.notes.trim().length > 0) || d.resultR !== null || (d.trades && d.trades.length > 0)
+            );
+
+            // If local has real trading entries and cloud is empty/unfilled, push local to cloud!
+            if (localHasActions && !cloudHasActions) {
+              await setDoc(docRef, {
+                days,
+                pledge: pledge || cloudDoc.pledge || '',
+                goals: goals || cloudDoc.goals || '',
+                monthId,
+                year,
+                month,
+                updatedAt: new Date().toISOString()
+              }, { merge: true });
+            }
           }
         }
       }
