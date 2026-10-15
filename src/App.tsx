@@ -228,8 +228,15 @@ export default function App() {
     setHasAcceptedTerms(accepted);
     localStorage.setItem('trading_tracker_accepted_terms', accepted ? 'true' : 'false');
   };
-  // Reopening page always returns cleanly to the main workspace (הדף הראשי)
-  const [showLanding, setShowLanding] = useState<boolean>(false);
+  // Default entrance: Directly on the landing page (הפורטל הראשי)
+  const [showLanding, setShowLanding] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    const search = window.location.search || '';
+    if (search.includes('app') || search.includes('journal')) {
+      return false;
+    }
+    return true;
+  });
   const [showAdPoster, setShowAdPoster] = useState<boolean>(false);
   const [showWalkthroughVideo, setShowWalkthroughVideo] = useState<boolean>(false);
   const [showEndOfMonthModal, setShowEndOfMonthModal] = useState<boolean>(false);
@@ -1521,6 +1528,7 @@ export default function App() {
           isOwnerView={isOwnerView}
           language={language} 
           isRtl={isRtl} 
+          onLanguageChange={(newLang) => setLanguage(newLang)}
           isPremium={isPremium} 
           onTogglePremium={handleTogglePremium} 
         />

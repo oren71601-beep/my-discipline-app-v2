@@ -93,6 +93,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       languageSection: 'שפת ממשק',
       marketingHub: 'דף נחיתה ראשי',
       marketingHubSub: 'צפייה בדף השיווקי',
+      mainSite: 'הפורטל הרשמי (My Discipline)',
+      mainSiteSub: 'משמעת מסחר וסטודיו ⚡',
       adStudio: 'דף פרסום ומודעות (9:16)',
       adStudioSub: 'עיצוב מודעות לסטורי ולרשתות',
       aboutMe: 'מי אני – המסע שלי',
@@ -117,6 +119,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       languageSection: 'Language',
       marketingHub: 'Marketing Hub',
       marketingHubSub: 'Public landing page view',
+      mainSite: 'Official Portal (My Discipline)',
+      mainSiteSub: 'Trading Discipline Suite ⚡',
       adStudio: 'Ad Studio (9:16)',
       adStudioSub: 'Social media story posters',
       aboutMe: 'About Me',
@@ -141,6 +145,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       languageSection: 'اللغة',
       marketingHub: 'مركز التسويق',
       marketingHubSub: 'صفحة الهبوط الرئيسية',
+      mainSite: 'البوابة الرسمية (My Discipline)',
+      mainSiteSub: 'استوديو انضباط التداول ⚡',
       adStudio: 'استوديو الإعلانات (9:16)',
       adStudioSub: 'تصميم بوسترات ترويجية',
       aboutMe: 'من أنا – رحلتي',
@@ -150,7 +156,7 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       cloudSync: 'المزامنة السحابية',
       cloudSyncSub: 'مزامنة البيانات بين الأجهزة',
       analytics: 'أدوات القياس والتحليلات',
-      analyticsSub: 'الزيارات والتسجيلات والمشتركون',
+      analyticsSub: 'الزيارات والتסجيلات والمشتركون',
       adminToggle: 'وضع المشرف (أورين)',
       adminToggleSub: 'التبديل بين Pro والمجاني',
       simulate: 'محاكاة بيانات تجريبية',
@@ -165,6 +171,8 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
       languageSection: 'Язык интерфейса',
       marketingHub: 'Маркетинговый хаб',
       marketingHubSub: 'Главный лендинг',
+      mainSite: 'Официальный портал (My Discipline)',
+      mainSiteSub: 'Студия дисциплины трейдинга ⚡',
       adStudio: 'Студия рекламы (9:16)',
       adStudioSub: 'Постеры для сторис и сетей',
       aboutMe: 'Обо мне',
@@ -249,6 +257,32 @@ export const HeaderNavMenu: React.FC<HeaderNavMenuProps> = ({
                   <span className="text-[10px]">📱</span>
                 </div>
                 <div className="text-[10px] text-slate-400 truncate">{menuTitles.marketingHubSub}</div>
+              </div>
+            </button>
+
+            {/* Main Website / Portal */}
+            <button
+              type="button"
+              onClick={() => {
+                setIsOpen(false);
+                onOpenMarketingHub();
+              }}
+              className="w-full flex items-center gap-3 px-2.5 py-2 rounded-xl hover:bg-slate-800 transition-colors text-start group cursor-pointer border border-transparent hover:border-emerald-500/30"
+            >
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+                <Globe className="w-4 h-4" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-xs font-bold text-slate-100 group-hover:text-emerald-300 transition-colors flex items-center justify-between">
+                  <span className="flex items-center gap-1.5">
+                    <span>{menuTitles.mainSite}</span>
+                    <span className="text-[10px]">⚡</span>
+                  </span>
+                  <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
+                    PORTAL
+                  </span>
+                </div>
+                <div className="text-[10px] text-slate-400 truncate">{menuTitles.mainSiteSub}</div>
               </div>
             </button>
 

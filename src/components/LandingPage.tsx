@@ -1,43 +1,56 @@
 import React, { useState, useEffect } from 'react';
 import { 
-  Smartphone, 
   Play, 
   Pause, 
   Download, 
   Copy, 
   Check, 
   Sparkles, 
-  Share2, 
   Video, 
   Image as ImageIcon, 
   ArrowLeft, 
+  ArrowRight,
   ExternalLink, 
-  Lock, 
-  Unlock, 
   TrendingUp, 
   Zap, 
   RotateCcw,
   Volume2,
   Tv,
   Eye,
-  ArrowRight,
-  MessageSquare,
   Flame,
-  MousePointerClick,
   User,
   Mail,
-  Heart,
-  BookOpen,
   ShieldCheck,
-  HelpCircle,
-  Activity
+  Activity,
+  Layers,
+  Cpu,
+  Sliders,
+  ChevronRight,
+  CheckCircle2,
+  Lock,
+  Globe,
+  Radio,
+  BarChart3,
+  Terminal,
+  Target,
+  Waves,
+  Award,
+  Users
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NewsletterSignup } from './NewsletterSignup';
 import { SocialLinks } from './SocialLinks';
 import { SUPPORT_EMAIL } from '../firebase';
 
-// Import the generated images
+// Import Higgsfield Studio Components
+import { DisciplinePromptSimulator } from './higgsfield/DisciplinePromptSimulator';
+import { CinematicTradeVisualizer } from './higgsfield/CinematicTradeVisualizer';
+import { AmbientFocusAudioLab } from './higgsfield/AmbientFocusAudioLab';
+import { PropFirmShieldCalculator } from './higgsfield/PropFirmShieldCalculator';
+import { DisciplinePassportGenerator } from './higgsfield/DisciplinePassportGenerator';
+import { HiggsfieldCommunityFeed } from './higgsfield/HiggsfieldCommunityFeed';
+
+// Import promotional assets
 // @ts-ignore
 import promoPhoneImg from '../assets/images/trading_promo_phone_mockup_1782954819150.jpg';
 // @ts-ignore
@@ -52,10 +65,23 @@ interface LandingPageProps {
   onOpenAnalytics?: () => void;
   language: 'he' | 'en' | 'ar' | 'ru';
   isRtl: boolean;
+  onLanguageChange?: (lang: 'he' | 'en' | 'ar' | 'ru') => void;
   isPremium: boolean;
   onTogglePremium?: () => void;
   isOwnerView?: boolean;
 }
+
+type TabType = 
+  | 'portal' 
+  | 'prompt_lab' 
+  | 'motion_replay' 
+  | 'audio_focus' 
+  | 'prop_shield' 
+  | 'passport' 
+  | 'community'
+  | 'videos' 
+  | 'images' 
+  | 'ad_poster';
 
 export default function LandingPage({ 
   onLaunchApp, 
@@ -64,286 +90,351 @@ export default function LandingPage({
   onOpenAnalytics,
   language, 
   isRtl, 
+  onLanguageChange,
   isPremium, 
   onTogglePremium,
   isOwnerView 
 }: LandingPageProps) {
-  // Tabs for marketing tools: 'landing' (the main page), 'videos' (video simulator), 'images' (media center), 'ad_poster' (new vertical ad)
-  const [activeTab, setActiveTab] = useState<'landing' | 'videos' | 'images' | 'ad_poster'>('landing');
+  const [activeTab, setActiveTab] = useState<TabType>('portal');
+
+  // Interactive Hebrew / English Language Switcher State
+  const [currentLang, setCurrentLang] = useState<'he' | 'en'>(() => {
+    return language === 'en' ? 'en' : 'he';
+  });
+
+  // Keep synchronized if external language prop updates
+  useEffect(() => {
+    if (language === 'en' || language === 'he') {
+      setCurrentLang(language);
+    }
+  }, [language]);
+
+  const switchLanguage = (newLang: 'he' | 'en') => {
+    setCurrentLang(newLang);
+    onLanguageChange?.(newLang);
+  };
+
+  const isCurrentRtl = currentLang === 'he';
+  
+  // Interactive Hero Preview Controls
+  const [heroActiveView, setHeroActiveView] = useState<'cockpit' | 'discipline' | 'risk' | 'mockup'>('cockpit');
   
   // Video player simulator states
   const [selectedVideoTemplate, setSelectedVideoTemplate] = useState<number>(0);
   const [isVideoPlaying, setIsVideoPlaying] = useState<boolean>(false);
   const [videoProgress, setVideoProgress] = useState<number>(0);
   const [videoCurrentTime, setVideoCurrentTime] = useState<number>(0);
-  const [isMuted, setIsMuted] = useState<boolean>(false);
   
   // Custom Post Generator states
-  const [postDiscipline, setPostDiscipline] = useState<string>('92%');
+  const [postDiscipline, setPostDiscipline] = useState<string>('94.8%');
   const [postProfit, setPostProfit] = useState<string>('+18.5 R');
   const [postMentalState, setPostMentalState] = useState<string>('Calm & Focused');
   const [generatedCaption, setGeneratedCaption] = useState<string>('');
   const [isCopied, setIsCopied] = useState<boolean>(false);
 
-  // Hebrew and English texts for the Landing Page
+  // Multilingual content
   const texts = {
     he: {
-      heroBadge: '📈 יומן מסחר מנטלי מבוסס משמעת',
-      heroTitle: 'הפוך מסחר אמוציונלי למערכת מדעית ומדויקת',
-      heroSubtitle: 'יומן המסחר הממוחשב הראשון שמתמקד בפסיכולוגיה שלך, מזהה סטיות משמעת בזמן אמת, ועוזר לך להגן על יחידות הסיכון (R-Units) שלך.',
-      btnLaunchDemo: 'כניסה לגרסה האינטראקטיבית ⚡',
-      btnMediaKit: 'יוצר סרטונים ותמונות שיווקיות 🎬',
-      watchPromoBtn: 'צפה בסרטון קידום חי',
-      featuresTitle: 'למה סוחרים מצליחים משתמשים ב-Smart Journal?',
-      featuresSubtitle: 'השילוב המושלם בין פסיכולוגיה מתקדמת לניהול סיכונים חשבונאי קשוח',
-      
-      feature1Title: '🧘‍♂️ מעקב מנטלי יומי',
-      feature1Desc: 'תעד את רמת הלחץ, העייפות, האדישות או הדחף לנקמה בכל עסקת מסחר שבוצעה.',
-      feature2Title: '📊 ציון משמעת אוטומטי',
-      feature2Desc: 'מערכת חכמה המנתחת סטיות כמו כניסות ויציאות מוקדמות ומחשבת לך ציון משמעת מ-1 עד 10.',
-      feature3Title: '⚡ ניהול יחידות סיכון R',
-      feature3Desc: 'מעקב מתקדם של תוצאות כספיות ביחידות R אובייקטיביות, מנטרל לחלוטין את החרדה מהסכום הכספי.',
-      feature4Title: '📅 לוח שנה פסיכולוגי חכם',
-      feature4Desc: 'זיהוי חזותי קל של קשרים בין מצב הרוח היומי שלך להפסדים או רווחים לאורך זמן.',
-
-      mediaSectionTitle: 'מרכז שיווק ומדיה מוכן לרשתות 📱',
-      mediaSectionSub: 'במיוחד בשבילך: תבניות סרטונים (TikTok/Reels), תמונות מרהיבות ויוצר פוסטים מותאמים אישית שיעזרו לך להפיץ את הבשורה!',
-      tabLanding: 'דף נחיתה ראשי',
-      tabVideos: '🎬 תסריטים וסימולטור סרטונים',
-      tabImages: '🖼️ תמונות ויוצר פוסטים שיווקיים',
-
-      videoKitTitle: 'סימולטור סרטוני טיקטוק ורילס שיווקיים',
-      videoKitSub: 'בחר קונספט, הפעל את נגן הסימולציה החזותי וקבל תסריט קריינות וכתוביות מוכן להקלטה!',
-      videoPlay: 'הפעל סימולציית וידאו',
-      videoPause: 'השהה וידאו',
-      videoMute: 'השתק',
-      videoUnmute: 'הפעל שמע',
-      videoTemplateHook: 'הוק:',
-      videoTemplateVoiceover: '🎙️ קריינות בקול שלך (או קריין AI):',
-      videoTemplateVisual: '🎬 מה רואים על המסך:',
-      videoTemplateText: '💬 כתוביות (On-Screen Text):',
-      videoMusic: '🎵 מוזיקה מומלצת:',
-
-      postGeneratorTitle: 'יוצר פוסטים וקאפשנים שיווקיים',
-      postGeneratorSub: 'הזן את הנתונים האישיים שלך וקבל פוסט סושיאל מוכן להעתקה לאינסטגרם, פייסבוק, טוויטר או קבוצות טלגרם!',
-      inputDiscipline: 'ציון משמעת להצגה:',
-      inputProfit: 'רווח R להצגה:',
-      inputMental: 'מצב מנטלי דומיננטי:',
-      btnGeneratePost: 'צור פוסט שיווקי מושך 🚀',
-      btnCopyPost: 'העתק פוסט לקליפבורד',
-      postCopied: 'הועתק בהצלחה!',
-
-      promoImagesTitle: 'גלריית תמונות פרומו להורדה',
-      promoImagesSub: 'לחץ על כפתור ההורדה כדי לשמור את התמונות המקוריות שנוצרו על ידי ה-AI במחשב שלך ולהעלות אותן כפרסום ברשת!',
-      btnDownload: 'הורד קובץ תמונה מקורי 📥',
-      backToApp: 'חזור למעקב המסחר 📈',
-      downloadBadgeText: 'זמין כעת להורדה בחנויות',
-      mockStoreLabel: 'סרוק להורדה או התקן כעת',
-      featuresHeaderBadge: 'למה דווקא אנחנו',
-      interactiveDemoTitle: 'חווית שימוש חיה ומיידית',
-      interactiveDemoDesc: 'לחץ על כפתור הכניסה כדי לעבור ישירות ללוח הבקרה הפעיל, להזין נתונים ולראות את האנליטיקה עובדת בזמן אמת!',
-      creatorLabel: 'פותח עבור סוחרים מקצועיים',
+      brandKicker: 'HIGGSFIELD STUDIO // TRADING DISCIPLINE SUITE',
+      portalBadge: 'משמעת מסחר מדעית ✦',
+      heroTitlePrefix: 'הפוך מסחר אמוציונלי למערכת',
+      heroTitleHighlight: 'מדעית ומדויקת',
+      heroSubtitle: 'סוויטת המסחר הראשונה מסוגה המבוססת על פסיכולוגיה מנטלית, זיהוי סטיות משמעת בזמן אמת, והגנה בלתי מתפשרת על יחידות הסיכון (R-Units) שלך.',
+      btnLaunchStudio: 'כניסה לסוויטת המסחר ⚡',
+      btnHiggsfieldPortal: 'סיור במעבדות ✦',
+      promptPlaceholder: 'מדוד את הביצועים שלך: ציון משמעת, פסיכולוגיה מנטלית ורווחי R...',
+      statsDiscipline: '94.8%',
+      statsDisciplineLabel: 'מדד משמעת ממוצע',
+      statsRUnits: '+18.5 R',
+      statsRUnitsLabel: 'רווח נטו ביחידות סיכון',
+      statsStreak: '28 ימים',
+      statsStreakLabel: 'רצף מסחר ממושמע ללא נקמה',
+      navStudio: 'יומן מסחר',
+      navTools: 'כלי המשמעת',
+      navAnalytics: 'אנליטיקה',
+      navAbout: 'הסיפור שלי',
+      featuresTitle: 'כלי הסטודיו של Higgsfield למסחר ממושמע',
+      featuresSubtitle: 'שילוב עמוק בין פסיכולוגיה קוגניטיבית לניהול מתמטי קפדני של יחידות סיכון',
+      tool1Title: 'מנוע משמעת אוטומטי (Discipline Engine)',
+      tool1Desc: 'אלגוריתם חכם שמזהה סטיות מסחר (FOMO, יציאה מוקדמת, הזזת סטופ) ומחשב ציון משמעת מ-1 עד 10.',
+      tool2Title: 'רדאר מצב מנטלי (Mental Flow Radar)',
+      tool2Desc: 'מעקב בזמן אמת אחרי רמות הלחץ, הדחף לנקמה, והאופוריה כדי למנוע את העסקה ההרסנית הבאה.',
+      tool3Title: 'מחשבון R-Factor אובייקטיבי',
+      tool3Desc: 'מנטרל לחלוטין את החרדה מהכסף הדולרי ומודד הצלחה לפי מכפילי סיכון מקצועיים (R-Multiples).',
+      tool4Title: 'מטריצת ביצועים כרונולוגית',
+      tool4Desc: 'לוח שנה אינטראקטיבי הממפה קשרים ישירים בין המצב הפסיכולוגי לתוצאות המסחר לאורך חודשים.',
+      tool5Title: 'מגן חשבונות נוסטרו (Prop Firm Shield)',
+      tool5Desc: 'הגנה מקסימלית על יתרת ה-Drawdown ובקרה הדוקה על עמידה בחוקי סיכון נוקשים.',
+      tool6Title: 'יוצר תוכן וסרטונים 9:16 (Media Kit)',
+      tool6Desc: 'סימולטור סרטוני טיקטוק ורילס, יצירת פוסטים שיווקיים מעוצבים, ומודעות ויזואליות בלחיצת כפתור.',
+      ctaTitle: 'מוכן לעבור מסחר של הימורים למסחר של אלופים?',
+      ctaSubtitle: 'הצטרף למסע המשמעת המקצועי — ביצוע חוקים בלתי מתפשר, ניהול סיכונים קפדני ועקביות מתמשכת.',
+      ctaButton: 'הפעל את יומן המסחר עכשיו ⚡',
+      adPosterTab: 'מודעת פרסום 9:16 🔥',
+      tabPortal: 'פורטל ראשי',
+      tabPromptLab: 'תרחישי AI ✦',
+      tabMotionReplay: 'הדמיית מסחר 🎬',
+      tabAudioFocus: 'מעבדת שמע 432Hz 🎧',
+      tabPropShield: 'מגן נוסטרו 🛡️',
+      tabPassport: 'דרכון הישגים 🏆',
+      tabCommunity: 'קהילה וניצחונות 🌐',
+      tabVideos: 'סרטונים 📱',
+      tabImages: 'פוסטים 🖼️',
+      creatorLabel: 'פותח ע״י אורן כהן · My Discipline Journey',
+      inputDiscipline: 'ציון משמעת להצגה',
+      inputProfit: 'רווח ביחידות R',
+      inputMental: 'מצב מנטלי',
+      btnGeneratePost: 'צור פוסט שיווקי מוכן',
+      btnCopyPost: 'העתק פוסט לרשתות 📋',
+      postCopied: 'הועתק בהצלחה! ✨'
     },
     en: {
-      heroBadge: '📈 Discipline-Based Mental Trading Journal',
-      heroTitle: 'Transform Emotional Trading into a Scientific Machine',
-      heroSubtitle: 'The first trading computer journal focusing on your mental biases, identifying execution deviations in real-time, and defending your R-Units.',
-      btnLaunchDemo: 'Launch Interactive Demo ⚡',
-      btnMediaKit: 'Marketing Videos & Promo Creator 🎬',
-      watchPromoBtn: 'Watch Live Promo Concept',
-      featuresTitle: 'Why Successful Traders Use Smart Journal',
-      featuresSubtitle: 'The ultimate synthesis of psychological tracking and strict mathematical risk controls',
-      
-      feature1Title: '🧘‍♂️ Daily Mental Logging',
-      feature1Desc: 'Log stress, fatigue, indifference, or revenge impulses for every single executed stock trade.',
-      feature2Title: '📊 Automated Discipline Scoring',
-      feature2Desc: 'An intelligent system that analyzes deviations (like early entry or exit) and scores your discipline from 1-10.',
-      feature3Title: '⚡ Net R-Unit Accounting',
-      feature3Desc: 'Neutralize cash anxiety by tracking financial outcomes in objective, stress-free R units of risk.',
-      feature4Title: '📅 Psychological Calendar',
-      feature4Desc: 'Easily isolate visual patterns linking your daily mood states to losses or profits over time.',
-
-      mediaSectionTitle: 'Social Media & Marketing Kit 📱',
-      mediaSectionSub: 'Specifically made for you: Short-form video templates (TikTok/Reels), magnificent visuals, and custom post builders to launch successfully!',
-      tabLanding: 'Landing Page',
-      tabVideos: '🎬 Video Simulator & Scripts',
-      tabImages: '🖼️ Promo Images & Post Maker',
-
-      videoKitTitle: 'Short-form TikTok / Reels Video Simulator',
-      videoKitSub: 'Choose a high-converting concept, run the visual player simulation, and grab ready-to-record voiceovers & text overlays!',
-      videoPlay: 'Play Video Simulation',
-      videoPause: 'Pause Video',
-      videoMute: 'Mute',
-      videoUnmute: 'Unmute',
-      videoTemplateHook: 'Hook:',
-      videoTemplateVoiceover: '🎙️ Voiceover script (record or use AI voice):',
-      videoTemplateVisual: '🎬 Screen View Visuals:',
-      videoTemplateText: '💬 On-Screen Captions:',
-      videoMusic: '🎵 Suggested Soundtrack:',
-
-      postGeneratorTitle: 'High-Converting Social Post Generator',
-      postGeneratorSub: 'Insert your custom journal metrics and generate an engaging, ready-to-publish social post for Instagram, X, Facebook, or Telegram!',
-      inputDiscipline: 'Showcased Discipline Score:',
-      inputProfit: 'Showcased Net profit (R):',
-      inputMental: 'Dominant Mental State:',
-      btnGeneratePost: 'Generate Social Caption 🚀',
-      btnCopyPost: 'Copy Caption to Clipboard',
-      postCopied: 'Copied to clipboard!',
-
-      promoImagesTitle: 'Downloadable High-Fidelity Promo Graphics',
-      promoImagesSub: 'Click download to save the original high-resolution AI generated images directly to your computer for social sharing!',
-      btnDownload: 'Download Original Graphic 📥',
-      backToApp: 'Return to Trading Tracker 📈',
-      downloadBadgeText: 'Available now on popular platforms',
-      mockStoreLabel: 'Scan to download or install now',
-      featuresHeaderBadge: 'Features',
-      interactiveDemoTitle: 'Instant Live Application Experience',
-      interactiveDemoDesc: 'Click the launcher button to step straight into the active tracking control dashboard, enter mock data, and see live charts populate instantly!',
-      creatorLabel: 'Designed for Professional Traders',
+      brandKicker: 'HIGGSFIELD STUDIO // TRADING DISCIPLINE SUITE',
+      portalBadge: 'PROFESSIONAL TRADING DISCIPLINE ✦',
+      heroTitlePrefix: 'Turn Emotional Trading Into',
+      heroTitleHighlight: 'Cinematic Discipline',
+      heroSubtitle: 'The premier AI-native trading performance suite engineered around mental psychology, instant deviation detection, and uncompromising risk-unit (R) capital protection.',
+      btnLaunchStudio: 'Enter Discipline Studio ⚡',
+      btnHiggsfieldPortal: 'Explore Suite ✦',
+      promptPlaceholder: 'Analyze today\'s execution: discipline rating, psychological flow, and R-factor...',
+      statsDiscipline: '94.8%',
+      statsDisciplineLabel: 'Average Discipline Index',
+      statsRUnits: '+18.5 R',
+      statsRUnitsLabel: 'Accumulated Net Risk Units',
+      statsStreak: '28 Days',
+      statsStreakLabel: 'Revenge-Free Discipline Streak',
+      navStudio: 'Journal Studio',
+      navTools: 'Discipline Tools',
+      navAnalytics: 'Analytics',
+      navAbout: 'My Story',
+      featuresTitle: 'Higgsfield-Powered Trading Discipline Tools',
+      featuresSubtitle: 'Seamless fusion of behavioral psychology and strict mathematical risk-unit management',
+      tool1Title: 'Automated Discipline Engine',
+      tool1Desc: 'Real-time algorithm detecting trading rule deviations (FOMO, early exits, stop-widening) scoring execution 1-10.',
+      tool2Title: 'Mental Flow State Radar',
+      tool2Desc: 'Tracks stress, fatigue, euphoric overconfidence, and revenge urges to eliminate catastrophic tilt.',
+      tool3Title: 'Objective R-Factor Cockpit',
+      tool3Desc: 'Eliminates dollar-based anxiety by measuring performance strictly in objective risk multiples (R-Units).',
+      tool4Title: 'Psychological Execution Matrix',
+      tool4Desc: 'Interactive calendar correlating emotional states directly with P&L outcomes over monthly horizons.',
+      tool5Title: 'Prop Firm & Drawdown Shield',
+      tool5Desc: 'Safeguard funded accounts with strict daily drawdown guards and discipline enforcement gates.',
+      tool6Title: '9:16 Video & Social Creative Studio',
+      tool6Desc: 'Interactive TikTok/Reels video simulator, automated viral captions generator, and high-impact poster studio.',
+      ctaTitle: 'Ready to Replace Gambling With Systematic Precision?',
+      ctaSubtitle: 'Join the professional discipline journey — uncompromising rule execution, strict risk management, and lasting consistency.',
+      ctaButton: 'Launch Discipline Journal Now ⚡',
+      adPosterTab: '9:16 Vertical Ad 🔥',
+      tabPortal: 'Higgsfield Portal',
+      tabPromptLab: 'AI Scenarios ✦',
+      tabMotionReplay: 'Trade Replay 🎬',
+      tabAudioFocus: '432Hz Audio 🎧',
+      tabPropShield: 'Prop Shield 🛡️',
+      tabPassport: 'Discipline Passport 🏆',
+      tabCommunity: 'Community Feed 🌐',
+      tabVideos: 'Videos 📱',
+      tabImages: 'Social Posts 🖼️',
+      creatorLabel: 'Crafted by Oren Cohen · My Discipline Journey',
+      inputDiscipline: 'Discipline Score to Display',
+      inputProfit: 'Profit in R-Units',
+      inputMental: 'Dominant Mental State',
+      btnGeneratePost: 'Generate Viral Post',
+      btnCopyPost: 'Copy Post to Clipboard 📋',
+      postCopied: 'Copied to Clipboard! ✨'
+    },
+    ar: {
+      brandKicker: 'HIGGSFIELD STUDIO // منصة انضباط التداول',
+      portalBadge: 'انضباط التداول العلمي ✦',
+      heroTitlePrefix: 'حوّل التداول العاطفي إلى نظام',
+      heroTitleHighlight: 'علمي ودقيق',
+      heroSubtitle: 'الجناح الأول من نوعه لإدارة علم النفس التجاري، ورصد الانحرافات اللحظية، وحماية وحدات المخاطر (R).',
+      btnLaunchStudio: 'الدخول إلى المنصة ⚡',
+      btnHiggsfieldPortal: 'استكشف الأدوات ✦',
+      promptPlaceholder: 'سجل أداء اليوم: تقييم الانضباط، الحالة النفسية ووحدات المخاطر...',
+      statsDiscipline: '94.8%',
+      statsDisciplineLabel: 'مؤشر الانضباط',
+      statsRUnits: '+18.5 R',
+      statsRUnitsLabel: 'صافي وحدات المخاطر R',
+      statsStreak: '28 يوماً',
+      statsStreakLabel: 'تداول منتظم بدون انتقام',
+      navStudio: 'دفتر التداول',
+      navTools: 'أدوات الانضباط',
+      navAnalytics: 'التحليلات',
+      navAbout: 'قصتي',
+      featuresTitle: 'أدوات Higgsfield للانضباط في التداول',
+      featuresSubtitle: 'مزيج فريد بين علم النفس السلوكي وإدارة المخاطر الرياضية الصارمة',
+      tool1Title: 'محرك الانضباط التلقائي',
+      tool1Desc: 'يرصد الانحرافات العاطفية ويحدد درجة انضباط التداول من 1 إلى 10.',
+      tool2Title: 'رادار الحالة النفسية',
+      tool2Desc: 'مراقبة التوتر والرغبة في الانتقام لمنع الخسائر الفادحة.',
+      tool3Title: 'حاسبة وحدات المخاطرة R',
+      tool3Desc: 'إلغاء الخوف من الأرقام المالية وقياس النتائج بوحدات R الدقيقة.',
+      tool4Title: 'مصفوفة التداول النفسي',
+      tool4Desc: 'تقويم يربط بين المزاج اليومي والنتائج المالية بوضوح.',
+      tool5Title: 'درع حسابات التمويل',
+      tool5Desc: 'حماية رأس المال من التراجع والالتزام الصارم بالقواعد.',
+      tool6Title: 'استوديو الفيديو والمحتوى 9:16',
+      tool6Desc: 'محاكي فيديوهات تيك توك وريلز مع نصوص احترافية وتصاميم متميزة.',
+      ctaTitle: 'جاهز للتداول باحترافية وانضباط كامل؟',
+      ctaSubtitle: 'انضم إلى رحلة الانضباط الاحترافية — التزام صارم بالقواعد وإدارة متقدمة للمخاطر.',
+      ctaButton: 'تشغيل المنصة الآن ⚡',
+      adPosterTab: 'إعلان 9:16 🔥',
+      tabPortal: 'بوابة Higgsfield',
+      tabPromptLab: 'سيناريوهات AI ✦',
+      tabMotionReplay: 'محاكي الصفقات 🎬',
+      tabAudioFocus: 'صوتيات 432Hz 🎧',
+      tabPropShield: 'درع التمويل 🛡️',
+      tabPassport: 'جواز الانضباط 🏆',
+      tabCommunity: 'المجتمع 🌐',
+      tabVideos: 'الفيديو 📱',
+      tabImages: 'المنشورات 🖼️',
+      creatorLabel: 'تطوير אורין כהן · My Discipline Journey',
+      inputDiscipline: 'نسبة الانضباط',
+      inputProfit: 'الربח بوحدات R',
+      inputMental: 'الحالة النفسية',
+      btnGeneratePost: 'إنشاء منشور تسويقي',
+      btnCopyPost: 'نسخ المنשור 📋',
+      postCopied: 'تم النسخ بنجاح! ✨'
+    },
+    ru: {
+      brandKicker: 'HIGGSFIELD STUDIO // СИСТЕМА ТОРГОВОЙ ДИСЦИПЛИНЫ',
+      portalBadge: 'ДИСЦИПЛИНА ТРЕЙДИНГА ✦',
+      heroTitlePrefix: 'Превратите эмоции в',
+      heroTitleHighlight: 'Кинематографическую Дисциплину',
+      heroSubtitle: 'Передовая рабочая среда трейдера, основанная на контроле психологии, мгновенном выявлении нарушений правил и строгой защите единиц риска (R).',
+      btnLaunchStudio: 'Войти в студию трейдинга ⚡',
+      btnHiggsfieldPortal: 'Обзор студии ✦',
+      promptPlaceholder: 'Оцените исполнение сегодня: индекс дисциплины, фокус и фактор R...',
+      statsDiscipline: '94.8%',
+      statsDisciplineLabel: 'Индекс дисциплины',
+      statsRUnits: '+18.5 R',
+      statsRUnitsLabel: 'Чистая прибыль в R-единицах',
+      statsStreak: '28 дней',
+      statsStreakLabel: 'Без импульсивных сделок',
+      navStudio: 'Дневник трейдера',
+      navTools: 'Инструменты дисциплины',
+      navAnalytics: 'Аналитика',
+      navAbout: 'Обо мне',
+      featuresTitle: 'Инструменты дисциплины в стиле Higgsfield',
+      featuresSubtitle: 'Глубокий синтез поведенческой психологии и математического риск-менеджмента',
+      tool1Title: 'Движок дисциплины (Discipline Engine)',
+      tool1Desc: 'Автоматически определяет нарушения правил (FOMO, ранний выход, перетягивание стопа) с оценкой от 1 до 10.',
+      tool2Title: 'Радар психологического состояния',
+      tool2Desc: 'Отслеживание стресса, усталости и импульса отыгрыша для предотвращения тильта.',
+      tool3Title: 'Калькулятор R-фактора',
+      tool3Desc: 'Устраняет денежную панику, рассчитывая результат строго в объективных единицах риска.',
+      tool4Title: 'Матрица психологических сделок',
+      tool4Desc: 'Интерактивный календарь, связывающий настроение трейдера с финансовым результатом месяца.',
+      tool5Title: 'Защита проп-счетов (Prop Shield)',
+      tool5Desc: 'Защита от просадки и строгий контроль за соблюдением торгового регламента.',
+      tool6Title: 'Студия видео и постеров 9:16',
+      tool6Desc: 'Симулятор роликов для TikTok и Reels с готовыми сценариями и генератором постов.',
+      ctaTitle: 'Готовы заменить казино на математическую дисциплину?',
+      ctaSubtitle: 'Присоединяйтесь к профессиональной дисциплине — строгое соблюдение правил и безупречный риск-менеджмент.',
+      ctaButton: 'Запустить дневник сейчас ⚡',
+      adPosterTab: 'Реклама 9:16 🔥',
+      tabPortal: 'Портал Higgsfield',
+      tabPromptLab: 'AI Сценарии ✦',
+      tabMotionReplay: 'Реплей сделок 🎬',
+      tabAudioFocus: '432Гц Звук 🎧',
+      tabPropShield: 'Проп-Щит 🛡️',
+      tabPassport: 'Паспорт трейдера 🏆',
+      tabCommunity: 'Комьюнити 🌐',
+      tabVideos: 'Видео 📱',
+      tabImages: 'Посты 🖼️',
+      creatorLabel: 'Создано Ореном Коэном · My Discipline Journey',
+      inputDiscipline: 'Индекс дисциплины',
+      inputProfit: 'Прибыль в R-единицах',
+      inputMental: 'Психологическое состояние',
+      btnGeneratePost: 'Создать готовый пост',
+      btnCopyPost: 'Копировать пост 📋',
+      postCopied: 'Скопировано! ✨'
     }
   };
 
-  const currentTexts = texts.en;
+  const currentTexts = texts[currentLang] || texts.he;
 
-  // Video Concept Templates (TikTok / Reels)
-  const videoTemplatesHE = [
+  // Video Templates for Simulator
+  const videoTemplates = [
+    {
+      id: 0,
+      title: currentLang === 'he' ? 'קונספט 1: סוד ה-R-Units נגד חרדת כסף' : 'Concept 1: The R-Factor Formula',
+      duration: '0:15',
+      aspect: '9:16',
+      tags: ['#TradingPsychology', '#Discipline', '#RiskReward'],
+      captions: [
+        currentLang === 'he' ? 'סוחרים מפסידים לא בגלל האסטרטגיה... אלא בגלל הפחד מהכסף! 💸' : 'Traders lose not because of strategy... but fear of money! 💸',
+        currentLang === 'he' ? 'כשאתה מודד עסקאות בדולרים, הדופק שלך עולה פי 3 בכל תנועה.' : 'When you measure trades in cash, your heart rate triples on every tick.',
+        currentLang === 'he' ? 'ב-Smart Journal אנחנו מודדים הכל ב-R-Units אובייקטיביות 🎯' : 'In Smart Journal, we measure strictly in objective R-Units 🎯',
+        currentLang === 'he' ? 'תוצאה: ראש שקט, משמעת של קרן גידור, ורווחיות עקבית!' : 'Result: Calm mind, hedge fund discipline, and consistent alpha!'
+      ]
+    },
     {
       id: 1,
-      name: '🔴 הטעות שמוחקת 90% מהסוחרים',
-      hook: '״הנה הסיבה האמיתית למה אתה מפסיד כסף במסחר, וזה לא בגלל האסטרטגיה שלך...״',
-      voiceover: 'אתה חושב שאתה צריך אסטרטגיה יותר טובה, נכון? אבל האמת היא שאתה מפסיד כי אתה מזיז סטופים, נכנס מוקדם מפחד ומסיים עסקאות ברגשות אשם. יומן המסחר המנטלי הזה יחשוף את כל הסטיות שלך ויחנך אותך למשמעת ברזל. תתחיל לעקוב אחרי ה-R שלך בצורה מדעית!',
-      visuals: 'סרטון נפתח בזום-אין מהיר על טבלת מעקב עם אימוג׳י נקמה אדום 😡 מהבהב. הופך במהרה לתרשים ירוק עולה עם גביע מוזהב מנצח ואימוג׳י רגוע 🧘‍♂️.',
-      captions: ['זה לא האסטרטגיה', 'אתה נלחם בעצמך 🧠', 'הזזת סטופים = אסון ❌', 'תתחיל לעקוב ב-Smart Journal 👑'],
-      music: 'Futuristic Dark synth-wave, fast tempo (e.g. Synthwave/Cyberpunk style)',
-      visualColor: 'from-rose-500 via-purple-600 to-indigo-900',
-      emoji: '🧠'
-    },
-    {
-      id: 2,
-      name: '🟢 איך להכפיל את הרווח בלי לשנות אסטרטגיה',
-      hook: '״איך סוחר אחד הגדיל את אחוז הרווח שלו ב-45% רק על ידי שינוי דבר אחד במוח שלו...״',
-      voiceover: 'הסוד הוא מעקב יחידות R וניטרול החרדה מהכסף. כשתפסיק להסתכל על הדולרים ותתחיל להעריך את המשמעת שלך לפי ציון קבוע, פתאום לא תצא מוקדם ותיתן לעסקאות להגיע ליעד. כנסו עכשיו ל-Demo של יומן המסחר ותתחילו להרוויח.',
-      visuals: 'תרשים סימולציה מציג חישוב R-Unit חכם. הפעלה של שעון עצר שמראה איך ביצוע עסקאות לפי משמעת הופך עקום הפסדים לעקום רווחים יציב ומתוכנן.',
-      captions: ['תפסיק להסתכל על הדולר 💸', 'תמדוד ביחידות R 🎯', 'ציון משמעת גבוה = כסף 📈', 'נסה את הקישור בפרופיל! 👇'],
-      music: 'Sleek, chill Lo-Fi Hip Hop beat with glowing electric guitar chords',
-      visualColor: 'from-emerald-500 via-teal-600 to-indigo-950',
-      emoji: '💎'
-    },
-    {
-      id: 3,
-      name: '🔥 סריקה מהירה של האפליקציה שתשנה לך את הבוקר',
-      hook: '״האפליקציה שכל סוחר חייב לפתוח בסוף יום מסחר...״',
-      voiceover: 'זו לא סתם טבלה. זה המראה הפסיכולוגית שלכם. כאן אתם מזינים את המצב המנטלי, מדרגים את רמת הביטחון, רושמים את הסיבה האמיתית לכך שפספסתם סטאפים ורואים במדויק איך המשמעת שלכם משפיעה על תיק ההשקעות. תתחילו לעקוב ביומן המנטלי עכשיו.',
-      visuals: 'מראה של טלפון נייד זז מצד לצד, מציג את לוח השנה הצבעוני של האפליקציה עם אימוג׳יז וציונים, המשתמש לוחץ על פרימיום ומקבל מדליות ופרסים.',
-      captions: ['המראה של הסוחר 🪞', 'יומן מנטלי אישי 🧘‍♂️', 'נקה סטיות פסיכולוגיות 🚫', 'זמין עכשיו לשימוש! 📲'],
-      music: 'Inspiring, energetic high-tech corporate synth with progressive build-up',
-      visualColor: 'from-indigo-600 via-violet-600 to-slate-950',
-      emoji: '🚀'
+      title: currentLang === 'he' ? 'קונספט 2: מניעת עסקאות נקמה (Revenge Trading)' : 'Concept 2: Zero Revenge Trades',
+      duration: '0:18',
+      aspect: '9:16',
+      tags: ['#NoRevengeTrading', '#MentalTrading', '#Mindset'],
+      captions: [
+        currentLang === 'he' ? 'הפסדת עסקה אחת? אל תיתן לאגו למחוק לך את כל החשבון 🛑' : 'Took a loss? Don’t let ego wipe out your entire account 🛑',
+        currentLang === 'he' ? 'היומן מזהה רמות תסכול ועוצר אותך לפני שאתה לוחץ שוב.' : 'The journal detects emotional frustration before you click again.',
+        currentLang === 'he' ? 'ציון המשמעת היומי שלך יראה לך בדיוק מתי לכבות את המסך.' : 'Your daily Discipline Score tells you exactly when to step away.',
+        currentLang === 'he' ? 'שמור על ההון שלך. המשמעת היא היתרון היחיד שלך בשוק!' : 'Protect your capital. Discipline is your only true edge!'
+      ]
     }
   ];
 
-  const videoTemplatesEN = [
-    {
-      id: 1,
-      name: '🔴 The Mistake that Wipes Out 90% of Traders',
-      hook: '"Here is the real reason you lose money in trading, and it has nothing to do with your strategy..."',
-      voiceover: 'You think you need a better strategy, right? But the truth is you lose because you move your stops, enter early out of fear, and exit early out of greed. This mental trading journal exposes your hidden emotional habits and forces you into pure discipline. Start tracking your R-units today!',
-      visuals: 'Video starts with a fast zoom-in on a trading journal table with a flashing red revenge emoji 😡. Quickly transitions to a rising green growth chart with a golden cup trophy and a serene calm emoji 🧘‍♂️.',
-      captions: ['It is not the strategy', 'You are fighting yourself 🧠', 'Moving stops = disaster ❌', 'Track with Smart Journal 👑'],
-      music: 'Futuristic Dark synth-wave, fast tempo (e.g. Synthwave/Cyberpunk style)',
-      visualColor: 'from-rose-500 via-purple-600 to-indigo-900',
-      emoji: '🧠'
-    },
-    {
-      id: 2,
-      name: '🟢 How to Double Profits without Changing Strategies',
-      hook: '"How a retail trader boosted his profitability by 45% by shifting just one psychological metric..."',
-      voiceover: 'The secret is tracking R-Units and neutralizing cash anxiety. When you stop staring at dollar figures and start scoring your discipline, you stop exiting early out of fear and let your trades hit target. Try the free mental journal demo now!',
-      visuals: 'Animated interactive mockup showing dynamic R-unit calculations. A stopwatch simulation showing how staying disciplined turns a losing curve into a beautifully ascending equity line.',
-      captions: ['Stop staring at dollars 💸', 'Measure in R-units 🎯', 'High discipline = consistency 📈', 'Try the link in bio! 👇'],
-      music: 'Sleek, chill Lo-Fi Hip Hop beat with glowing electric guitar chords',
-      visualColor: 'from-emerald-500 via-teal-600 to-indigo-950',
-      emoji: '💎'
-    },
-    {
-      id: 3,
-      name: '🔥 The App Walkthrough That Will Save Your Account',
-      hook: '"The exact app every serious trader needs to open at the end of the market day..."',
-      voiceover: 'This isn\'t just another spreadsheet. It\'s your psychological mirror. Here you log your mental state, rate your conviction, record the true reasons you missed setups, and see exactly how your self-control correlates to profit. Build your trading discipline now!',
-      visuals: 'Visual of a phone screen moving dynamically, showcasing the colored interactive calendar with emojis, score cards, and unlocking beautiful certificates and awards.',
-      captions: ['The ultimate mirror 🪞', 'Personal mental log 🧘‍♂️', 'Wipe out emotional errors 🚫', 'Available to use now! 📲'],
-      music: 'Inspiring, energetic high-tech corporate synth with progressive build-up',
-      visualColor: 'from-indigo-600 via-violet-600 to-slate-950',
-      emoji: '🚀'
-    }
-  ];
-
-  const videoTemplates = videoTemplatesEN;
-
-  // Simulated video player tick
+  // Video Simulator Timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
     if (isVideoPlaying) {
       interval = setInterval(() => {
         setVideoProgress((prev) => {
           if (prev >= 100) {
             setIsVideoPlaying(false);
-            setVideoCurrentTime(0);
             return 0;
           }
-          const nextProgress = prev + 2.5; // Represents ~8 seconds total duration (2.5% per 200ms)
-          setVideoCurrentTime(Math.min(8, Number(((nextProgress / 100) * 8).toFixed(1))));
-          return nextProgress;
+          return prev + 1.25;
         });
+        setVideoCurrentTime((prev) => (prev >= 15 ? 0 : prev + 0.2));
       }, 200);
     }
     return () => clearInterval(interval);
   }, [isVideoPlaying]);
 
-  // Restart video simulation when changing templates
-  useEffect(() => {
-    setIsVideoPlaying(false);
-    setVideoProgress(0);
-    setVideoCurrentTime(0);
-  }, [selectedVideoTemplate]);
-
-  // Handle caption generator output
+  // Social Caption Generator
   const handleGenerateCaption = () => {
-    const isHebrew = false;
-    const text = isHebrew 
-? `📈 משמעת היא המפתח היחיד לרווחיות בשוק ההון! 
-החודש החלטתי להפסיק להמר ולהתחיל לסחור כמו מקצוען עם Smart Journal 🧠
+    const text = currentLang === 'he'
+      ? `📈 משמעת היא המפתח היחיד לרווחיות עקבית במסחר!
+החודש עברתי מהימורים למסחר מבוסס מערכת מדעית עם Smart Journal 🧠
 
-הביצועים שלי לחודש זה:
-🎯 ציון משמעת ממוצע: ${postDiscipline}
-💰 רווח מצטבר נטו: ${postProfit}
+המדדים המאומתים שלי:
+🎯 ציון משמעת: ${postDiscipline}
+💰 רווח מצטבר: ${postProfit}
 🧘‍♂️ מצב מנטלי דומיננטי: ${postMentalState}
 
-האפליקציה עוזרת לי לתעד לחץ, פחד ודחפים לנקמה, ולמדוד את הרווחים ביחידות סיכון (R-Units) בלי החרדה מהסכום הכספי!
+מדידת ביצועים ביחידות סיכון (R-Units) מנטרלת את החרדה מהכסף ומביאה לשליטה עצמית מוחלטת!
+✨ מסע המשמעת הרשמי: ניהול סיכונים קפדני וציות מלא לכללים ⚡
+#מסחר_בשוק_ההון #משמעת_עצמית #פסיכולוגיית_מסחר #R_Units`
+      : `📈 Discipline is the ONLY key to long-term profitability in trading!
+This month I stopped gambling and operated with hedge-fund precision using Smart Journal 🧠
 
-👇 רוצים להפסיק להפסיד בגלל פסיכולוגיה? כנסו לקישור ונסו את ה-Demo בחינם!
-#מסחר_בשוק_ההון #trading_journal #משמעת_עצמית #שוק_ההון #פסיכולוגיית_מסחר #מניות`
-: `📈 Discipline is the ONLY key to long-term profitability in trading!
-This month I stopped gambling and started tracking like a professional hedge fund using Smart Journal 🧠
+My verified metrics:
+🎯 Discipline Index: ${postDiscipline}
+💰 Accumulated Net: ${postProfit}
+🧘‍♂️ Dominant Psychology: ${postMentalState}
 
-My verified trading metrics for this month:
-🎯 Average Discipline Score: ${postDiscipline}
-💰 Accumulated Net Profit: ${postProfit}
-🧘‍♂️ Dominant Psychological State: ${postMentalState}
-
-This app allows me to track stress, fear, and revenge trading impulses in real-time, helping me secure my R-Units without cash-induced panic!
-
-👇 Ready to conquer your mental biases? Head to the link and try the free live demo!
-#trading #tradingpsychology #stocks #investing #tradingjournal #discipline`;
+Measuring performance in objective R-Units eliminates monetary panic and secures consistent alpha!
+✨ Official Discipline Suite: Strict Risk Management & Rule Adherence ⚡
+#trading #tradingpsychology #discipline #stocks #investing`;
 
     setGeneratedCaption(text);
     setIsCopied(false);
   };
 
-  // Generate initial caption on mount
   useEffect(() => {
     handleGenerateCaption();
-  }, [postDiscipline, postProfit, postMentalState, language]);
+  }, [postDiscipline, postProfit, postMentalState, currentLang]);
 
   const handleCopyCaption = () => {
     navigator.clipboard.writeText(generatedCaption);
@@ -351,46 +442,100 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
     setTimeout(() => setIsCopied(false), 3000);
   };
 
-  // Handle simulated image download
-  const downloadImageFile = (url: string, filename: string) => {
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  // Active caption text based on progress
   const activeCaptionIndex = Math.floor((videoProgress / 100) * videoTemplates[selectedVideoTemplate].captions.length);
   const activeCaption = videoTemplates[selectedVideoTemplate].captions[Math.min(activeCaptionIndex, videoTemplates[selectedVideoTemplate].captions.length - 1)];
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white" dir="ltr">
+    <div className="min-h-screen bg-[#07070a] text-slate-100 flex flex-col selection:bg-emerald-500 selection:text-black font-sans relative overflow-x-hidden" dir={isCurrentRtl ? 'rtl' : 'ltr'}>
       
-      {/* Landing Header */}
-      <header className="border-b border-slate-900 bg-slate-950/80 backdrop-blur-md relative z-30 px-4 py-3.5 sm:px-6">
-        <div className="max-w-7xl mx-auto flex items-center justify-between">
+      {/* Background Ambient Glows (Discipline Laser Emerald & Precision Cyan) */}
+      <div className="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        {/* Discipline Glow - Laser Emerald */}
+        <div className="absolute -top-40 left-1/3 -translate-x-1/2 w-[850px] h-[520px] bg-gradient-to-b from-emerald-500/15 via-emerald-600/5 to-transparent rounded-full blur-[130px]" />
+        {/* Precision Metrics Glow - Electric Cyan */}
+        <div className="absolute top-[22%] right-[-80px] w-[650px] h-[550px] bg-gradient-to-b from-cyan-500/15 via-sky-600/5 to-transparent rounded-full blur-[140px]" />
+        {/* Subtle matrix dots */}
+        <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
+      </div>
+
+      {/* Higgsfield Sleek Top Bar */}
+      <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#07070a]/80 backdrop-blur-xl px-4 py-3 sm:px-8">
+        <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
+          
+          {/* Brand Identity */}
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-indigo-600 flex items-center justify-center text-white font-black shadow-md shadow-indigo-500/20 text-lg">
-              📈
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 text-black flex items-center justify-center font-black shadow-lg shadow-emerald-500/20 text-base">
+              ✦
             </div>
             <div>
-              <span className="font-extrabold text-sm text-white tracking-tight">Smart Trading Journal</span>
-              <div className="text-[10px] text-indigo-400 font-bold -mt-0.5 tracking-wider uppercase">Marketing Hub</div>
+              <div className="flex items-center gap-2">
+                <span className="font-extrabold text-sm tracking-tight text-white font-mono uppercase">Higgsfield</span>
+                <span className="text-white/30 text-xs">/</span>
+                <span className="font-bold text-xs tracking-wide text-emerald-400">DISCIPLINE JOURNEY</span>
+              </div>
+              <div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider">
+                <span className="text-emerald-400 font-semibold">
+                  {currentLang === 'he' ? 'משמעת מסחר בלתי מתפשרת' : 'Uncompromising Trading Discipline'}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Quick Links & Actions */}
+          <div className="flex items-center gap-2 sm:gap-3">
+            
+            {/* Dual Language Switcher: Hebrew / English */}
+            <div className="flex items-center bg-white/[0.05] p-1 rounded-xl border border-white/[0.1] shadow-inner font-mono text-xs shrink-0">
+              <button
+                type="button"
+                onClick={() => switchLanguage('he')}
+                className={`px-2.5 sm:px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  currentLang === 'he'
+                    ? 'bg-emerald-500 text-black shadow-md font-black'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                }`}
+                title="צפה בעברית"
+              >
+                <span>🇮🇱</span>
+                <span>עברית</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => switchLanguage('en')}
+                className={`px-2.5 sm:px-3 py-1 rounded-lg font-bold transition-all cursor-pointer flex items-center gap-1.5 ${
+                  currentLang === 'en'
+                    ? 'bg-emerald-500 text-black shadow-md font-black'
+                    : 'text-slate-400 hover:text-white hover:bg-white/[0.05]'
+                }`}
+                title="View in English"
+              >
+                <span>🇺🇸</span>
+                <span>English</span>
+              </button>
+            </div>
+
+            {/* Direct Official Suite Button */}
+            <button
+              type="button"
+              onClick={onLaunchApp}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-slate-100 hover:text-white font-mono text-xs transition-all border border-emerald-500/30 hover:border-emerald-400/50 flex items-center gap-2 shadow-xs group cursor-pointer"
+              title="Official Discipline Suite ⚡"
+            >
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span className="font-bold tracking-tight text-emerald-300 group-hover:text-emerald-200">
+                PORTAL ⚡
+              </span>
+            </button>
+
             {onOpenAnalytics && (
               <button
                 type="button"
                 onClick={onOpenAnalytics}
-                className="px-3 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 via-slate-900 to-indigo-950 hover:from-indigo-900 hover:to-indigo-800 text-indigo-300 hover:text-white font-extrabold text-xs transition-all border border-indigo-500/40 flex items-center gap-1.5 cursor-pointer shadow-md active:scale-95"
-                title={language === 'he' ? 'כלי מדידה ואנליטיקת מבקרים (כמה נכנסים, נרשמים ומשלמים) 📊' : 'Live Metrics Dashboard (Owner Only) 📊'}
+                className="px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-semibold border border-white/[0.08] flex items-center gap-1.5 transition-all cursor-pointer"
+                title="Analytics & Telemetry Dashboard"
               >
-                <Activity className="w-3.5 h-3.5 text-indigo-400 animate-pulse" />
-                <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
+                <Activity className="w-3.5 h-3.5 text-indigo-400" />
+                <span className="hidden sm:inline">{currentTexts.navAnalytics}</span>
               </button>
             )}
 
@@ -398,855 +543,912 @@ This app allows me to track stress, fear, and revenge trading impulses in real-t
               <button
                 type="button"
                 onClick={onOpenAboutMe}
-                className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-300 hover:text-white font-bold text-xs transition-all border border-slate-800 flex items-center gap-1.5 cursor-pointer shadow-xs"
-                title={language === 'he' ? 'מי אני – המסע שלי למשמעת 🧘‍♂️' : 'About Me – My Discipline Journey 🧘‍♂️'}
+                className="px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-semibold border border-white/[0.08] flex items-center gap-1.5 transition-all cursor-pointer"
+                title="About Me / The Discipline Story"
               >
                 <User className="w-3.5 h-3.5 text-amber-400" />
-                <span>{language === 'he' ? 'מי אני 🧘‍♂️' : 'About Me'}</span>
+                <span className="hidden sm:inline">{currentTexts.navAbout}</span>
               </button>
             )}
 
-            <a
-              href={`mailto:${SUPPORT_EMAIL}`}
-              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white font-semibold text-xs border border-slate-800 transition-all"
-              title={`תמיכה במייל: ${SUPPORT_EMAIL}`}
-            >
-              <Mail className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{language === 'he' ? 'תמיכה' : 'Support'}</span>
-            </a>
-
-            {/* Quick launch app */}
+            {/* Launch Workspace Button */}
             <button
               onClick={onLaunchApp}
-              className="px-4 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs transition-all shadow-md shadow-indigo-600/20 flex items-center gap-1 cursor-pointer border border-indigo-500/30"
+              className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95"
             >
-              <span>{currentTexts.backToApp}</span>
-              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>{currentTexts.btnLaunchStudio}</span>
+              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Tabs Menu - High Visibility */}
-      <div className="bg-slate-900 border-b border-slate-800 py-3 px-4 shrink-0">
-        <div className="max-w-2xl mx-auto grid grid-cols-4 gap-1 bg-slate-950 p-1.5 rounded-2xl border border-slate-800">
-          <button
-            onClick={() => setActiveTab('landing')}
-            className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'landing' 
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <Smartphone className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{currentTexts.tabLanding}</span>
-            <span className="sm:hidden">ראשי</span>
-          </button>
-          {isOwnerView && (
+      {/* Secondary Studio Navigation Bar with All Rich Features */}
+      <div className="border-b border-white/[0.06] bg-[#07070a]/90 py-2.5 px-4 sticky top-[57px] z-30 backdrop-blur-md">
+        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
+          
+          <div className="flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06] shrink-0">
+            
             <button
-              onClick={() => {
-                if (onOpenAdPoster) {
-                  onOpenAdPoster();
-                } else {
-                  setActiveTab('ad_poster');
-                }
-              }}
-              className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-                activeTab === 'ad_poster' 
-                  ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/20' 
-                  : 'text-emerald-400 hover:text-white hover:bg-slate-900'
+              onClick={() => setActiveTab('portal')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'portal'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
               }`}
             >
-              <Flame className="w-3.5 h-3.5 text-emerald-400" />
-              <span className="font-extrabold">מודעת פרסום 9:16 🔥</span>
+              <Cpu className="w-3.5 h-3.5" />
+              <span>{currentTexts.tabPortal}</span>
             </button>
-          )}
-          <button
-            onClick={() => setActiveTab('videos')}
-            className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'videos' 
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <Video className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{currentTexts.tabVideos}</span>
-            <span className="sm:hidden">סרטונים</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('images')}
-            className={`py-2 px-3 rounded-xl text-xs font-black transition-all cursor-pointer flex items-center justify-center gap-1.5 ${
-              activeTab === 'images' 
-                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/10' 
-                : 'text-slate-400 hover:text-white hover:bg-slate-900'
-            }`}
-          >
-            <ImageIcon className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">{currentTexts.tabImages}</span>
-            <span className="sm:hidden">תמונות</span>
-          </button>
+
+            <button
+              onClick={() => setActiveTab('prompt_lab')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'prompt_lab'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{currentTexts.tabPromptLab}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('motion_replay')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'motion_replay'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Video className="w-3.5 h-3.5 text-teal-400" />
+              <span>{currentTexts.tabMotionReplay}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('audio_focus')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'audio_focus'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Waves className="w-3.5 h-3.5 text-cyan-400" />
+              <span>{currentTexts.tabAudioFocus}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('prop_shield')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'prop_shield'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
+              <span>{currentTexts.tabPropShield}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('passport')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'passport'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Award className="w-3.5 h-3.5 text-pink-400" />
+              <span>{currentTexts.tabPassport}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('community')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'community'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Users className="w-3.5 h-3.5 text-indigo-400" />
+              <span>{currentTexts.tabCommunity}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('videos')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'videos'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <Tv className="w-3.5 h-3.5 text-slate-400" />
+              <span>{currentTexts.tabVideos}</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('images')}
+              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                activeTab === 'images'
+                  ? 'bg-emerald-500 text-black shadow-xs font-black'
+                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+              }`}
+            >
+              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
+              <span>{currentTexts.tabImages}</span>
+            </button>
+
+            {isOwnerView && (
+              <button
+                onClick={() => {
+                  if (onOpenAdPoster) {
+                    onOpenAdPoster();
+                  } else {
+                    setActiveTab('ad_poster');
+                  }
+                }}
+                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
+                  activeTab === 'ad_poster'
+                    ? 'bg-amber-400 text-black shadow-xs font-black'
+                    : 'text-amber-300 hover:text-white hover:bg-amber-500/10'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 text-amber-400" />
+                <span>{currentTexts.adPosterTab}</span>
+              </button>
+            )}
+          </div>
+
+          {/* Discipline Status Badge */}
+          <div className="hidden lg:flex items-center gap-2 text-xs font-mono shrink-0 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-emerald-500/20">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-emerald-400 font-bold">
+              {currentLang === 'he' ? 'משמעת: ציות מלא לכללים (100% Rules)' : 'Discipline: 100% Rules Adherence'}
+            </span>
+          </div>
+
         </div>
       </div>
 
-      {/* Main Content Area */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-6">
+      {/* Main Studio Canvas */}
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-8 relative z-10">
         
-        {/* LANDING TAB */}
-        {activeTab === 'landing' && (
-          <div className="space-y-16 py-4 animate-fadeIn">
+        {/* TAB 1: MAIN HIGGSFIELD PORTAL EXPERIENCE */}
+        {activeTab === 'portal' && (
+          <div className="space-y-24 py-4 animate-fade-in">
             
-            {/* Hero Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+            {/* HERO SECTION */}
+            <div className="relative pt-6 sm:pt-12 text-center max-w-4xl mx-auto space-y-6">
               
-              <div className="lg:col-span-7 space-y-6 text-center lg:text-left">
-                <span className="inline-flex items-center gap-1.5 bg-indigo-500/10 text-indigo-400 font-extrabold px-3.5 py-1.5 rounded-full border border-indigo-500/20 text-xs tracking-wide">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  {currentTexts.heroBadge}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono tracking-wider shadow-sm">
+                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{currentTexts.brandKicker}</span>
+                <span className="text-white/20">|</span>
+                <span className="text-emerald-300 font-semibold">{currentTexts.portalBadge}</span>
+              </div>
+
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.08] text-white">
+                <span>{currentTexts.heroTitlePrefix} </span>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-teal-300 to-cyan-300 drop-shadow-sm">
+                  {currentTexts.heroTitleHighlight}
                 </span>
+              </h1>
 
-                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-white tracking-tight leading-none">
-                  {currentTexts.heroTitle}
-                </h1>
-
-                <p className="text-slate-400 text-sm sm:text-base leading-relaxed max-w-2xl mx-auto lg:mx-0">
-                  {currentTexts.heroSubtitle}
-                </p>
-
-                {/* CTA Buttons */}
-                <div className="flex flex-col sm:flex-row items-center gap-3 justify-center lg:justify-start pt-2">
-                  <button
-                    onClick={onLaunchApp}
-                    className="w-full sm:w-auto px-6 py-3.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold rounded-2xl shadow-lg shadow-indigo-600/30 text-sm transition-all flex items-center justify-center gap-2 border border-indigo-500/30 cursor-pointer"
-                  >
-                    <span>{currentTexts.btnLaunchDemo}</span>
-                    <ArrowLeft className="w-4 h-4 rotate-180" />
-                  </button>
-
-                  {isOwnerView && (
-                    <button
-                      onClick={() => {
-                        if (onOpenAdPoster) {
-                          onOpenAdPoster();
-                        } else {
-                          setActiveTab('ad_poster');
-                        }
-                      }}
-                      className="w-full sm:w-auto px-5 py-3.5 bg-emerald-500/15 hover:bg-emerald-500 text-emerald-300 hover:text-slate-950 font-black rounded-2xl border border-emerald-500/40 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg shadow-emerald-500/10"
-                    >
-                      <Flame className="w-4 h-4 text-emerald-400" />
-                      <span>דף מודעת פרסום 9:16 🔥</span>
-                    </button>
-                  )}
-
-                  <button
-                    onClick={() => setActiveTab('videos')}
-                    className="w-full sm:w-auto px-5 py-3.5 bg-slate-900 hover:bg-slate-800 text-indigo-300 hover:text-white font-black rounded-2xl border border-slate-800 text-sm transition-all flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Video className="w-4 h-4 text-indigo-400" />
-                    <span>{currentTexts.btnMediaKit}</span>
-                  </button>
+              {/* Core Principle Badge */}
+              <div className="flex flex-wrap items-center justify-center gap-3 pt-1">
+                <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono shadow-xs backdrop-blur-md">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="font-bold">
+                    {currentLang === 'he' ? 'משמעת ברזל' : 'Iron Discipline'}
+                  </span>
+                  <span className="text-white/30">•</span>
+                  <span className="text-slate-200">
+                    {currentLang === 'he' ? 'ניהול סיכונים מתמטי ושליטה עצמית מוחלטת' : 'Mathematical Risk & Unwavering Self-Control'}
+                  </span>
                 </div>
               </div>
 
-              {/* Hero Image Mockup Area */}
-              <div className="lg:col-span-5 flex justify-center relative">
-                <div className="absolute -inset-1.5 bg-gradient-to-tr from-indigo-500 to-purple-500 rounded-3xl opacity-20 blur-xl animate-pulse" />
-                
-                <div className="relative bg-slate-900 p-3 rounded-[2.5rem] border border-slate-800 shadow-2xl max-w-sm w-full overflow-hidden">
-                  <div className="absolute top-0 inset-x-0 h-5 bg-slate-900 flex items-center justify-center z-10">
-                    <div className="w-20 h-4 bg-black rounded-b-xl" />
+              <p className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto font-normal">
+                {currentTexts.heroSubtitle}
+              </p>
+
+              {/* Higgsfield Command Launcher */}
+              <div className="pt-2 max-w-2xl mx-auto">
+                <div className="p-2 rounded-2xl bg-white/[0.04] border border-white/[0.1] shadow-2xl backdrop-blur-xl flex flex-col sm:flex-row items-center gap-2.5">
+                  <div className="flex-1 px-3 py-2 text-start flex items-center gap-2.5 w-full">
+                    <Terminal className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-xs text-slate-300 font-mono truncate">
+                      {currentTexts.promptPlaceholder}
+                    </span>
                   </div>
-                  
-                  {/* Aspect Ratio 16:9 or phone visual */}
-                  <div className="rounded-[2rem] overflow-hidden border border-slate-800 relative bg-black aspect-[9/16]">
-                    <img 
-                      src={promoPhoneImg} 
-                      alt="Smart Journal Phone Mockup" 
-                      className="w-full h-full object-cover select-none"
-                      referrerPolicy="no-referrer"
-                    />
+
+                  <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
+                    <button
+                      onClick={onLaunchApp}
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-black font-extrabold text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                    >
+                      <Zap className="w-3.5 h-3.5 fill-black" />
+                      <span>{currentTexts.btnLaunchStudio}</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setActiveTab('prompt_lab')}
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/10 to-amber-500/10 hover:from-cyan-500/20 hover:to-amber-500/20 text-cyan-300 hover:text-white font-mono text-xs transition-all border border-cyan-500/30 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
+                      <span>{currentTexts.btnHiggsfieldPortal}</span>
+                    </button>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-center gap-6 mt-3 text-xs text-slate-400 font-mono">
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Real-Time Cloud Sync</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Zero Tilt & Revenge Protection</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Hedge-Fund R Units</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* HIGGSFIELD HERO COCKPIT */}
+              <div className="pt-8 relative">
+                <div className="rounded-3xl bg-gradient-to-b from-white/[0.08] to-transparent p-[1px] shadow-2xl">
+                  <div className="rounded-[23px] bg-[#0d0d12]/95 border border-white/[0.08] overflow-hidden backdrop-blur-2xl">
                     
-                    {/* Floating Premium Label */}
-                    <div className="absolute bottom-4 inset-x-4 bg-slate-950/90 backdrop-blur-md border border-slate-800 p-3 rounded-2xl flex items-center justify-between text-left" dir="ltr">
+                    <div className="px-5 py-3 border-b border-white/[0.07] bg-white/[0.02] flex items-center justify-between gap-3 text-xs">
                       <div className="flex items-center gap-2">
-                        <span className="text-xl">👑</span>
-                        <div>
-                          <div className="text-[10px] font-black text-indigo-400 tracking-wider uppercase">Subscription Mode</div>
-                          <div className="text-xs font-extrabold text-white">Smart Trading Journal</div>
-                        </div>
+                        <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
+                        <span className="ml-2 font-mono text-slate-400 font-bold hidden sm:inline">HIGGSFIELD_STUDIO_COCKPIT // v3.2</span>
                       </div>
-                      <span className="text-[10px] bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 px-2 py-0.5 rounded-full font-bold">Active</span>
+
+                      <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/[0.06]">
+                        <button
+                          onClick={() => setHeroActiveView('cockpit')}
+                          className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold transition-all cursor-pointer ${
+                            heroActiveView === 'cockpit'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Studio Cockpit
+                        </button>
+                        <button
+                          onClick={() => setHeroActiveView('discipline')}
+                          className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold transition-all cursor-pointer ${
+                            heroActiveView === 'discipline'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Discipline Radar
+                        </button>
+                        <button
+                          onClick={() => setHeroActiveView('risk')}
+                          className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold transition-all cursor-pointer ${
+                            heroActiveView === 'risk'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          R-Factor
+                        </button>
+                        <button
+                          onClick={() => setHeroActiveView('mockup')}
+                          className={`px-2.5 py-1 rounded-lg font-mono text-[11px] font-bold transition-all cursor-pointer ${
+                            heroActiveView === 'mockup'
+                              ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                              : 'text-slate-400 hover:text-white'
+                          }`}
+                        >
+                          Mobile App
+                        </button>
+                      </div>
+
+                      <div className="hidden md:flex items-center gap-2 font-mono text-[11px] text-emerald-400">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
+                        <span>LIVE PERSISTENCE</span>
+                      </div>
                     </div>
+
+                    <div className="p-6 sm:p-8">
+                      {heroActiveView === 'cockpit' && (
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-start">
+                          {/* Pillar 1: Discipline (Emerald) */}
+                          <div className="p-5 rounded-2xl bg-white/[0.02] border border-emerald-500/25 space-y-3 relative overflow-hidden group hover:border-emerald-500/50 transition-all shadow-sm">
+                            <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+                              <span className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                <span>משמעת // DISCIPLINE</span>
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-300 font-bold text-[10px]">OPTIMAL</span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-4xl font-black text-white font-mono">{currentTexts.statsDiscipline}</span>
+                              <span className="text-xs text-emerald-400 font-bold">+4.2% vs last mo</span>
+                            </div>
+                            <div className="w-full bg-white/[0.06] h-2 rounded-full overflow-hidden">
+                              <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full w-[94.8%]" />
+                            </div>
+                            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                              {currentTexts.statsDisciplineLabel} · אפס חריגות מכללי המסחר ב-28 ימי מסחר רצופים.
+                            </p>
+                          </div>
+
+                          {/* Pillar 2: Sharpness (Cyan) */}
+                          <div className="p-5 rounded-2xl bg-white/[0.02] border border-cyan-500/25 space-y-3 relative overflow-hidden group hover:border-cyan-500/50 transition-all shadow-sm">
+                            <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+                              <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
+                                <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                                <span>חדות // SHARPNESS</span>
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-bold text-[10px]">1:2.8 AVG R</span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-4xl font-black text-cyan-300 font-mono">{currentTexts.statsRUnits}</span>
+                              <span className="text-xs text-slate-400 font-bold">יחידות סיכון נטו</span>
+                            </div>
+                            <div className="flex items-center gap-1.5 text-xs font-mono text-slate-300">
+                              <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 font-bold">+3.2R TP</span>
+                              <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 font-bold">+2.0R TP</span>
+                              <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10 font-bold">-1.0R SL</span>
+                            </div>
+                            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                              {currentTexts.statsRUnitsLabel} · נטרול מלא של חרדת הכסף על ידי מדידה מדויקת ב-R.
+                            </p>
+                          </div>
+
+                          {/* Pillar 3: Hope & Recovery (Warm Amber / Gold) */}
+                          <div className="p-5 rounded-2xl bg-white/[0.02] border border-amber-500/25 space-y-3 relative overflow-hidden group hover:border-amber-500/50 transition-all shadow-sm">
+                            <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
+                              <span className="flex items-center gap-1.5 text-amber-400 font-bold">
+                                <span className="w-2 h-2 rounded-full bg-amber-400" />
+                                <span>תקווה // HOPE & FLOW</span>
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 font-bold text-[10px]">CALM & ZEN</span>
+                            </div>
+                            <div className="flex items-baseline gap-2">
+                              <span className="text-4xl font-black text-amber-300 font-mono">{currentTexts.statsStreak}</span>
+                              <span className="text-xs text-amber-400 font-bold">רצף יציב</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                              <span className="text-xs font-mono text-emerald-300">רדאר נקמה: 0 עסקאות אימפולסיביות</span>
+                            </div>
+                            <p className="text-xs text-slate-400 leading-relaxed font-sans">
+                              {currentTexts.statsStreakLabel} · יציאה מהפסדים ועלייה למסלול של צמיחה מתמשכת.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {heroActiveView === 'discipline' && (
+                        <div className="space-y-4 text-start">
+                          <div className="p-4 rounded-xl bg-white/[0.02] border border-white/[0.06] flex items-center justify-between">
+                            <span className="font-mono text-sm text-white font-bold">Rule Deviation Radar</span>
+                            <span className="text-xs font-mono text-emerald-400">Strict Enforcement Active</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs font-mono">
+                            <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                              <div className="text-slate-400">FOMO Entries</div>
+                              <div className="text-lg font-bold text-emerald-400">0%</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                              <div className="text-slate-400">Early Exits</div>
+                              <div className="text-lg font-bold text-emerald-400">2% (Controlled)</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                              <div className="text-slate-400">Stop Widening</div>
+                              <div className="text-lg font-bold text-emerald-400">0% (Strict)</div>
+                            </div>
+                            <div className="p-3 rounded-lg bg-black/40 border border-white/[0.06]">
+                              <div className="text-slate-400">Daily Trade Cap</div>
+                              <div className="text-lg font-bold text-emerald-400">3 Trades Max</div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {heroActiveView === 'risk' && (
+                        <div className="p-6 rounded-2xl bg-black/40 border border-white/[0.06] space-y-4 text-start font-mono">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm text-slate-200 font-bold">Objective Mathematical Expectancy</span>
+                            <span className="text-xs text-emerald-400">+1.45 R per trade avg</span>
+                          </div>
+                          <div className="h-32 w-full flex items-end gap-2 pt-4 border-b border-white/[0.08]">
+                            {[1.2, 2.5, -1.0, 3.4, 1.8, -0.8, 2.9, 3.1, -1.0, 4.2].map((val, idx) => (
+                              <div key={idx} className="flex-1 flex flex-col items-center gap-1 h-full justify-end">
+                                <div 
+                                  className={`w-full rounded-t transition-all ${val > 0 ? 'bg-emerald-500' : 'bg-rose-500'}`} 
+                                  style={{ height: `${Math.abs(val) * 22}px` }}
+                                />
+                                <span className="text-[9px] text-slate-500">{val > 0 ? `+${val}` : val}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {heroActiveView === 'mockup' && (
+                        <div className="flex flex-col sm:flex-row items-center justify-center gap-8 py-4">
+                          <div className="w-56 rounded-3xl overflow-hidden border border-white/[0.1] shadow-2xl">
+                            <img src={promoPhoneImg} alt="Phone Mockup" className="w-full h-auto object-cover" />
+                          </div>
+                          <div className="max-w-sm text-start space-y-3">
+                            <div className="text-xs font-mono text-emerald-400">CROSS-PLATFORM SUITE</div>
+                            <h3 className="text-xl font-bold text-white">Always in Sync</h3>
+                            <p className="text-xs text-slate-400 leading-relaxed">
+                              Open your trading cockpit on desktop or mobile browser. Real-time Firestore synchronization guarantees your discipline history is everywhere you trade.
+                            </p>
+                            <button
+                              onClick={onLaunchApp}
+                              className="px-4 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-extrabold text-xs cursor-pointer shadow-md"
+                            >
+                              Open Mobile Workspace 📱
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="px-6 py-4 bg-white/[0.02] border-t border-white/[0.06] flex flex-col sm:flex-row items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 text-xs font-mono">
+                        <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                          <span>משמעת: 94.8%</span>
+                        </span>
+                        <span className="text-white/20">•</span>
+                        <span className="flex items-center gap-1.5 text-cyan-400 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-cyan-400" />
+                          <span>חדות: +18.5 R</span>
+                        </span>
+                        <span className="text-white/20">•</span>
+                        <span className="flex items-center gap-1.5 text-amber-400 font-semibold">
+                          <span className="w-2 h-2 rounded-full bg-amber-400" />
+                          <span>תקווה: רווחיות יציבה</span>
+                        </span>
+                      </div>
+
+                      <button
+                        onClick={onLaunchApp}
+                        className="px-5 py-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs transition-all shadow-md cursor-pointer flex items-center gap-1.5"
+                      >
+                        <span>{currentTexts.btnLaunchStudio}</span>
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
                   </div>
                 </div>
               </div>
 
             </div>
 
-            {/* Features Showcase */}
-            <div className="space-y-10 pt-8 border-t border-slate-900">
-              <div className="text-center space-y-2">
-                <span className="text-[11px] bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 px-2.5 py-1 rounded-full font-black uppercase tracking-widest">
-                  {currentTexts.featuresHeaderBadge}
-                </span>
-                <h2 className="text-2xl sm:text-3xl font-black text-white">
+            {/* SECTION 2: DISCIPLINE SCENARIO & TILT PROMPT SIMULATOR */}
+            <div className="pt-12 border-t border-white/[0.06]">
+              <DisciplinePromptSimulator language={language} onLaunchApp={onLaunchApp} />
+            </div>
+
+            {/* SECTION 3: CINEMATIC TRADE REPLAY VISUALIZER */}
+            <div className="pt-12 border-t border-white/[0.06]">
+              <CinematicTradeVisualizer language={language} onLaunchApp={onLaunchApp} />
+            </div>
+
+            {/* SECTION 4: 6 HIGGSFIELD TOOLS SHOWCASE */}
+            <div className="space-y-12 max-w-6xl mx-auto pt-12 border-t border-white/[0.06]">
+              <div className="text-center space-y-3">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
+                  <span>✦ HIGGSFIELD DISCIPLINE SUITE</span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
                   {currentTexts.featuresTitle}
                 </h2>
-                <p className="text-slate-400 text-xs sm:text-sm max-w-2xl mx-auto">
+                <p className="text-slate-400 text-sm max-w-2xl mx-auto">
                   {currentTexts.featuresSubtitle}
                 </p>
               </div>
 
-              {/* Bento Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <div className="bg-slate-900/40 border border-slate-900 hover:border-indigo-500/20 p-6 rounded-2xl space-y-3 transition-all hover:-translate-y-1">
-                  <div className="text-2xl">🧘‍♂️</div>
-                  <h3 className="text-sm font-extrabold text-white">{currentTexts.feature1Title}</h3>
-                  <p className="text-slate-400 text-xs leading-relaxed">{currentTexts.feature1Desc}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div 
+                  onClick={() => setActiveTab('prompt_lab')}
+                  className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.07] hover:border-emerald-500/40 transition-all space-y-4 group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-mono font-bold group-hover:scale-105 transition-transform">
+                    <Cpu className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    {currentTexts.tool1Title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {currentTexts.tool1Desc}
+                  </p>
                 </div>
-                <div className="bg-slate-900/40 border border-slate-900 hover:border-indigo-500/20 p-6 rounded-2xl space-y-3 transition-all hover:-translate-y-1">
-                  <div className="text-2xl">📊</div>
-                  <h3 className="text-sm font-extrabold text-white">{currentTexts.feature2Title}</h3>
-                  <p className="text-slate-400 text-xs leading-relaxed">{currentTexts.feature2Desc}</p>
+
+                <div 
+                  onClick={() => setActiveTab('audio_focus')}
+                  className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.07] hover:border-emerald-500/40 transition-all space-y-4 group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center text-lg font-mono font-bold group-hover:scale-105 transition-transform">
+                    <Activity className="w-5 h-5 text-teal-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-teal-300 transition-colors">
+                    {currentTexts.tool2Title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {currentTexts.tool2Desc}
+                  </p>
                 </div>
-                <div className="bg-slate-900/40 border border-slate-900 hover:border-indigo-500/20 p-6 rounded-2xl space-y-3 transition-all hover:-translate-y-1">
-                  <div className="text-2xl">⚡</div>
-                  <h3 className="text-sm font-extrabold text-white">{currentTexts.feature3Title}</h3>
-                  <p className="text-slate-400 text-xs leading-relaxed">{currentTexts.feature3Desc}</p>
+
+                <div 
+                  onClick={() => setActiveTab('prop_shield')}
+                  className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.07] hover:border-emerald-500/40 transition-all space-y-4 group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center text-lg font-mono font-bold group-hover:scale-105 transition-transform">
+                    <Target className="w-5 h-5 text-emerald-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-emerald-300 transition-colors">
+                    {currentTexts.tool3Title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {currentTexts.tool3Desc}
+                  </p>
                 </div>
-                <div className="bg-slate-900/40 border border-slate-900 hover:border-indigo-500/20 p-6 rounded-2xl space-y-3 transition-all hover:-translate-y-1">
-                  <div className="text-2xl">📅</div>
-                  <h3 className="text-sm font-extrabold text-white">{currentTexts.feature4Title}</h3>
-                  <p className="text-slate-400 text-xs leading-relaxed">{currentTexts.feature4Desc}</p>
+
+                <div 
+                  onClick={onLaunchApp}
+                  className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.07] hover:border-emerald-500/40 transition-all space-y-4 group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 flex items-center justify-center text-lg font-mono font-bold group-hover:scale-105 transition-transform">
+                    <Layers className="w-5 h-5 text-indigo-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-indigo-300 transition-colors">
+                    {currentTexts.tool4Title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {currentTexts.tool4Desc}
+                  </p>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('prop_shield')}
+                  className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.07] hover:border-emerald-500/40 transition-all space-y-4 group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center text-lg font-mono font-bold group-hover:scale-105 transition-transform">
+                    <ShieldCheck className="w-5 h-5 text-amber-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-amber-300 transition-colors">
+                    {currentTexts.tool5Title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {currentTexts.tool5Desc}
+                  </p>
+                </div>
+
+                <div 
+                  onClick={() => setActiveTab('passport')}
+                  className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.07] hover:border-emerald-500/40 transition-all space-y-4 group cursor-pointer"
+                >
+                  <div className="w-10 h-10 rounded-xl bg-pink-500/10 border border-pink-500/20 text-pink-400 flex items-center justify-center text-lg font-mono font-bold group-hover:scale-105 transition-transform">
+                    <Award className="w-5 h-5 text-pink-400" />
+                  </div>
+                  <h3 className="text-base font-bold text-white group-hover:text-pink-300 transition-colors">
+                    {currentTexts.tool6Title}
+                  </h3>
+                  <p className="text-xs text-slate-400 leading-relaxed">
+                    {currentTexts.tool6Desc}
+                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Interactive Demo Block */}
-            <div className="bg-gradient-to-r from-indigo-950 via-slate-900 to-slate-950 rounded-[2rem] border border-indigo-500/15 p-8 sm:p-12 relative overflow-hidden">
-              <div className="absolute right-0 bottom-0 top-0 w-1/3 opacity-5 pointer-events-none" />
-              
-              <div className="max-w-2xl space-y-4">
-                <h3 className="text-xl sm:text-2xl font-black text-white">
-                  {currentTexts.interactiveDemoTitle}
-                </h3>
-                <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
-                  {currentTexts.interactiveDemoDesc}
-                </p>
-                <div className="pt-2">
+            {/* SECTION 5: AMBIENT FOCUS AUDIO LAB */}
+            <div className="pt-12 border-t border-white/[0.06]">
+              <AmbientFocusAudioLab language={language} />
+            </div>
+
+            {/* SECTION 6: PROP FIRM CAPITAL SHIELD */}
+            <div className="pt-12 border-t border-white/[0.06]">
+              <PropFirmShieldCalculator language={language} onLaunchApp={onLaunchApp} />
+            </div>
+
+            {/* SECTION 7: COMMUNITY DISCIPLINE FEED */}
+            <div className="pt-12 border-t border-white/[0.06]">
+              <HiggsfieldCommunityFeed language={language} onLaunchApp={onLaunchApp} />
+            </div>
+
+            {/* SECTION 8: HOLOGRAPHIC PASSPORT GENERATOR */}
+            <div className="pt-12 border-t border-white/[0.06]">
+              <DisciplinePassportGenerator language={language} isPremium={isPremium} />
+            </div>
+
+            {/* CALL TO ACTION BANNER */}
+            <div className="p-8 sm:p-12 rounded-3xl bg-gradient-to-br from-emerald-950/40 via-[#0d0d14] to-black border border-emerald-500/25 relative overflow-hidden max-w-5xl mx-auto shadow-2xl">
+              <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-start">
+                <div className="space-y-3 max-w-xl">
+                  <span className="text-xs font-mono text-emerald-400 font-bold uppercase tracking-wider">
+                    ✦ ACCREDITED DISCIPLINE PORTAL
+                  </span>
+                  <h2 className="text-2xl sm:text-3xl font-black text-white leading-tight">
+                    {currentTexts.ctaTitle}
+                  </h2>
+                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    {currentTexts.ctaSubtitle}
+                  </p>
+                </div>
+
+                <div className="flex flex-col sm:flex-row items-center gap-3 shrink-0">
                   <button
                     onClick={onLaunchApp}
-                    className="px-6 py-3 bg-white hover:bg-slate-150 text-slate-950 font-black text-xs rounded-xl shadow-lg transition-all flex items-center gap-1.5 cursor-pointer"
+                    className="w-full sm:w-auto px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-extrabold text-sm transition-all shadow-xl shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer active:scale-95"
                   >
-                    <span>{currentTexts.btnLaunchDemo}</span>
-                    <MousePointerClick className="w-4 h-4 text-indigo-600" />
+                    <span>{currentTexts.ctaButton}</span>
+                    <ArrowRight className="w-4 h-4" />
                   </button>
-                </div>
-              </div>
-            </div>
 
-            {/* About Me & Authenticity Card */}
-            <div className="bg-gradient-to-br from-slate-900/90 via-slate-900 to-indigo-950/40 rounded-[2rem] border border-indigo-500/20 p-6 sm:p-10 space-y-6 relative overflow-hidden" dir={isRtl ? 'rtl' : 'ltr'}>
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800 pb-5">
-                <div className="flex items-center gap-3.5">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-indigo-500 text-white flex items-center justify-center text-2xl shadow-lg shadow-indigo-600/30 shrink-0">
-                    🧘‍♂️
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-lg sm:text-xl font-black text-white">
-                        {language === 'he' ? 'מי אני – המסע שלי למשמעת' : 'About Me – My Discipline Journey'}
-                      </h3>
-                      <span className="text-[10px] font-mono bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-2 py-0.5 rounded-full font-bold">
-                        FOUNDER STORY
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400 mt-0.5 font-medium">
-                      {language === 'he' ? 'הסיפור והפילוסופיה האמיתית מאחורי יומן המסחר' : 'The authentic mindset and philosophy behind the journal'}
-                    </p>
-                  </div>
-                </div>
-
-                {onOpenAboutMe && (
                   <button
                     type="button"
-                    onClick={onOpenAboutMe}
-                    className="px-4 py-2 bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white border border-indigo-500/40 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer self-start sm:self-auto shrink-0"
+                    onClick={() => setActiveTab('prompt_lab')}
+                    className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-amber-500/10 to-emerald-500/10 hover:from-cyan-500/20 hover:to-emerald-500/20 text-cyan-300 hover:text-white font-mono text-sm transition-all border border-cyan-500/40 flex items-center justify-center gap-2 cursor-pointer"
                   >
-                    <BookOpen className="w-3.5 h-3.5" />
-                    <span>{language === 'he' ? 'קרא את הסיפור המלא 📖' : 'Read Full Story 📖'}</span>
+                    <Sparkles className="w-4 h-4 text-amber-400" />
+                    <span>{currentTexts.btnHiggsfieldPortal}</span>
                   </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
-                  <div className="font-bold text-rose-400 flex items-center gap-1.5">
-                    <span>💔</span>
-                    <span>{language === 'he' ? 'השנים הקשות והטעויות' : 'The Painful Beginning'}</span>
-                  </div>
-                  <p className="text-slate-400 leading-relaxed">
-                    {language === 'he'
-                      ? 'כשנכנסתי לשוק ההון, חשבתי שהסוד הוא עוד אינדיקטור או עוד אסטרטגיה. האמת הכואבת היתה שכל ההפסדים הגדולים נבעו מכניסות מוקדמות, הזזת סטופים ועסקאות נקמה מתוך סטרס.'
-                      : 'Early on, I thought success required another indicator. The harsh truth was that every catastrophic loss stemmed from impatience, moved stops, and revenge trades.'}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
-                  <div className="font-bold text-amber-400 flex items-center gap-1.5">
-                    <span>⚡</span>
-                    <span>{language === 'he' ? 'המעבר למשמעת ויחידות R' : 'The Discipline Shift'}</span>
-                  </div>
-                  <p className="text-slate-400 leading-relaxed">
-                    {language === 'he'
-                      ? 'המהפך קרה רק כשעברתי לחשוב ביחידות סיכון קבועות (R) והתחלתי לתעד כל רגש ומצב מנטלי לפני כל פעולה. יומן מסחר הוא לא מותרות – הוא תעודת הביטוח של הסוחר.'
-                      : 'The transformation happened when I started accounting in fixed risk units (R) and logging emotional state before every single click. A discipline journal is non-negotiable.'}
-                  </p>
-                </div>
-
-                <div className="p-4 rounded-xl bg-slate-950/60 border border-slate-800/80 space-y-1.5">
-                  <div className="font-bold text-emerald-400 flex items-center gap-1.5">
-                    <span>🛡️</span>
-                    <span>{language === 'he' ? 'תמיכה אישית ואחריות' : 'Personal Support & Trust'}</span>
-                  </div>
-                  <p className="text-slate-400 leading-relaxed">
-                    {language === 'he'
-                      ? 'המערכת נבנתה באהבה ומסירות לסוחרים עצמאיים. יש לך שאלות או צורך בהכוונה? אני זמין במייל התמיכה הרשמי: '
-                      : 'Crafted with authenticity for dedicated traders. Got questions or feedback? Reach out directly via official brand email: '}
-                    <a href={`mailto:${SUPPORT_EMAIL}`} className="text-indigo-300 font-mono font-bold hover:underline">
-                      {SUPPORT_EMAIL}
-                    </a>
-                  </p>
                 </div>
               </div>
             </div>
 
-            {/* Newsletter Signup Card */}
-            <div className="space-y-4">
-              <NewsletterSignup 
-                language={language} 
-                className="shadow-2xl" 
-              />
-            </div>
-
-            {/* Social Links & Community Grid */}
-            <div className="space-y-4">
-              <SocialLinks 
-                language={language} 
-                variant="grid" 
-                className="p-6 bg-slate-900/40 rounded-3xl border border-slate-900" 
-              />
+            {/* NEWSLETTER SIGNUP */}
+            <div className="max-w-2xl mx-auto">
+              <NewsletterSignup language={language} isRtl={isRtl} />
             </div>
 
           </div>
         )}
 
-        {/* VIDEOS TAB */}
+        {/* TAB 2: PROMPT LAB */}
+        {activeTab === 'prompt_lab' && (
+          <div className="py-4 animate-fade-in">
+            <DisciplinePromptSimulator language={language} onLaunchApp={onLaunchApp} />
+          </div>
+        )}
+
+        {/* TAB 3: MOTION REPLAY */}
+        {activeTab === 'motion_replay' && (
+          <div className="py-4 animate-fade-in">
+            <CinematicTradeVisualizer language={language} onLaunchApp={onLaunchApp} />
+          </div>
+        )}
+
+        {/* TAB 4: AUDIO FOCUS LAB */}
+        {activeTab === 'audio_focus' && (
+          <div className="py-4 animate-fade-in">
+            <AmbientFocusAudioLab language={language} />
+          </div>
+        )}
+
+        {/* TAB 5: PROP FIRM SHIELD */}
+        {activeTab === 'prop_shield' && (
+          <div className="py-4 animate-fade-in">
+            <PropFirmShieldCalculator language={language} onLaunchApp={onLaunchApp} />
+          </div>
+        )}
+
+        {/* TAB 6: PASSPORT GENERATOR */}
+        {activeTab === 'passport' && (
+          <div className="py-4 animate-fade-in">
+            <DisciplinePassportGenerator language={language} isPremium={isPremium} />
+          </div>
+        )}
+
+        {/* TAB 7: COMMUNITY FEED */}
+        {activeTab === 'community' && (
+          <div className="py-4 animate-fade-in">
+            <HiggsfieldCommunityFeed language={language} onLaunchApp={onLaunchApp} />
+          </div>
+        )}
+
+        {/* TAB 8: VIDEOS (TikTok / Reels Simulator) */}
         {activeTab === 'videos' && (
-          <div className="space-y-8 py-4 animate-fadeIn">
-            
-            <div className="border-b border-slate-900 pb-5">
-              <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-                <Video className="w-6 h-6 text-indigo-400" />
-                <span>{currentTexts.videoKitTitle}</span>
+          <div className="space-y-8 max-w-5xl mx-auto py-4 animate-fade-in">
+            <div className="text-center space-y-2">
+              <span className="text-xs font-mono text-emerald-400 uppercase tracking-widest font-bold">
+                ✦ TIKTOK & REELS VIRAL SIMULATOR
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">
+                {language === 'he' ? 'סימולטור סרטונים שיווקיים 9:16' : '9:16 Marketing Video Simulator'}
               </h2>
-              <p className="text-slate-400 text-xs sm:text-sm mt-1">
-                {currentTexts.videoKitSub}
+              <p className="text-xs sm:text-sm text-slate-400 max-w-xl mx-auto">
+                {language === 'he' ? 'בחר קונספט, צפה בהדמיית הסרטון וקבל תסריט קריינות וכתוביות מוכן להקלטה!' : 'Pick a concept, simulate video playback, and get production-ready viral trading scripts!'}
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-              
-              {/* Left Column: Video Template Selector & Scripts details */}
-              <div className="lg:col-span-7 space-y-5">
-                
-                {/* Template Cards list */}
-                <div className="space-y-3">
-                  {videoTemplates.map((template, index) => (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+              <div className="lg:col-span-5 flex flex-col items-center">
+                <div className="relative w-64 aspect-[9/16] bg-black rounded-[2.5rem] border-4 border-slate-800 shadow-2xl overflow-hidden flex flex-col justify-between p-4">
+                  <div className="flex items-center justify-between text-[10px] text-white/60 font-mono z-10">
+                    <span>9:16 STUDIO</span>
+                    <span className="flex items-center gap-1 text-rose-500 font-bold">
+                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping" />
+                      REC
+                    </span>
+                  </div>
+
+                  <div className="my-auto px-2 py-4 bg-black/70 backdrop-blur-md rounded-2xl border border-white/10 text-center space-y-2 z-10">
+                    <span className="text-xs">🎯</span>
+                    <p className="text-xs font-black text-emerald-300 leading-snug">
+                      "{activeCaption}"
+                    </p>
+                  </div>
+
+                  <div className="space-y-2 z-10">
+                    <div className="w-full bg-white/20 h-1.5 rounded-full overflow-hidden">
+                      <div className="bg-emerald-400 h-full transition-all" style={{ width: `${videoProgress}%` }} />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <button
+                        onClick={() => setIsVideoPlaying(!isVideoPlaying)}
+                        className="p-2 rounded-full bg-emerald-500 text-black hover:bg-emerald-400 transition-all cursor-pointer"
+                      >
+                        {isVideoPlaying ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-black" />}
+                      </button>
+                      <span className="text-[10px] font-mono text-white/70">
+                        0:{Math.floor(videoCurrentTime).toString().padStart(2, '0')} / {videoTemplates[selectedVideoTemplate].duration}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="lg:col-span-7 space-y-4">
+                <div className="text-xs font-mono text-slate-400 font-bold">CHOOSE CONCEPT:</div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  {videoTemplates.map((template, idx) => (
                     <button
                       key={template.id}
-                      onClick={() => setSelectedVideoTemplate(index)}
-                      className={`w-full p-4 rounded-2xl border transition-all text-left flex items-center justify-between gap-3 cursor-pointer ${
-                        selectedVideoTemplate === index 
-                          ? 'bg-indigo-600/10 border-indigo-500 text-white' 
-                          : 'bg-slate-900/40 border-slate-900 hover:border-slate-800 text-slate-300 hover:text-white'
+                      onClick={() => {
+                        setSelectedVideoTemplate(idx);
+                        setVideoProgress(0);
+                        setVideoCurrentTime(0);
+                        setIsVideoPlaying(true);
+                      }}
+                      className={`p-4 rounded-2xl border text-start transition-all cursor-pointer ${
+                        selectedVideoTemplate === idx
+                          ? 'bg-emerald-500/10 border-emerald-500 text-white'
+                          : 'bg-white/[0.02] border-white/[0.08] text-slate-300 hover:border-white/20'
                       }`}
                     >
-                      <div className="flex items-center gap-3">
-                        <span className="text-2xl">{template.emoji}</span>
-                        <div className="text-left">
-                          <span className="text-[10px] text-indigo-400 font-bold block uppercase tracking-wide">Concept {index + 1}</span>
-                          <span className="text-xs sm:text-sm font-extrabold">{template.name}</span>
-                        </div>
-                      </div>
-                      <span className={`w-2 h-2 rounded-full ${selectedVideoTemplate === index ? 'bg-indigo-500' : 'bg-slate-700'}`} />
+                      <div className="text-xs font-bold">{template.title}</div>
+                      <div className="text-[10px] font-mono text-slate-400 mt-1">{template.duration} · {template.aspect}</div>
                     </button>
                   ))}
                 </div>
 
-                {/* Template Script Details Panel */}
-                <div className="bg-slate-900/50 border border-slate-900 rounded-3xl p-6 space-y-5">
-                  <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
-                    <Sparkles className="w-4 h-4 text-indigo-400" />
-                    <span>Full Script Details & Audio Guide</span>
-                  </div>
-
-                  {/* Hook */}
-                  <div className="space-y-1 bg-slate-950 p-4 rounded-xl border border-slate-900">
-                    <div className="text-[10px] text-rose-400 font-black uppercase tracking-wider">{currentTexts.videoTemplateHook}</div>
-                    <p className="text-xs sm:text-sm font-extrabold text-white leading-relaxed italic">{videoTemplates[selectedVideoTemplate].hook}</p>
-                  </div>
-
-                  {/* Voiceover */}
-                  <div className="space-y-1">
-                    <div className="text-[10px] text-indigo-400 font-black uppercase tracking-wider">{currentTexts.videoTemplateVoiceover}</div>
-                    <p className="text-xs sm:text-sm text-slate-200 leading-relaxed bg-slate-950/40 p-3 rounded-xl border border-slate-900/50">{videoTemplates[selectedVideoTemplate].voiceover}</p>
-                  </div>
-
-                  {/* On-Screen Overlay Text */}
+                <div className="p-5 rounded-2xl bg-white/[0.02] border border-white/[0.08] space-y-3 text-start">
+                  <div className="text-xs font-mono text-emerald-400 font-bold">VOICEOVER SCRIPT:</div>
                   <div className="space-y-2">
-                    <div className="text-[10px] text-emerald-400 font-black uppercase tracking-wider">{currentTexts.videoTemplateText}</div>
-                    <div className="grid grid-cols-2 gap-2">
-                      {videoTemplates[selectedVideoTemplate].captions.map((cap, i) => (
-                        <div key={i} className="bg-slate-950 px-3 py-2 rounded-lg border border-slate-900 flex items-center gap-1.5 text-[11px] font-bold text-slate-300 font-mono">
-                          <span className="text-[9px] text-emerald-500 font-bold bg-emerald-500/10 w-4 h-4 rounded-full flex items-center justify-center shrink-0">{i + 1}</span>
-                          <span>{cap}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Visual Scene Storyboard */}
-                  <div className="space-y-1">
-                    <div className="text-[10px] text-amber-400 font-black uppercase tracking-wider">{currentTexts.videoTemplateVisual}</div>
-                    <p className="text-xs text-slate-400 leading-relaxed italic">{videoTemplates[selectedVideoTemplate].visuals}</p>
-                  </div>
-
-                  {/* Soundtrack */}
-                  <div className="space-y-1 border-t border-slate-900 pt-3 flex items-center justify-between text-xs">
-                    <span className="text-slate-500">{currentTexts.videoMusic}</span>
-                    <span className="font-mono text-indigo-300 font-bold bg-indigo-500/10 px-2.5 py-0.5 rounded-full">{videoTemplates[selectedVideoTemplate].music}</span>
+                    {videoTemplates[selectedVideoTemplate].captions.map((cap, i) => (
+                      <div key={i} className="text-xs text-slate-300 flex items-start gap-2">
+                        <span className="font-mono text-emerald-500">{i + 1}.</span>
+                        <span>{cap}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
-
               </div>
-
-              {/* Right Column: Simulated Live Video Player inside phone mockup */}
-              <div className="lg:col-span-5 flex flex-col items-center">
-                
-                <div className="relative bg-slate-900 p-3.5 rounded-[3rem] border border-slate-800 shadow-2xl max-w-sm w-full overflow-hidden select-none">
-                  
-                  {/* Top Phone speaker notch */}
-                  <div className="absolute top-0 inset-x-0 h-5 bg-slate-900 flex items-center justify-center z-10">
-                    <div className="w-20 h-4 bg-black rounded-b-xl" />
-                  </div>
-
-                  {/* Live Simulated Reels screen */}
-                  <div className={`rounded-[2.2rem] overflow-hidden border border-slate-800 relative bg-gradient-to-tr ${videoTemplates[selectedVideoTemplate].visualColor} aspect-[9/16] flex flex-col justify-between p-5`}>
-                    
-                    {/* Top overlay buttons */}
-                    <div className="flex items-center justify-between text-white text-[10px] z-10 pt-2" dir="ltr">
-                      <div className="flex items-center gap-1.5 font-bold">
-                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
-                        <span className="tracking-wide uppercase">Simulated Live</span>
-                      </div>
-                      <span className="font-mono bg-black/40 px-2 py-0.5 rounded-full font-bold">{videoCurrentTime}s / 8.0s</span>
-                    </div>
-
-                    {/* Middle visual simulator - responsive glowing elements */}
-                    <div className="flex-1 flex flex-col items-center justify-center text-center p-4 space-y-6 relative">
-                      
-                      {/* Interactive pulsing graph simulator */}
-                      <div className="relative w-full max-w-[200px] h-28 bg-black/40 backdrop-blur-md rounded-2xl border border-white/15 p-3 flex flex-col justify-between overflow-hidden">
-                        
-                        <div className="flex items-center justify-between text-[9px] text-slate-400" dir="ltr">
-                          <span>Discipline Trend</span>
-                          <span className="text-emerald-400 font-bold font-mono">94% Compliance</span>
-                        </div>
-
-                        {/* Animated SVG Path Chart */}
-                        <div className="flex-1 flex items-end justify-between relative mt-1">
-                          <svg className="absolute inset-0 w-full h-full text-emerald-500" viewBox="0 0 100 50">
-                            <defs>
-                              <linearGradient id="chartGrad" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
-                                <stop offset="100%" stopColor="#10b981" stopOpacity="0.0" />
-                              </linearGradient>
-                            </defs>
-                            {/* Static guideline */}
-                            <line x1="0" y1="35" x2="100" y2="35" stroke="rgba(255,255,255,0.05)" strokeDasharray="2,2" />
-                            {/* Animated line representing growing chart */}
-                            <path 
-                              d="M0,45 L20,38 L40,42 L60,20 L80,15 L100,2" 
-                              fill="none" 
-                              stroke="currentColor" 
-                              strokeWidth="2.5" 
-                              className={`transition-all duration-1000 ${isVideoPlaying ? 'stroke-dasharray-[100] stroke-dashoffset-0' : 'opacity-80'}`}
-                            />
-                            <path d="M0,45 L20,38 L40,42 L60,20 L80,15 L100,2 L100,50 L0,50 Z" fill="url(#chartGrad)" />
-                          </svg>
-
-                          {/* Pulsing indicator node */}
-                          <div className="absolute right-0 top-0 w-2.5 h-2.5 rounded-full bg-emerald-400 shadow-md shadow-emerald-400/50 animate-ping" />
-                        </div>
-
-                        <div className="flex items-center justify-between text-[8px] text-slate-500 pt-1 font-mono" dir="ltr">
-                          <span>Day 1</span>
-                          <span>Day 15</span>
-                          <span>Day 30</span>
-                        </div>
-                      </div>
-
-                      {/* Captions burned into the video view - Simulated Real Reels Cap */}
-                      <AnimatePresence mode="wait">
-                        {isVideoPlaying && (
-                          <motion.div
-                            key={activeCaption}
-                            initial={{ scale: 0.8, opacity: 0, y: 10 }}
-                            animate={{ scale: 1, opacity: 1, y: 0 }}
-                            exit={{ scale: 0.9, opacity: 0, y: -10 }}
-                            className="bg-yellow-400 text-black font-black text-sm px-4 py-2.5 rounded-xl shadow-lg uppercase tracking-wide max-w-[220px]"
-                          >
-                            {activeCaption}
-                          </motion.div>
-                        )}
-                        {!isVideoPlaying && (
-                          <div className="bg-white/10 backdrop-blur-md text-white font-extrabold text-xs px-4 py-2 rounded-xl border border-white/20 uppercase tracking-wider">
-                            Ready to Play Video Concept
-                          </div>
-                        )}
-                      </AnimatePresence>
-                    </div>
-
-                    {/* Bottom simulated interface controls */}
-                    <div className="space-y-3 shrink-0 bg-gradient-to-t from-black/80 to-transparent p-3 rounded-2xl">
-                      
-                      {/* Reel progress bar */}
-                      <div className="w-full bg-white/25 h-1 rounded-full overflow-hidden">
-                        <div 
-                          className="bg-indigo-500 h-full transition-all duration-200"
-                          style={{ width: `${videoProgress}%` }}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => setIsVideoPlaying(!isVideoPlaying)}
-                            className="w-9 h-9 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center transition-all shadow-md cursor-pointer"
-                          >
-                            {isVideoPlaying ? <Pause className="w-4 h-4 fill-white" /> : <Play className="w-4 h-4 fill-white ml-0.5" />}
-                          </button>
-                          
-                          <button
-                            onClick={() => setIsMuted(!isMuted)}
-                            className="w-7 h-7 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center transition-all cursor-pointer"
-                          >
-                            <Volume2 className={`w-3.5 h-3.5 ${isMuted ? 'opacity-40' : 'opacity-100'}`} />
-                          </button>
-                        </div>
-
-                        {/* Social stats mockups */}
-                        <div className="flex items-center gap-2 text-white/80 text-[10px] font-bold" dir="ltr">
-                          <span>❤️ 1,482</span>
-                          <span>💬 89</span>
-                        </div>
-                      </div>
-
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* Info Note */}
-                <p className="text-[10px] text-slate-500 text-center mt-3 max-w-xs leading-relaxed">
-                  💡 This simulator displays a visual simulation of the short-form video concept (chart animations & burned-in captions). You can record this preview screen or copy the ready scripts to record your own high-converting post!
-                </p>
-
-              </div>
-
             </div>
-
           </div>
         )}
 
-        {/* IMAGES & POST CREATOR TAB */}
+        {/* TAB 9: IMAGES (Social Media Post Generator) */}
         {activeTab === 'images' && (
-          <div className="space-y-12 py-4 animate-fadeIn">
-            
-            {/* Promo Images Download Center */}
-            <div className="space-y-6">
-              <div className="border-b border-slate-900 pb-4">
-                <h2 className="text-xl sm:text-2xl font-black text-white flex items-center gap-2">
-                  <ImageIcon className="w-6 h-6 text-indigo-400" />
-                  <span>{currentTexts.promoImagesTitle}</span>
-                </h2>
-                <p className="text-slate-400 text-xs sm:text-sm mt-1">
-                  {currentTexts.promoImagesSub}
-                </p>
-              </div>
-
-              {/* Grid with the 2 generated images */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                
-                {/* Image Card 1 */}
-                <div className="bg-slate-900/40 border border-slate-900 rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between">
-                  <div className="p-4 bg-slate-950 border-b border-slate-900 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-indigo-400 font-extrabold block uppercase tracking-wide">Image Asset #1</span>
-                      <h4 className="text-xs font-black text-white uppercase tracking-tight">Trading Journal Phone Mockup</h4>
-                    </div>
-                    <span className="text-[10px] bg-indigo-500/10 text-indigo-300 font-bold px-2 py-0.5 rounded-md border border-indigo-500/20">Landscape 16:9</span>
-                  </div>
-
-                  <div className="relative aspect-[16/9] bg-slate-950 overflow-hidden group">
-                    <img 
-                      src={promoPhoneImg} 
-                      alt="Promo Phone Mockup" 
-                      className="w-full h-full object-cover select-none transition-transform duration-500 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent pointer-events-none" />
-                  </div>
-
-                  <div className="p-5 bg-slate-900/60 border-t border-slate-900">
-                    <button
-                      onClick={() => downloadImageFile(promoPhoneImg, 'trading_promo_phone_mockup.jpg')}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/15"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>{currentTexts.btnDownload}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Image Card 2 */}
-                <div className="bg-slate-900/40 border border-slate-900 rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between">
-                  <div className="p-4 bg-slate-950 border-b border-slate-900 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-indigo-400 font-extrabold block uppercase tracking-wide">Image Asset #2</span>
-                      <h4 className="text-xs font-black text-white uppercase tracking-tight">Discipline Stat Badge Promo</h4>
-                    </div>
-                    <span className="text-[10px] bg-indigo-500/10 text-indigo-300 font-bold px-2 py-0.5 rounded-md border border-indigo-500/20">Landscape 16:9</span>
-                  </div>
-
-                  <div className="relative aspect-[16/9] bg-slate-950 overflow-hidden group">
-                    <img 
-                      src={promoDisciplineImg} 
-                      alt="Discipline Stat Promo" 
-                      className="w-full h-full object-cover select-none transition-transform duration-500 group-hover:scale-105"
-                      referrerPolicy="no-referrer"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 to-transparent pointer-events-none" />
-                  </div>
-
-                  <div className="p-5 bg-slate-900/60 border-t border-slate-900">
-                    <button
-                      onClick={() => downloadImageFile(promoDisciplineImg, 'trading_discipline_chart_promo.jpg')}
-                      className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-indigo-600/15"
-                    >
-                      <Download className="w-4 h-4" />
-                      <span>{currentTexts.btnDownload}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Image Card 3: 9:16 Story Ad Poster */}
-                <div className="bg-slate-900/40 border border-emerald-500/30 rounded-3xl overflow-hidden shadow-xl flex flex-col justify-between md:col-span-2">
-                  <div className="p-4 bg-slate-950 border-b border-slate-900 flex items-center justify-between">
-                    <div>
-                      <span className="text-[10px] text-emerald-400 font-extrabold block uppercase tracking-wide">Image Asset #3 (Featured 9:16)</span>
-                      <h4 className="text-xs font-black text-white uppercase tracking-tight">Vertical Story / Reels / TikTok Ad Poster</h4>
-                    </div>
-                    <span className="text-[10px] bg-emerald-500/10 text-emerald-300 font-bold px-2 py-0.5 rounded-md border border-emerald-500/20">Vertical 9:16 Ready</span>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-6 items-center bg-slate-950/60">
-                    <div className="relative aspect-[9/16] max-h-[380px] mx-auto rounded-2xl overflow-hidden border border-slate-800 shadow-2xl group">
-                      <img 
-                        src={promoAdStoryImg} 
-                        alt="9:16 Story Ad Poster" 
-                        className="w-full h-full object-cover select-none transition-transform duration-500 group-hover:scale-105"
-                        referrerPolicy="no-referrer"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent pointer-events-none" />
-                    </div>
-
-                    <div className="space-y-4">
-                      <div className="space-y-1">
-                        <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">מודעה סוחפת לסוחרים</span>
-                        <h5 className="text-base font-black text-white">פורמט 9:16 אנכי מושלם לסטורי, רילס וטיקטוק</h5>
-                        <p className="text-xs text-slate-400 leading-relaxed">
-                          מודעה חדה וממוקדת שנוצרה במיוחד כדי למשוך סוחרים שנלחמים במשמעת, סוגרים עסקאות מוקדם, מזיזים סטופים ומשלמים על איפוסים חוזרים ונשנים.
-                        </p>
-                      </div>
-
-                      <div className="flex flex-col sm:flex-row gap-3">
-                        <button
-                          onClick={() => downloadImageFile(promoAdStoryImg, 'TradeReport_Story_Ad_9_16.jpg')}
-                          className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-md shadow-emerald-600/15"
-                        >
-                          <Download className="w-4 h-4" />
-                          <span>הורד תמונה אנכית 9:16 📥</span>
-                        </button>
-
-                        {isOwnerView && onOpenAdPoster && (
-                          <button
-                            onClick={onOpenAdPoster}
-                            className="flex-1 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                          >
-                            <ExternalLink className="w-4 h-4 text-emerald-400" />
-                            <span>פתח סטודיו מודעות מלא ⚡</span>
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-              </div>
+          <div className="space-y-8 max-w-4xl mx-auto py-4 animate-fade-in">
+            <div className="text-center space-y-2">
+              <span className="text-xs font-mono text-emerald-400 uppercase tracking-widest font-bold">
+                ✦ SOCIAL PROOF & POST GENERATOR
+              </span>
+              <h2 className="text-2xl sm:text-3xl font-black text-white">
+                {language === 'he' ? 'יוצר פוסטים שיווקיים לרשתות' : 'Viral Trading Post Generator'}
+              </h2>
             </div>
 
-            {/* Interactive Social Post Creator */}
-            <div className="bg-slate-900/30 border border-slate-900 rounded-3xl p-6 sm:p-8 space-y-6">
-              <div className="border-b border-slate-900 pb-4">
-                <h3 className="text-lg font-black text-white flex items-center gap-2">
-                  <Share2 className="w-5 h-5 text-indigo-400" />
-                  <span>{currentTexts.postGeneratorTitle}</span>
-                </h3>
-                <p className="text-slate-400 text-xs">
-                  {currentTexts.postGeneratorSub}
-                </p>
+            <div className="p-6 rounded-2xl bg-white/[0.02] border border-white/[0.08] grid grid-cols-1 md:grid-cols-2 gap-6 text-start">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-slate-300">{currentTexts.inputDiscipline}</label>
+                  <input
+                    type="text"
+                    value={postDiscipline}
+                    onChange={(e) => setPostDiscipline(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-white/[0.1] text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-slate-300">{currentTexts.inputProfit}</label>
+                  <input
+                    type="text"
+                    value={postProfit}
+                    onChange={(e) => setPostProfit(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-white/[0.1] text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-xs font-mono text-slate-300">{currentTexts.inputMental}</label>
+                  <input
+                    type="text"
+                    value={postMentalState}
+                    onChange={(e) => setPostMentalState(e.target.value)}
+                    className="w-full px-3.5 py-2.5 rounded-xl bg-black border border-white/[0.1] text-xs font-mono text-white focus:outline-none focus:border-emerald-500"
+                  />
+                </div>
               </div>
 
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-                
-                {/* Inputs area */}
-                <div className="lg:col-span-5 space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 block">{currentTexts.inputDiscipline}</label>
-                    <input 
-                      type="text" 
-                      value={postDiscipline}
-                      onChange={(e) => setPostDiscipline(e.target.value)}
-                      placeholder="e.g. 94%"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
+              <div className="flex flex-col justify-between space-y-4">
+                <textarea
+                  readOnly
+                  value={generatedCaption}
+                  rows={8}
+                  className="w-full p-4 rounded-xl bg-black border border-white/[0.1] text-xs text-slate-300 font-sans leading-relaxed resize-none focus:outline-none select-all"
+                />
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 block">{currentTexts.inputProfit}</label>
-                    <input 
-                      type="text" 
-                      value={postProfit}
-                      onChange={(e) => setPostProfit(e.target.value)}
-                      placeholder="e.g. +14.5 R"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold text-slate-300 block">{currentTexts.inputMental}</label>
-                    <input 
-                      type="text" 
-                      value={postMentalState}
-                      onChange={(e) => setPostMentalState(e.target.value)}
-                      placeholder="e.g. Calm & Focused"
-                      className="w-full px-4 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-xs text-white focus:outline-none focus:border-indigo-500"
-                    />
-                  </div>
-
-                  <div className="pt-2">
-                    <button
-                      onClick={handleGenerateCaption}
-                      className="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-extrabold text-xs rounded-xl border border-slate-700 transition-all flex items-center justify-center gap-1.5 cursor-pointer"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5 text-slate-400" />
-                      <span>{currentTexts.btnGeneratePost}</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Text Box result and Copy buttons */}
-                <div className="lg:col-span-7 flex flex-col justify-between space-y-4">
-                  <div className="relative flex-1">
-                    <textarea
-                      readOnly
-                      value={generatedCaption}
-                      rows={10}
-                      className="w-full p-4 rounded-2xl bg-slate-950 border border-slate-800 text-xs text-slate-200 focus:outline-none font-sans leading-relaxed select-all"
-                    />
-                    
-                    <div className="absolute top-3 left-3 bg-indigo-500/10 text-indigo-400 font-mono text-[9px] font-black px-2 py-0.5 rounded border border-indigo-500/20">
-                      COPYREADY
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={handleCopyCaption}
-                    className={`w-full py-3 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer border ${
-                      isCopied 
-                        ? 'bg-emerald-600 text-white border-emerald-500' 
-                        : 'bg-indigo-600 hover:bg-indigo-500 text-white border-indigo-500'
-                    }`}
-                  >
-                    {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                    <span>{isCopied ? currentTexts.postCopied : currentTexts.btnCopyPost}</span>
-                  </button>
-                </div>
-
+                <button
+                  onClick={handleCopyCaption}
+                  className={`w-full py-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    isCopied
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-emerald-500 hover:bg-emerald-400 text-black'
+                  }`}
+                >
+                  {isCopied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+                  <span>{isCopied ? currentTexts.postCopied : currentTexts.btnCopyPost}</span>
+                </button>
               </div>
             </div>
-
           </div>
         )}
 
       </main>
 
-      {/* Footer copyright & trust links */}
-      <footer className="border-t border-slate-900 bg-slate-950/80 py-8 px-4 text-center mt-12">
-        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6 text-slate-400 text-xs font-medium" dir={isRtl ? 'rtl' : 'ltr'}>
+      {/* Higgsfield Footer */}
+      <footer className="border-t border-white/[0.06] bg-[#050508] py-10 px-4 sm:px-8 mt-16 text-xs text-slate-400">
+        <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            <span className="font-bold text-slate-300">© 2026 Smart Trading Journal</span>
-            <span className="hidden sm:inline text-slate-700">•</span>
+            <span className="font-bold text-white">© 2026 Higgsfield / My Discipline Journey</span>
+            <span className="hidden sm:inline text-white/20">·</span>
             <span>{currentTexts.creatorLabel}</span>
           </div>
 
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            {onOpenAnalytics && (
-              <button
-                type="button"
-                onClick={onOpenAnalytics}
-                className="hover:text-white transition-colors cursor-pointer flex items-center gap-1 font-bold text-indigo-400"
-              >
-                <Activity className="w-3.5 h-3.5" />
-                <span>{language === 'he' ? 'כלי מדידה 📊' : 'Analytics 📊'}</span>
-              </button>
-            )}
-
-            {onOpenAboutMe && (
-              <button
-                type="button"
-                onClick={onOpenAboutMe}
-                className="hover:text-white transition-colors cursor-pointer flex items-center gap-1 font-bold text-amber-400"
-              >
-                <User className="w-3.5 h-3.5" />
-                <span>{language === 'he' ? 'מי אני – המסע שלי 🧘‍♂️' : 'About Me 🧘‍♂️'}</span>
-              </button>
-            )}
+          <div className="flex items-center gap-4 flex-wrap justify-center font-mono">
+            <div className="flex items-center gap-2 text-xs font-mono">
+              <span className="text-emerald-400 font-bold">משמעת</span>
+              <span className="text-white/20">•</span>
+              <span className="text-cyan-400 font-bold">חדות</span>
+              <span className="text-white/20">•</span>
+              <span className="text-amber-400 font-bold">תקווה</span>
+              <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] border border-emerald-500/30">
+                OFFICIAL SUITE
+              </span>
+            </div>
 
             <a
               href={`mailto:${SUPPORT_EMAIL}`}
-              className="hover:text-white transition-colors flex items-center gap-1 font-mono text-indigo-400 font-semibold"
+              className="text-slate-300 hover:text-white flex items-center gap-1"
             >
-              <Mail className="w-3.5 h-3.5" />
+              <Mail className="w-3.5 h-3.5 text-emerald-400" />
               <span>{SUPPORT_EMAIL}</span>
             </a>
           </div>
 
-          <div>
-            <SocialLinks language={language} variant="compact" />
-          </div>
+          <SocialLinks language={language} variant="compact" />
         </div>
       </footer>
 
