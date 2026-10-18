@@ -43,12 +43,12 @@ import { SocialLinks } from './SocialLinks';
 import { SUPPORT_EMAIL } from '../firebase';
 
 // Import Trading Discipline Studio Components
-import { DisciplinePromptSimulator } from './studio/DisciplinePromptSimulator';
-import { CinematicTradeVisualizer } from './studio/CinematicTradeVisualizer';
-import { AmbientFocusAudioLab } from './studio/AmbientFocusAudioLab';
-import { PropFirmShieldCalculator } from './studio/PropFirmShieldCalculator';
-import { DisciplinePassportGenerator } from './studio/DisciplinePassportGenerator';
-import { DisciplineCommunityFeed } from './studio/DisciplineCommunityFeed';
+import { DisciplinePromptSimulator } from './DisciplinePromptSimulator';
+import { CinematicTradeVisualizer } from './CinematicTradeVisualizer';
+import { AmbientFocusAudioLab } from './AmbientFocusAudioLab';
+import { PropFirmShieldCalculator } from './PropFirmShieldCalculator';
+import { DisciplinePassportGenerator } from './DisciplinePassportGenerator';
+import { DisciplineCommunityFeed } from './DisciplineCommunityFeed';
 
 // Import promotional assets
 // @ts-ignore

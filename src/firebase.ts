@@ -22,10 +22,9 @@ import {
   serverTimestamp 
 } from 'firebase/firestore';
 import { TradingDay } from './types';
-import firebaseAppletConfig from '../firebase-applet-config.json';
-
-// Safely load config from direct json or Vite environment variables
-const rawConfig = (firebaseAppletConfig || {}) as Record<string, any>;
+// Safely load config from direct json or Vite environment variables without breaking build if json is missing
+const configModules = import.meta.glob('../firebase-applet-config.json', { eager: true });
+const rawConfig = ((configModules['../firebase-applet-config.json'] as any)?.default || {}) as Record<string, any>;
 
 export const firebaseConfig = {
   apiKey: (import.meta.env.VITE_FIREBASE_API_KEY as string) || rawConfig.apiKey || '',
