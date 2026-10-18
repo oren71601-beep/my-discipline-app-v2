@@ -213,7 +213,7 @@ export const AmbientFocusAudioLab: React.FC<Props> = ({ language }) => {
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
           <Waves className="w-3.5 h-3.5" />
-          <span>HIGGSFIELD AUDIO LAB // BIOFEEDBACK FOCUS SYNTHESIZER</span>
+          <span>AUDIO LAB // BIOFEEDBACK FOCUS SYNTHESIZER</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
           {language === 'he' ? 'מעבדת שמע וריכוז מנטלי: צלילי אלפא ו-432Hz' : 'Ambient Focus Audio Lab & Mindset Soundscape'}

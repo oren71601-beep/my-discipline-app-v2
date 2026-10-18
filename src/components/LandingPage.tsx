@@ -42,13 +42,13 @@ import { NewsletterSignup } from './NewsletterSignup';
 import { SocialLinks } from './SocialLinks';
 import { SUPPORT_EMAIL } from '../firebase';
 
-// Import Higgsfield Studio Components
-import { DisciplinePromptSimulator } from './higgsfield/DisciplinePromptSimulator';
-import { CinematicTradeVisualizer } from './higgsfield/CinematicTradeVisualizer';
-import { AmbientFocusAudioLab } from './higgsfield/AmbientFocusAudioLab';
-import { PropFirmShieldCalculator } from './higgsfield/PropFirmShieldCalculator';
-import { DisciplinePassportGenerator } from './higgsfield/DisciplinePassportGenerator';
-import { HiggsfieldCommunityFeed } from './higgsfield/HiggsfieldCommunityFeed';
+// Import Trading Discipline Studio Components
+import { DisciplinePromptSimulator } from './studio/DisciplinePromptSimulator';
+import { CinematicTradeVisualizer } from './studio/CinematicTradeVisualizer';
+import { AmbientFocusAudioLab } from './studio/AmbientFocusAudioLab';
+import { PropFirmShieldCalculator } from './studio/PropFirmShieldCalculator';
+import { DisciplinePassportGenerator } from './studio/DisciplinePassportGenerator';
+import { DisciplineCommunityFeed } from './studio/DisciplineCommunityFeed';
 
 // Import promotional assets
 // @ts-ignore
@@ -132,16 +132,54 @@ export default function LandingPage({
   const [generatedCaption, setGeneratedCaption] = useState<string>('');
   const [isCopied, setIsCopied] = useState<boolean>(false);
 
+  // Interactive Hero Command Bar State
+  const [heroPromptInput, setHeroPromptInput] = useState<string>('');
+  const [commandFeedback, setCommandFeedback] = useState<string | null>(null);
+
+  const handleExecuteHeroCommand = (customQuery?: string) => {
+    const query = (customQuery !== undefined ? customQuery : heroPromptInput).trim().toLowerCase();
+    if (!query) {
+      onLaunchApp();
+      return;
+    }
+
+    if (query.includes('נקמה') || query.includes('revenge') || query.includes('tilt') || query.includes('fomo') || query.includes('תרחיש') || query.includes('scenario')) {
+      setActiveTab('prompt_lab');
+      setCommandFeedback(currentLang === 'he' ? 'טוען סימולטור תרחישים ומניעת Tilt ⚡' : 'Loading Tilt & Scenario Simulator ⚡');
+    } else if (query.includes('שמע') || query.includes('432') || query.includes('מוזיקה') || query.includes('audio') || query.includes('ריכוז') || query.includes('focus')) {
+      setActiveTab('audio_focus');
+      setCommandFeedback(currentLang === 'he' ? 'טוען מעבדת שמע בינאורלית 432Hz 🎧' : 'Loading 432Hz Audio Focus Lab 🎧');
+    } else if (query.includes('מגן') || query.includes('נוסטרו') || query.includes('drawdown') || query.includes('shield') || query.includes('prop')) {
+      setActiveTab('prop_shield');
+      setCommandFeedback(currentLang === 'he' ? 'טוען מגן נוסטרו ובקרת Drawdown 🛡️' : 'Loading Prop Shield & Risk Gate 🛡️');
+    } else if (query.includes('הדמיה') || query.includes('replay') || query.includes('סרט') || query.includes('motion')) {
+      setActiveTab('motion_replay');
+      setCommandFeedback(currentLang === 'he' ? 'טוען הדמיית מסחר סינמטית 🎬' : 'Loading Cinematic Trade Replay 🎬');
+    } else if (query.includes('דרכון') || query.includes('passport') || query.includes('תעודה')) {
+      setActiveTab('passport');
+      setCommandFeedback(currentLang === 'he' ? 'טוען דרכון הישגים הולוגרפי 🏆' : 'Loading Holographic Passport 🏆');
+    } else if (query.includes('סרטון') || query.includes('video') || query.includes('tiktok') || query.includes('reels')) {
+      setActiveTab('videos');
+      setCommandFeedback(currentLang === 'he' ? 'טוען יוצר סרטוני מדיה 9:16 📱' : 'Loading 9:16 Media Studio 📱');
+    } else {
+      onLaunchApp();
+    }
+
+    setTimeout(() => {
+      setCommandFeedback(null);
+    }, 2800);
+  };
+
   // Multilingual content
   const texts = {
     he: {
-      brandKicker: 'HIGGSFIELD STUDIO // TRADING DISCIPLINE SUITE',
+      brandKicker: 'DISCIPLINE STUDIO // TRADING DISCIPLINE SUITE',
       portalBadge: 'משמעת מסחר מדעית ✦',
       heroTitlePrefix: 'הפוך מסחר אמוציונלי למערכת',
       heroTitleHighlight: 'מדעית ומדויקת',
       heroSubtitle: 'סוויטת המסחר הראשונה מסוגה המבוססת על פסיכולוגיה מנטלית, זיהוי סטיות משמעת בזמן אמת, והגנה בלתי מתפשרת על יחידות הסיכון (R-Units) שלך.',
       btnLaunchStudio: 'כניסה לסוויטת המסחר ⚡',
-      btnHiggsfieldPortal: 'סיור במעבדות ✦',
+      btnExploreSuite: 'סיור במעבדות ✦',
       promptPlaceholder: 'מדוד את הביצועים שלך: ציון משמעת, פסיכולוגיה מנטלית ורווחי R...',
       statsDiscipline: '94.8%',
       statsDisciplineLabel: 'מדד משמעת ממוצע',
@@ -153,7 +191,7 @@ export default function LandingPage({
       navTools: 'כלי המשמעת',
       navAnalytics: 'אנליטיקה',
       navAbout: 'הסיפור שלי',
-      featuresTitle: 'כלי הסטודיו של Higgsfield למסחר ממושמע',
+      featuresTitle: 'כלי הסטודיו למסחר ממושמע',
       featuresSubtitle: 'שילוב עמוק בין פסיכולוגיה קוגניטיבית לניהול מתמטי קפדני של יחידות סיכון',
       tool1Title: 'מנוע משמעת אוטומטי (Discipline Engine)',
       tool1Desc: 'אלגוריתם חכם שמזהה סטיות מסחר (FOMO, יציאה מוקדמת, הזזת סטופ) ומחשב ציון משמעת מ-1 עד 10.',
@@ -189,13 +227,13 @@ export default function LandingPage({
       postCopied: 'הועתק בהצלחה! ✨'
     },
     en: {
-      brandKicker: 'HIGGSFIELD STUDIO // TRADING DISCIPLINE SUITE',
+      brandKicker: 'DISCIPLINE STUDIO // TRADING DISCIPLINE SUITE',
       portalBadge: 'PROFESSIONAL TRADING DISCIPLINE ✦',
       heroTitlePrefix: 'Turn Emotional Trading Into',
       heroTitleHighlight: 'Cinematic Discipline',
       heroSubtitle: 'The premier AI-native trading performance suite engineered around mental psychology, instant deviation detection, and uncompromising risk-unit (R) capital protection.',
       btnLaunchStudio: 'Enter Discipline Studio ⚡',
-      btnHiggsfieldPortal: 'Explore Suite ✦',
+      btnExploreSuite: 'Explore Suite ✦',
       promptPlaceholder: 'Analyze today\'s execution: discipline rating, psychological flow, and R-factor...',
       statsDiscipline: '94.8%',
       statsDisciplineLabel: 'Average Discipline Index',
@@ -207,7 +245,7 @@ export default function LandingPage({
       navTools: 'Discipline Tools',
       navAnalytics: 'Analytics',
       navAbout: 'My Story',
-      featuresTitle: 'Higgsfield-Powered Trading Discipline Tools',
+      featuresTitle: 'Professional Trading Discipline Tools',
       featuresSubtitle: 'Seamless fusion of behavioral psychology and strict mathematical risk-unit management',
       tool1Title: 'Automated Discipline Engine',
       tool1Desc: 'Real-time algorithm detecting trading rule deviations (FOMO, early exits, stop-widening) scoring execution 1-10.',
@@ -225,7 +263,7 @@ export default function LandingPage({
       ctaSubtitle: 'Join the professional discipline journey — uncompromising rule execution, strict risk management, and lasting consistency.',
       ctaButton: 'Launch Discipline Journal Now ⚡',
       adPosterTab: '9:16 Vertical Ad 🔥',
-      tabPortal: 'Higgsfield Portal',
+      tabPortal: 'Discipline Portal',
       tabPromptLab: 'AI Scenarios ✦',
       tabMotionReplay: 'Trade Replay 🎬',
       tabAudioFocus: '432Hz Audio 🎧',
@@ -243,13 +281,13 @@ export default function LandingPage({
       postCopied: 'Copied to Clipboard! ✨'
     },
     ar: {
-      brandKicker: 'HIGGSFIELD STUDIO // منصة انضباط التداول',
+      brandKicker: 'DISCIPLINE STUDIO // منصة انضباط التداول',
       portalBadge: 'انضباط التداول العلمي ✦',
       heroTitlePrefix: 'حوّل التداول العاطفي إلى نظام',
       heroTitleHighlight: 'علمي ودقيق',
       heroSubtitle: 'الجناح الأول من نوعه لإدارة علم النفس التجاري، ورصد الانحرافات اللحظية، وحماية وحدات المخاطر (R).',
       btnLaunchStudio: 'الدخول إلى المنصة ⚡',
-      btnHiggsfieldPortal: 'استكشف الأدوات ✦',
+      btnExploreSuite: 'استكشف الأدوات ✦',
       promptPlaceholder: 'سجل أداء اليوم: تقييم الانضباط، الحالة النفسية ووحدات المخاطر...',
       statsDiscipline: '94.8%',
       statsDisciplineLabel: 'مؤشر الانضباط',
@@ -261,7 +299,7 @@ export default function LandingPage({
       navTools: 'أدوات الانضباط',
       navAnalytics: 'التحليلات',
       navAbout: 'قصتي',
-      featuresTitle: 'أدوات Higgsfield للانضباط في التداول',
+      featuresTitle: 'أدوات احترافية للانضباط في التداول',
       featuresSubtitle: 'مزيج فريد بين علم النفس السلوكي وإدارة المخاطر الرياضية الصارمة',
       tool1Title: 'محرك الانضباط التلقائي',
       tool1Desc: 'يرصد الانحرافات العاطفية ويحدد درجة انضباط التداول من 1 إلى 10.',
@@ -279,7 +317,7 @@ export default function LandingPage({
       ctaSubtitle: 'انضم إلى رحلة الانضباط الاحترافية — التزام صارم بالقواعد وإدارة متقدمة للمخاطر.',
       ctaButton: 'تشغيل المنصة الآن ⚡',
       adPosterTab: 'إعلان 9:16 🔥',
-      tabPortal: 'بوابة Higgsfield',
+      tabPortal: 'بوابة الانضباط',
       tabPromptLab: 'سيناريوهات AI ✦',
       tabMotionReplay: 'محاكي الصفقات 🎬',
       tabAudioFocus: 'صوتيات 432Hz 🎧',
@@ -297,13 +335,13 @@ export default function LandingPage({
       postCopied: 'تم النسخ بنجاح! ✨'
     },
     ru: {
-      brandKicker: 'HIGGSFIELD STUDIO // СИСТЕМА ТОРГОВОЙ ДИСЦИПЛИНЫ',
+      brandKicker: 'DISCIPLINE STUDIO // СИСТЕМА ТОРГОВОЙ ДИСЦИПЛИНЫ',
       portalBadge: 'ДИСЦИПЛИНА ТРЕЙДИНГА ✦',
       heroTitlePrefix: 'Превратите эмоции в',
       heroTitleHighlight: 'Кинематографическую Дисциплину',
       heroSubtitle: 'Передовая рабочая среда трейдера, основанная на контроле психологии, мгновенном выявлении нарушений правил и строгой защите единиц риска (R).',
       btnLaunchStudio: 'Войти в студию трейдинга ⚡',
-      btnHiggsfieldPortal: 'Обзор студии ✦',
+      btnExploreSuite: 'Обзор студии ✦',
       promptPlaceholder: 'Оцените исполнение сегодня: индекс дисциплины, фокус и фактор R...',
       statsDiscipline: '94.8%',
       statsDisciplineLabel: 'Индекс дисциплины',
@@ -315,7 +353,7 @@ export default function LandingPage({
       navTools: 'Инструменты дисциплины',
       navAnalytics: 'Аналитика',
       navAbout: 'Обо мне',
-      featuresTitle: 'Инструменты дисциплины в стиле Higgsfield',
+      featuresTitle: 'Профессиональные инструменты торговой дисциплины',
       featuresSubtitle: 'Глубокий синтез поведенческой психологии и математического риск-менеджмента',
       tool1Title: 'Движок дисциплины (Discipline Engine)',
       tool1Desc: 'Автоматически определяет нарушения правил (FOMO, ранний выход, перетягивание стопа) с оценкой от 1 до 10.',
@@ -333,7 +371,7 @@ export default function LandingPage({
       ctaSubtitle: 'Присоединяйтесь к профессиональной дисциплине — строгое соблюдение правил и безупречный риск-менеджмент.',
       ctaButton: 'Запустить дневник сейчас ⚡',
       adPosterTab: 'Реклама 9:16 🔥',
-      tabPortal: 'Портал Higgsfield',
+      tabPortal: 'Портал дисциплины',
       tabPromptLab: 'AI Сценарии ✦',
       tabMotionReplay: 'Реплей сделок 🎬',
       tabAudioFocus: '432Гц Звук 🎧',
@@ -458,28 +496,58 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
         <div className="absolute inset-0 bg-[radial-gradient(#ffffff0a_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
       </div>
 
-      {/* Higgsfield Sleek Top Bar */}
-      <header className="sticky top-0 z-40 border-b border-white/[0.07] bg-[#07070a]/80 backdrop-blur-xl px-4 py-3 sm:px-8">
+      {/* Sleek Top Bar */}
+      <header className="sticky top-0 z-40 border-b border-white/[0.08] bg-[#07070a]/85 backdrop-blur-xl px-4 py-3 sm:px-8">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4">
           
           {/* Brand Identity */}
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 to-cyan-400 text-black flex items-center justify-center font-black shadow-lg shadow-emerald-500/20 text-base">
+          <div 
+            onClick={() => setActiveTab('portal')}
+            className="flex items-center gap-3 cursor-pointer group select-none"
+          >
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-400 via-teal-400 to-cyan-400 text-black flex items-center justify-center font-black shadow-lg shadow-emerald-500/20 text-base group-hover:scale-105 transition-transform">
               ✦
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="font-extrabold text-sm tracking-tight text-white font-mono uppercase">Higgsfield</span>
-                <span className="text-white/30 text-xs">/</span>
-                <span className="font-bold text-xs tracking-wide text-emerald-400">DISCIPLINE JOURNEY</span>
+              <div className="flex items-center gap-1.5">
+                <span className="font-black text-sm tracking-tight text-white font-mono uppercase">DISCIPLINE</span>
+                <span className="text-emerald-400/40 text-xs font-mono">/</span>
+                <span className="font-bold text-xs tracking-wider text-emerald-400 font-mono">JOURNEY</span>
               </div>
-              <div className="flex items-center gap-1.5 text-[10px] font-mono tracking-wider">
-                <span className="text-emerald-400 font-semibold">
-                  {currentLang === 'he' ? 'משמעת מסחר בלתי מתפשרת' : 'Uncompromising Trading Discipline'}
-                </span>
+              <div className="text-[10px] font-mono tracking-wider text-slate-400">
+                {currentLang === 'he' ? 'מערכת משמעת וניהול סיכונים' : 'Trading Psychology & Risk Engine'}
               </div>
             </div>
           </div>
+
+          {/* Center Navigation Bar (Desktop) */}
+          <nav className="hidden lg:flex items-center gap-1 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06]">
+            {[
+              { id: 'portal', label: currentTexts.tabPortal, icon: Cpu },
+              { id: 'prompt_lab', label: currentTexts.tabPromptLab, icon: Terminal },
+              { id: 'motion_replay', label: currentTexts.tabMotionReplay, icon: Video },
+              { id: 'audio_focus', label: currentTexts.tabAudioFocus, icon: Waves },
+              { id: 'prop_shield', label: currentTexts.tabPropShield, icon: ShieldCheck },
+              { id: 'videos', label: currentTexts.tabVideos, icon: Tv },
+            ].map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveTab(item.id as TabType)}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    isActive
+                      ? 'bg-emerald-500 text-black font-black shadow-xs'
+                      : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  <span>{item.label}</span>
+                </button>
+              );
+            })}
+          </nav>
 
           {/* Quick Links & Actions */}
           <div className="flex items-center gap-2 sm:gap-3">
@@ -514,205 +582,94 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
               </button>
             </div>
 
-            {/* Direct Official Suite Button */}
-            <button
-              type="button"
-              onClick={onLaunchApp}
-              className="px-3 py-1.5 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 text-slate-100 hover:text-white font-mono text-xs transition-all border border-emerald-500/30 hover:border-emerald-400/50 flex items-center gap-2 shadow-xs group cursor-pointer"
-              title="Official Discipline Suite ⚡"
-            >
-              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-              <span className="font-bold tracking-tight text-emerald-300 group-hover:text-emerald-200">
-                PORTAL ⚡
-              </span>
-            </button>
+            {onOpenAboutMe && (
+              <button
+                type="button"
+                onClick={onOpenAboutMe}
+                className="hidden sm:flex px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-semibold border border-white/[0.08] items-center gap-1.5 transition-all cursor-pointer"
+                title="About Me / The Discipline Story"
+              >
+                <User className="w-3.5 h-3.5 text-amber-400" />
+                <span>{currentTexts.navAbout}</span>
+              </button>
+            )}
 
             {onOpenAnalytics && (
               <button
                 type="button"
                 onClick={onOpenAnalytics}
-                className="px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-semibold border border-white/[0.08] flex items-center gap-1.5 transition-all cursor-pointer"
-                title="Analytics & Telemetry Dashboard"
+                className="hidden sm:flex px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-semibold border border-white/[0.08] items-center gap-1.5 transition-all cursor-pointer"
+                title="Analytics"
               >
                 <Activity className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="hidden sm:inline">{currentTexts.navAnalytics}</span>
+                <span>{currentTexts.navAnalytics}</span>
               </button>
             )}
 
-            {onOpenAboutMe && (
-              <button
-                type="button"
-                onClick={onOpenAboutMe}
-                className="px-3 py-1.5 rounded-xl bg-white/[0.03] hover:bg-white/[0.08] text-slate-300 hover:text-white text-xs font-semibold border border-white/[0.08] flex items-center gap-1.5 transition-all cursor-pointer"
-                title="About Me / The Discipline Story"
-              >
-                <User className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">{currentTexts.navAbout}</span>
-              </button>
-            )}
-
-            {/* Launch Workspace Button */}
+            {/* Launch Workspace Primary Button */}
             <button
               onClick={onLaunchApp}
-              className="px-4 py-1.5 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-black font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95"
+              className="px-4 py-2 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-black font-extrabold text-xs transition-all shadow-lg shadow-emerald-500/25 flex items-center gap-1.5 cursor-pointer active:scale-95 group"
             >
               <span>{currentTexts.btnLaunchStudio}</span>
-              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5]" />
+              <ChevronRight className="w-3.5 h-3.5 stroke-[2.5] group-hover:translate-x-0.5 transition-transform" />
             </button>
           </div>
         </div>
       </header>
 
-      {/* Secondary Studio Navigation Bar with All Rich Features */}
-      <div className="border-b border-white/[0.06] bg-[#07070a]/90 py-2.5 px-4 sticky top-[57px] z-30 backdrop-blur-md">
-        <div className="max-w-6xl mx-auto flex items-center justify-between gap-2 overflow-x-auto no-scrollbar">
-          
-          <div className="flex items-center gap-1.5 bg-white/[0.03] p-1 rounded-xl border border-white/[0.06] shrink-0">
-            
-            <button
-              onClick={() => setActiveTab('portal')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'portal'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <Cpu className="w-3.5 h-3.5" />
-              <span>{currentTexts.tabPortal}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('prompt_lab')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'prompt_lab'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{currentTexts.tabPromptLab}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('motion_replay')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'motion_replay'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <Video className="w-3.5 h-3.5 text-teal-400" />
-              <span>{currentTexts.tabMotionReplay}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('audio_focus')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'audio_focus'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <Waves className="w-3.5 h-3.5 text-cyan-400" />
-              <span>{currentTexts.tabAudioFocus}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('prop_shield')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'prop_shield'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <ShieldCheck className="w-3.5 h-3.5 text-amber-400" />
-              <span>{currentTexts.tabPropShield}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('passport')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'passport'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <Award className="w-3.5 h-3.5 text-pink-400" />
-              <span>{currentTexts.tabPassport}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('community')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'community'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{currentTexts.tabCommunity}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('videos')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'videos'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <Tv className="w-3.5 h-3.5 text-slate-400" />
-              <span>{currentTexts.tabVideos}</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('images')}
-              className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                activeTab === 'images'
-                  ? 'bg-emerald-500 text-black shadow-xs font-black'
-                  : 'text-slate-400 hover:text-white hover:bg-white/[0.04]'
-              }`}
-            >
-              <ImageIcon className="w-3.5 h-3.5 text-slate-400" />
-              <span>{currentTexts.tabImages}</span>
-            </button>
-
-            {isOwnerView && (
+      {/* Mobile/Compact Subnav Strip */}
+      <div className="lg:hidden border-b border-white/[0.06] bg-[#07070a]/95 py-2 px-3 sticky top-[57px] z-30 backdrop-blur-md overflow-x-auto no-scrollbar">
+        <div className="flex items-center gap-1.5 min-w-max">
+          {[
+            { id: 'portal', label: currentTexts.tabPortal, icon: Cpu },
+            { id: 'prompt_lab', label: currentTexts.tabPromptLab, icon: Terminal },
+            { id: 'motion_replay', label: currentTexts.tabMotionReplay, icon: Video },
+            { id: 'audio_focus', label: currentTexts.tabAudioFocus, icon: Waves },
+            { id: 'prop_shield', label: currentTexts.tabPropShield, icon: ShieldCheck },
+            { id: 'videos', label: currentTexts.tabVideos, icon: Tv },
+          ].map((item) => {
+            const Icon = item.icon;
+            const isActive = activeTab === item.id;
+            return (
               <button
-                onClick={() => {
-                  if (onOpenAdPoster) {
-                    onOpenAdPoster();
-                  } else {
-                    setActiveTab('ad_poster');
-                  }
-                }}
-                className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer shrink-0 ${
-                  activeTab === 'ad_poster'
-                    ? 'bg-amber-400 text-black shadow-xs font-black'
-                    : 'text-amber-300 hover:text-white hover:bg-amber-500/10'
+                key={item.id}
+                onClick={() => setActiveTab(item.id as TabType)}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
+                  isActive
+                    ? 'bg-emerald-500 text-black font-black'
+                    : 'text-slate-400 hover:text-white bg-white/[0.02]'
                 }`}
               >
-                <Flame className="w-3.5 h-3.5 text-amber-400" />
-                <span>{currentTexts.adPosterTab}</span>
+                <Icon className="w-3 h-3" />
+                <span>{item.label}</span>
               </button>
-            )}
-          </div>
-
-          {/* Discipline Status Badge */}
-          <div className="hidden lg:flex items-center gap-2 text-xs font-mono shrink-0 px-3 py-1.5 rounded-xl bg-white/[0.03] border border-emerald-500/20">
-            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-            <span className="text-emerald-400 font-bold">
-              {currentLang === 'he' ? 'משמעת: ציות מלא לכללים (100% Rules)' : 'Discipline: 100% Rules Adherence'}
-            </span>
-          </div>
-
+            );
+          })}
         </div>
       </div>
 
       {/* Main Studio Canvas */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 py-8 sm:px-8 relative z-10">
         
-        {/* TAB 1: MAIN HIGGSFIELD PORTAL EXPERIENCE */}
+        {/* Navigation Breadcrumb when inside dedicated tool tab */}
+        {activeTab !== 'portal' && (
+          <div className="mb-6 flex items-center justify-between pb-3 border-b border-white/[0.08]">
+            <button
+              onClick={() => setActiveTab('portal')}
+              className="flex items-center gap-2 text-xs font-mono text-emerald-400 hover:text-emerald-300 transition-colors cursor-pointer group"
+            >
+              <ArrowLeft className={`w-3.5 h-3.5 group-hover:-translate-x-0.5 transition-transform ${isCurrentRtl ? 'rotate-180 group-hover:translate-x-0.5' : ''}`} />
+              <span>{currentLang === 'he' ? 'חזרה לפורטל הראשי' : 'Back to Main Portal'}</span>
+            </button>
+            <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span>DISCIPLINE // ACTIVE SUITE</span>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 1: MAIN DISCIPLINE PORTAL EXPERIENCE */}
         {activeTab === 'portal' && (
           <div className="space-y-24 py-4 animate-fade-in">
             
@@ -751,53 +708,105 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
                 {currentTexts.heroSubtitle}
               </p>
 
-              {/* Higgsfield Command Launcher */}
-              <div className="pt-2 max-w-2xl mx-auto">
-                <div className="p-2 rounded-2xl bg-white/[0.04] border border-white/[0.1] shadow-2xl backdrop-blur-xl flex flex-col sm:flex-row items-center gap-2.5">
-                  <div className="flex-1 px-3 py-2 text-start flex items-center gap-2.5 w-full">
+              {/* Interactive Command Launcher */}
+              <div className="pt-2 max-w-2xl mx-auto space-y-3">
+                <form
+                  onSubmit={(e) => {
+                    e.preventDefault();
+                    handleExecuteHeroCommand();
+                  }}
+                  className="p-2 sm:p-2.5 rounded-2xl bg-white/[0.04] border border-white/[0.12] hover:border-emerald-500/40 focus-within:border-emerald-500/60 shadow-2xl backdrop-blur-xl flex flex-col sm:flex-row items-center gap-2 transition-all"
+                >
+                  <div className="flex-1 px-3 py-1.5 text-start flex items-center gap-2.5 w-full">
                     <Terminal className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span className="text-xs text-slate-300 font-mono truncate">
-                      {currentTexts.promptPlaceholder}
-                    </span>
+                    <input
+                      type="text"
+                      value={heroPromptInput}
+                      onChange={(e) => setHeroPromptInput(e.target.value)}
+                      placeholder={currentTexts.promptPlaceholder}
+                      className="w-full bg-transparent border-none text-xs text-slate-200 placeholder-slate-400/80 font-mono focus:outline-none"
+                    />
+                    {heroPromptInput && (
+                      <button
+                        type="button"
+                        onClick={() => setHeroPromptInput('')}
+                        className="text-slate-400 hover:text-white text-xs cursor-pointer px-1"
+                      >
+                        ✕
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
                     <button
-                      onClick={onLaunchApp}
-                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-black font-extrabold text-xs transition-all shadow-md shadow-emerald-500/20 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
+                      type="submit"
+                      className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-400 hover:from-emerald-400 hover:to-teal-300 text-black font-extrabold text-xs transition-all shadow-md shadow-emerald-500/25 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
                     >
                       <Zap className="w-3.5 h-3.5 fill-black" />
-                      <span>{currentTexts.btnLaunchStudio}</span>
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setActiveTab('prompt_lab')}
-                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500/10 to-amber-500/10 hover:from-cyan-500/20 hover:to-amber-500/20 text-cyan-300 hover:text-white font-mono text-xs transition-all border border-cyan-500/30 flex items-center justify-center gap-1.5 cursor-pointer shrink-0"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>{currentTexts.btnHiggsfieldPortal}</span>
+                      <span>{currentLang === 'he' ? 'הפעל פקודה ⚡' : 'Run Directive ⚡'}</span>
                     </button>
                   </div>
+                </form>
+
+                {commandFeedback && (
+                  <div className="px-3 py-1.5 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs font-mono animate-fade-in inline-flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                    <span>{commandFeedback}</span>
+                  </div>
+                )}
+
+                {/* Quick Suggestion Chips */}
+                <div className="flex items-center justify-center gap-1.5 flex-wrap pt-1">
+                  <span className="text-[11px] font-mono text-slate-400 shrink-0">
+                    {currentLang === 'he' ? 'פקודות מהירות:' : 'Quick Directives:'}
+                  </span>
+                  {(currentLang === 'he' ? [
+                    { label: '🛑 עסקת נקמה (Revenge)', query: 'עסקת נקמה' },
+                    { label: '🎯 בדיקת ציון משמעת', query: 'ציון משמעת' },
+                    { label: '📊 יחידות סיכון R', query: 'יחידות R' },
+                    { label: '🎧 מעבדת פוקוס 432Hz', query: 'שמע 432Hz' },
+                    { label: '🛡️ מגן נוסטרו Drawdown', query: 'מגן נוסטרו' },
+                  ] : [
+                    { label: '🛑 Revenge Tilt Guard', query: 'revenge' },
+                    { label: '🎯 Discipline Score', query: 'discipline' },
+                    { label: '📊 Risk-Units (R)', query: 'risk units' },
+                    { label: '🎧 432Hz Focus Lab', query: 'audio focus' },
+                    { label: '🛡️ Prop Firm Shield', query: 'prop shield' },
+                  ]).map((chip, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => {
+                        setHeroPromptInput(chip.query);
+                        handleExecuteHeroCommand(chip.query);
+                      }}
+                      className="px-2.5 py-1 rounded-lg bg-white/[0.03] hover:bg-emerald-500/15 border border-white/[0.08] hover:border-emerald-500/30 text-[11px] font-mono text-slate-300 hover:text-emerald-300 transition-all cursor-pointer"
+                    >
+                      {chip.label}
+                    </button>
+                  ))}
                 </div>
 
-                <div className="flex items-center justify-center gap-6 mt-3 text-xs text-slate-400 font-mono">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Real-Time Cloud Sync</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Zero Tilt & Revenge Protection</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Hedge-Fund R Units</span>
-                  </div>
+                {/* Trust Badges */}
+                <div className="flex items-center justify-center gap-4 sm:gap-6 pt-2 text-xs text-slate-400 font-mono flex-wrap">
+                  {(currentLang === 'he' ? [
+                    'סנכרון ענן בזמן אמת',
+                    'הגנה מלאה מעסקאות נקמה ו-Tilt',
+                    'מדידת יחידות סיכון R מתמטית'
+                  ] : [
+                    'Real-Time Cloud Persistence',
+                    'Zero Tilt & Revenge Protection',
+                    'Hedge-Fund R-Factor Precision'
+                  ]).map((badge, idx) => (
+                    <div key={idx} className="flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      <span>{badge}</span>
+                    </div>
+                  ))}
                 </div>
               </div>
 
-              {/* HIGGSFIELD HERO COCKPIT */}
+              {/* DISCIPLINE HERO COCKPIT */}
               <div className="pt-8 relative">
                 <div className="rounded-3xl bg-gradient-to-b from-white/[0.08] to-transparent p-[1px] shadow-2xl">
                   <div className="rounded-[23px] bg-[#0d0d12]/95 border border-white/[0.08] overflow-hidden backdrop-blur-2xl">
@@ -807,7 +816,7 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
                         <span className="w-2.5 h-2.5 rounded-full bg-rose-500/80 inline-block" />
                         <span className="w-2.5 h-2.5 rounded-full bg-amber-500/80 inline-block" />
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500/80 inline-block" />
-                        <span className="ml-2 font-mono text-slate-400 font-bold hidden sm:inline">HIGGSFIELD_STUDIO_COCKPIT // v3.2</span>
+                        <span className="ml-2 font-mono text-slate-400 font-bold hidden sm:inline">DISCIPLINE_STUDIO_COCKPIT // v3.2</span>
                       </div>
 
                       <div className="flex items-center gap-1 bg-black/40 p-1 rounded-xl border border-white/[0.06]">
@@ -883,18 +892,18 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
                             </p>
                           </div>
 
-                          {/* Pillar 2: Sharpness (Cyan) */}
+                          {/* Pillar 2: Risk Precision (Cyan) */}
                           <div className="p-5 rounded-2xl bg-white/[0.02] border border-cyan-500/25 space-y-3 relative overflow-hidden group hover:border-cyan-500/50 transition-all shadow-sm">
                             <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
                               <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
                                 <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                                <span>חדות // SHARPNESS</span>
+                                <span>{currentLang === 'en' ? 'RISK PRECISION' : 'דיוק וניהול סיכונים // RISK PRECISION'}</span>
                               </span>
                               <span className="px-1.5 py-0.5 rounded bg-cyan-500/10 text-cyan-300 font-bold text-[10px]">1:2.8 AVG R</span>
                             </div>
                             <div className="flex items-baseline gap-2">
                               <span className="text-4xl font-black text-cyan-300 font-mono">{currentTexts.statsRUnits}</span>
-                              <span className="text-xs text-slate-400 font-bold">יחידות סיכון נטו</span>
+                              <span className="text-xs text-slate-400 font-bold">{currentLang === 'en' ? 'Net Risk Units' : 'יחידות סיכון נטו'}</span>
                             </div>
                             <div className="flex items-center gap-1.5 text-xs font-mono text-slate-300">
                               <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-300 border border-cyan-500/30 font-bold">+3.2R TP</span>
@@ -902,29 +911,31 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
                               <span className="px-2 py-0.5 rounded bg-slate-800 text-slate-400 border border-white/10 font-bold">-1.0R SL</span>
                             </div>
                             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                              {currentTexts.statsRUnitsLabel} · נטרול מלא של חרדת הכסף על ידי מדידה מדויקת ב-R.
+                              {currentTexts.statsRUnitsLabel} · {currentLang === 'en' ? 'Total neutralization of money anxiety via objective R-multiples.' : 'נטרול מלא של חרדת הכסף על ידי מדידה מדויקת ב-R.'}
                             </p>
                           </div>
 
-                          {/* Pillar 3: Hope & Recovery (Warm Amber / Gold) */}
+                          {/* Pillar 3: Mental Mastery (Emerald / Amber) */}
                           <div className="p-5 rounded-2xl bg-white/[0.02] border border-amber-500/25 space-y-3 relative overflow-hidden group hover:border-amber-500/50 transition-all shadow-sm">
                             <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
                               <span className="flex items-center gap-1.5 text-amber-400 font-bold">
                                 <span className="w-2 h-2 rounded-full bg-amber-400" />
-                                <span>תקווה // HOPE & FLOW</span>
+                                <span>{currentLang === 'en' ? 'MENTAL MASTERY // FLOW' : 'שליטה מנטלית // MENTAL MASTERY'}</span>
                               </span>
                               <span className="px-1.5 py-0.5 rounded bg-amber-500/10 text-amber-300 font-bold text-[10px]">CALM & ZEN</span>
                             </div>
                             <div className="flex items-baseline gap-2">
                               <span className="text-4xl font-black text-amber-300 font-mono">{currentTexts.statsStreak}</span>
-                              <span className="text-xs text-amber-400 font-bold">רצף יציב</span>
+                              <span className="text-xs text-amber-400 font-bold">{currentLang === 'en' ? 'Steady Streak' : 'רצף יציב'}</span>
                             </div>
                             <div className="flex items-center gap-2">
                               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                              <span className="text-xs font-mono text-emerald-300">רדאר נקמה: 0 עסקאות אימפולסיביות</span>
+                              <span className="text-xs font-mono text-emerald-300">
+                                {currentLang === 'en' ? 'Revenge Radar: 0 Impulsive Trades' : 'רדאר נקמה: 0 עסקאות אימפולסיביות'}
+                              </span>
                             </div>
                             <p className="text-xs text-slate-400 leading-relaxed font-sans">
-                              {currentTexts.statsStreakLabel} · יציאה מהפסדים ועלייה למסלול של צמיחה מתמשכת.
+                              {currentTexts.statsStreakLabel} · {currentLang === 'en' ? 'Eliminating emotional tilt and maintaining long-term equity growth.' : 'יציאה מהפסדים ועלייה למסלול של צמיחה מתמשכת.'}
                             </p>
                           </div>
                         </div>
@@ -1003,17 +1014,17 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
                       <div className="flex items-center gap-3 text-xs font-mono">
                         <span className="flex items-center gap-1.5 text-emerald-400 font-semibold">
                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                          <span>משמעת: 94.8%</span>
+                          <span>{currentLang === 'en' ? 'Discipline: 94.8%' : 'משמעת: 94.8%'}</span>
                         </span>
                         <span className="text-white/20">•</span>
                         <span className="flex items-center gap-1.5 text-cyan-400 font-semibold">
                           <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                          <span>חדות: +18.5 R</span>
+                          <span>{currentLang === 'en' ? 'Profit: +18.5 R' : 'רווח: +18.5 R'}</span>
                         </span>
                         <span className="text-white/20">•</span>
                         <span className="flex items-center gap-1.5 text-amber-400 font-semibold">
                           <span className="w-2 h-2 rounded-full bg-amber-400" />
-                          <span>תקווה: רווחיות יציבה</span>
+                          <span>{currentLang === 'en' ? 'Execution: 100% Rules' : 'ציות: 100% לכללים'}</span>
                         </span>
                       </div>
 
@@ -1042,11 +1053,11 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
               <CinematicTradeVisualizer language={language} onLaunchApp={onLaunchApp} />
             </div>
 
-            {/* SECTION 4: 6 HIGGSFIELD TOOLS SHOWCASE */}
+            {/* SECTION 4: 6 DISCIPLINE TOOLS SHOWCASE */}
             <div className="space-y-12 max-w-6xl mx-auto pt-12 border-t border-white/[0.06]">
               <div className="text-center space-y-3">
                 <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
-                  <span>✦ HIGGSFIELD DISCIPLINE SUITE</span>
+                  <span>✦ PROFESSIONAL DISCIPLINE SUITE</span>
                 </div>
                 <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
                   {currentTexts.featuresTitle}
@@ -1161,7 +1172,7 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
 
             {/* SECTION 7: COMMUNITY DISCIPLINE FEED */}
             <div className="pt-12 border-t border-white/[0.06]">
-              <HiggsfieldCommunityFeed language={language} onLaunchApp={onLaunchApp} />
+              <DisciplineCommunityFeed language={language} onLaunchApp={onLaunchApp} />
             </div>
 
             {/* SECTION 8: HOLOGRAPHIC PASSPORT GENERATOR */}
@@ -1199,7 +1210,7 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
                     className="w-full sm:w-auto px-5 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500/10 via-amber-500/10 to-emerald-500/10 hover:from-cyan-500/20 hover:to-emerald-500/20 text-cyan-300 hover:text-white font-mono text-sm transition-all border border-cyan-500/40 flex items-center justify-center gap-2 cursor-pointer"
                   >
                     <Sparkles className="w-4 h-4 text-amber-400" />
-                    <span>{currentTexts.btnHiggsfieldPortal}</span>
+                    <span>{currentTexts.btnExploreSuite}</span>
                   </button>
                 </div>
               </div>
@@ -1251,7 +1262,7 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
         {/* TAB 7: COMMUNITY FEED */}
         {activeTab === 'community' && (
           <div className="py-4 animate-fade-in">
-            <HiggsfieldCommunityFeed language={language} onLaunchApp={onLaunchApp} />
+            <DisciplineCommunityFeed language={language} onLaunchApp={onLaunchApp} />
           </div>
         )}
 
@@ -1418,22 +1429,22 @@ Measuring performance in objective R-Units eliminates monetary panic and secures
 
       </main>
 
-      {/* Higgsfield Footer */}
+      {/* Footer */}
       <footer className="border-t border-white/[0.06] bg-[#050508] py-10 px-4 sm:px-8 mt-16 text-xs text-slate-400">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-3">
-            <span className="font-bold text-white">© 2026 Higgsfield / My Discipline Journey</span>
+            <span className="font-bold text-white">© 2026 My Discipline Journey</span>
             <span className="hidden sm:inline text-white/20">·</span>
             <span>{currentTexts.creatorLabel}</span>
           </div>
 
           <div className="flex items-center gap-4 flex-wrap justify-center font-mono">
             <div className="flex items-center gap-2 text-xs font-mono">
-              <span className="text-emerald-400 font-bold">משמעת</span>
+              <span className="text-emerald-400 font-bold">{currentLang === 'en' ? 'DISCIPLINE' : 'משמעת מדעית'}</span>
               <span className="text-white/20">•</span>
-              <span className="text-cyan-400 font-bold">חדות</span>
+              <span className="text-cyan-400 font-bold">{currentLang === 'en' ? 'RISK PRECISION' : 'ניהול סיכונים'}</span>
               <span className="text-white/20">•</span>
-              <span className="text-amber-400 font-bold">תקווה</span>
+              <span className="text-amber-400 font-bold">{currentLang === 'en' ? 'MENTAL MASTERY' : 'שליטה מנטלית'}</span>
               <span className="px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 text-[10px] border border-emerald-500/30">
                 OFFICIAL SUITE
               </span>

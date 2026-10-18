@@ -42,7 +42,7 @@ export const PropFirmShieldCalculator: React.FC<Props> = ({ language, onLaunchAp
   const isSafe = consecutiveLosses >= 8;
 
   const handleCopyPlan = () => {
-    const text = `HIGGSFIELD PROP FIRM CAPITAL SHIELD:
+    const text = `PROP FIRM CAPITAL SHIELD:
 Account Size: $${accountSize.toLocaleString()}
 Max Drawdown: ${maxDrawdownPercent}% ($${maxDrawdownDollar.toLocaleString()})
 Risk Per Trade (1R): ${riskPerTradePercent}% ($${riskPerTradeDollar.toLocaleString()})
@@ -62,7 +62,7 @@ Safety Rating: ${isSafe ? 'OPTIMAL' : isMediumRisk ? 'MODERATE' : 'DANGEROUS (OV
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
           <ShieldCheck className="w-3.5 h-3.5" />
-          <span>HIGGSFIELD PRECISION LAB // PROP FIRM DRAWDOWN SHIELD</span>
+          <span>PRECISION LAB // PROP FIRM DRAWDOWN SHIELD</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
           {language === 'he' ? 'מחשבון שרידות חשבונות נוסטרו (Prop Firm Shield)' : 'Prop Firm & Drawdown Capital Shield Calculator'}

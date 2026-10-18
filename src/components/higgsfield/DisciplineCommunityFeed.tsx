@@ -76,7 +76,7 @@ interface Props {
   onLaunchApp: () => void;
 }
 
-export const HiggsfieldCommunityFeed: React.FC<Props> = ({ language, onLaunchApp }) => {
+export const DisciplineCommunityFeed: React.FC<Props> = ({ language, onLaunchApp }) => {
   const [feed, setFeed] = useState<FeedItem[]>(INITIAL_FEED);
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
   const [likedIds, setLikedIds] = useState<string[]>([]);
@@ -102,7 +102,7 @@ export const HiggsfieldCommunityFeed: React.FC<Props> = ({ language, onLaunchApp
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
           <Users className="w-3.5 h-3.5" />
-          <span>HIGGSFIELD COMMUNITY FEED // DISCIPLINE RADAR</span>
+          <span>COMMUNITY FEED // DISCIPLINE RADAR</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
           {language === 'he' ? 'זרם ההצלחות והמשמעת של קהילת הסוחרים' : 'Live Community Discipline & Milestone Feed'}

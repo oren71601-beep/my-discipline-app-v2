@@ -64,7 +64,7 @@ export const DisciplinePassportGenerator: React.FC<Props> = ({ language, isPremi
     // Header Kicker
     ctx.fillStyle = '#00f5a0';
     ctx.font = 'bold 20px monospace';
-    ctx.fillText('✦ HIGGSFIELD VERIFIED DISCIPLINE PASSPORT', 80, 110);
+    ctx.fillText('✦ VERIFIED DISCIPLINE PASSPORT', 80, 110);
 
     // Title / Brand
     ctx.fillStyle = '#ffffff';
@@ -141,7 +141,7 @@ export const DisciplinePassportGenerator: React.FC<Props> = ({ language, isPremi
     // Footer info
     ctx.fillStyle = '#00f5a0';
     ctx.font = 'bold 16px monospace';
-    ctx.fillText('OFFICIAL DISCIPLINE PASSPORT // HIGGSFIELD SUITE', 80, 570);
+    ctx.fillText('OFFICIAL DISCIPLINE PASSPORT // TRADING DISCIPLINE SUITE', 80, 570);
 
     ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
     ctx.font = '14px monospace';
@@ -151,7 +151,7 @@ export const DisciplinePassportGenerator: React.FC<Props> = ({ language, isPremi
     const dataUrl = canvas.toDataURL('image/png');
     const a = document.createElement('a');
     a.href = dataUrl;
-    a.download = `higgsfield_discipline_passport_${traderName.toLowerCase().replace(/\s+/g, '_')}.png`;
+    a.download = `discipline_passport_${traderName.toLowerCase().replace(/\s+/g, '_')}.png`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -165,7 +165,7 @@ export const DisciplinePassportGenerator: React.FC<Props> = ({ language, isPremi
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
           <Award className="w-3.5 h-3.5" />
-          <span>HIGGSFIELD HOLOGRAPHIC STUDIO // PASSPORT EXPORTER</span>
+          <span>HOLOGRAPHIC STUDIO // PASSPORT EXPORTER</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
           {language === 'he' ? 'דרכון משמעת דיגיטלי הולוגרפי (Discipline Passport)' : 'Holographic Discipline Passport & Card Generator'}
@@ -260,7 +260,7 @@ export const DisciplinePassportGenerator: React.FC<Props> = ({ language, isPremi
                   <div className="w-7 h-7 rounded-lg bg-emerald-500 text-black font-black text-xs flex items-center justify-center">
                     ✦
                   </div>
-                  <span className="font-mono text-xs text-emerald-400 font-bold">HIGGSFIELD DISCIPLINE PASSPORT</span>
+                  <span className="font-mono text-xs text-emerald-400 font-bold">VERIFIED DISCIPLINE PASSPORT</span>
                 </div>
                 <span className="text-[10px] font-mono text-slate-400 bg-white/[0.05] px-2 py-0.5 rounded border border-white/[0.08]">
                   VERIFIED

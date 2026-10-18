@@ -132,7 +132,7 @@ export const DisciplinePromptSimulator: React.FC<Props> = ({ language, onLaunchA
   };
 
   const handleCopyDirective = () => {
-    const text = `HIGGSFIELD DISCIPLINE DIRECTIVE:
+    const text = `DISCIPLINE DIRECTIVE:
 Scenario: ${customPrompt || activeScenario.prompt}
 Tilt Risk: ${activeScenario.tiltRisk} (${activeScenario.tiltRiskPercent}%)
 Directive: ${activeScenario.directive}
@@ -152,7 +152,7 @@ Golden Rule: ${activeScenario.mindsetRule}`;
       <div className="text-center space-y-3">
         <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-mono">
           <Terminal className="w-3.5 h-3.5" />
-          <span>HIGGSFIELD PROMPT STUDIO // SCENARIO SIMULATOR</span>
+          <span>PROMPT STUDIO // SCENARIO SIMULATOR</span>
         </div>
         <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight">
           {language === 'he' ? 'סימולטור תרחישי מסחר ומשמעת מנטלית' : 'Discipline Scenario & Tilt AI Simulator'}
